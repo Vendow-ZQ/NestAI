@@ -1,89 +1,128 @@
 import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
-import { useSpaceStore } from '@/lib/store/space-store'
 import { useUserStore } from '@/lib/store/user-store'
+import { useSpaceStore } from '@/lib/store/space-store'
 import { CustomTabBar } from '@/components/tab-bar'
+import { BilingualTitle } from '@/components/bilingual-title'
+import { PlaceholderImage } from '@/components/placeholder-image'
 
 export default function UploadPage() {
-  const addImage = useSpaceStore((s) => s.addUploadedImage)
   const setUploaded = useUserStore((s) => s.setHasUploadedSpace)
-
-  const handleTakePhoto = () => {
-    addImage('mock-dorm-photo-1.jpg')
-    setUploaded(true)
-    Taro.navigateTo({ url: '/pages/generating/index?type=space&sceneId=scene-01' })
-  }
+  const setImages = useSpaceStore((s) => s.setUploadedImages)
+  const uploadedImages = useSpaceStore((s) => s.uploadedImages)
 
   const handleChooseImage = () => {
-    addImage('mock-dorm-photo-2.jpg')
-    addImage('mock-dorm-photo-3.jpg')
-    setUploaded(true)
-    Taro.navigateTo({ url: '/pages/generating/index?type=space&sceneId=scene-01' })
+    Taro.chooseImage({
+      count: 5,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        setImages(res.tempFilePaths)
+      },
+    })
   }
 
-  const handleBack = () => {
-    Taro.navigateBack()
+  const handleStart = () => {
+    setUploaded(true)
+    Taro.navigateTo({
+      url: '/pages/generating/index?type=space&sceneId=scene-01',
+    })
   }
 
   return (
-    <View className="min-h-full bg-background flex flex-col" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
-      {/* Header - 标题居中 */}
-      <View className="flex flex-row items-center justify-center px-5 pt-12 pb-4 relative">
+    <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
+      {/* Header */}
+      <View className="flex flex-row items-center px-5 pt-12 pb-4">
         <View
-          onClick={handleBack}
-          className="w-9 h-9 rounded-full flex items-center justify-center absolute left-5"
-          style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ border: '1.5px solid #b5ad9f' }}
+          onClick={() => Taro.navigateBack()}
         >
-          <Text className="text-ink text-sm">&lt;</Text>
+          <Text className="text-[#b5ad9f] text-sm">&lt;</Text>
         </View>
-        <Text className="text-lg text-ink font-semibold">上传你的空间</Text>
       </View>
 
-      {/* 主区域 - 占满剩余空间 */}
-      <View className="flex-1 flex flex-col px-5">
-        {/* 拍照框 4:3 */}
+      {/* 页面标题 */}
+      <View className="px-5 mb-4">
+        <BilingualTitle en="UPLOAD YOUR SPACE" zh="上传你的空间" size="lg" align="center" />
+      </View>
+
+      {/* 拍照/上传区 */}
+      <View className="px-5 flex-1">
         <View
-          className="w-full rounded flex flex-col items-center justify-center"
+          className="rounded flex flex-col items-center justify-center mb-4 relative overflow-hidden hover-lift"
           style={{
             borderWidth: '1.5px',
             borderStyle: 'dashed',
             borderColor: '#b5ad9f',
             aspectRatio: '4 / 3',
           }}
-          onClick={handleTakePhoto}
+          onClick={handleChooseImage}
         >
-          <Text className="block text-lg text-ink mb-2">认识你的空间</Text>
-          <Text className="block text-sm text-[#999] text-center">
-            建议拍 3-5 张：整体、桌面、床、窗、地
-          </Text>
+          {uploadedImages.length > 0 ? (
+            <View className="w-full h-full relative">
+              <PlaceholderImage label="已上传照片" className="w-full h-full rounded" />
+              <View
+                className="absolute bottom-2 right-2 bg-ink text-background rounded-full px-3 py-1"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleChooseImage()
+                }}
+              >
+                <Text className="text-xs">+ 添加更多</Text>
+              </View>
+            </View>
+          ) : (
+            <>
+              <Text
+                className="block text-[#b5ad9f] font-light select-none"
+                style={{ fontSize: '120px', lineHeight: 1, opacity: 0.35 }}
+              >
+                +
+              </Text>
+              <Text className="block text-base text-ink mt-2">认识你的空间</Text>
+              <Text className="block text-xs text-[#999] mt-1">建议拍 3-5 张：整体、桌面、床、窗、地</Text>
+            </>
+          )}
         </View>
 
-        {/* 选择图片入口 */}
-        <View className="mt-4">
-          <View
-            className="w-full rounded py-3 flex items-center justify-center"
-            style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}
-            onClick={handleChooseImage}
-          >
-            <Text className="text-sm text-[#999]">从相册选择图片</Text>
+        {/* 已选图片缩略图 */}
+        {uploadedImages.length > 0 && (
+          <View className="flex flex-row gap-2 flex-wrap mb-4">
+            {uploadedImages.map((_img, i) => (
+              <View key={i} className="w-16 h-16 rounded overflow-hidden hover-lift">
+                <PlaceholderImage label={`${i + 1}`} className="w-full h-full" />
+              </View>
+            ))}
           </View>
-        </View>
+        )}
       </View>
 
-      {/* 底部开始分析按钮 - 固定底部 */}
-      <View className="px-5 pb-20 pt-4">
+      {/* 底部固定按钮 */}
+      <View
+        style={{
+          position: 'fixed',
+          bottom: 60,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '16px',
+          backgroundColor: '#ffffff',
+          zIndex: 100,
+        }}
+      >
         <View
-          className="rounded-full py-4 flex items-center justify-center"
-          style={{ backgroundColor: '#1a1814', boxShadow: '4px 4px 0 #d9a823' }}
-          onClick={handleTakePhoto}
+          className="btn-tonight"
+          style={{ opacity: uploadedImages.length > 0 ? 1 : 0.4 }}
+          onClick={uploadedImages.length > 0 ? handleStart : undefined}
         >
-          <Text className="text-white text-lg">开始分析</Text>
+          <Text className="block text-background text-lg">开始分析</Text>
+          <Text className="block btn-tonight-text">Analyze</Text>
         </View>
-        <Text className="block text-center text-xs text-[#999] mt-1">Tonight, try.</Text>
       </View>
 
-      {/* 底部导航栏 */}
       <CustomTabBar current="grow" />
     </View>
   )

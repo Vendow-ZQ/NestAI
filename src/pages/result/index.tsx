@@ -6,15 +6,16 @@ import { PlaceholderImage } from '@/components/placeholder-image'
 import { MOCK_INTERVENTIONS, MOCK_SCENES } from '@/lib/mock/data'
 import { useInterventionStore } from '@/lib/store/intervention-store'
 import { CustomTabBar } from '@/components/tab-bar'
+import { BilingualTitle } from '@/components/bilingual-title'
 
 type Level = 'free' | 'low' | 'advanced'
 
 type ImageTab = 'axonometric' | 'render1' | 'render2'
 
-const IMAGE_TABS: { key: ImageTab; label: string }[] = [
-  { key: 'axonometric', label: '轴测图' },
-  { key: 'render1', label: '效果图1' },
-  { key: 'render2', label: '效果图2' },
+const IMAGE_TABS: { key: ImageTab; label: string; en: string }[] = [
+  { key: 'axonometric', label: '轴测图', en: 'AXONOMETRIC' },
+  { key: 'render1', label: '效果图1', en: 'RENDER 1' },
+  { key: 'render2', label: '效果图2', en: 'RENDER 2' },
 ]
 
 export default function ResultPage() {
@@ -37,10 +38,10 @@ export default function ResultPage() {
 
   const displayLevel = addedToNext ? activeLevel : selectedLevel
 
-  const levels: { key: Level; label: string }[] = [
-    { key: 'free', label: '0元' },
-    { key: 'low', label: '低成本' },
-    { key: 'advanced', label: '进阶' },
+  const levels: { key: Level; label: string; en: string }[] = [
+    { key: 'free', label: '0元', en: 'FREE' },
+    { key: 'low', label: '低成本', en: 'LOW COST' },
+    { key: 'advanced', label: '进阶', en: 'ADVANCED' },
   ]
 
   const handleTonightTry = () => {
@@ -95,10 +96,15 @@ export default function ResultPage() {
         </View>
       </View>
 
-      <ScrollView scrollY style={{ height: 'calc(100vh - 80px)' }}>
+      {/* 标题 */}
+      <View className="px-5 mb-3">
+        <BilingualTitle en="INTERVENTION RESULT" zh="空间干预方案" size="lg" />
+      </View>
+
+      <ScrollView scrollY style={{ height: 'calc(100vh - 160px)' }}>
         {/* 改造后主视觉 — 4:3 比例 */}
         <View className="px-5">
-          <View className="w-full rounded overflow-hidden" style={{ aspectRatio: '4 / 3' }}>
+          <View className="w-full rounded overflow-hidden hover-lift" style={{ aspectRatio: '4 / 3' }}>
             <PlaceholderImage label={imageLabelMap[activeImageTab]} className="w-full h-full" />
           </View>
 
@@ -107,7 +113,7 @@ export default function ResultPage() {
             {IMAGE_TABS.map((tab) => (
               <View
                 key={tab.key}
-                className={`flex-1 py-2 rounded flex items-center justify-center ${
+                className={`flex-1 py-2 rounded flex items-center justify-center hover-lift ${
                   activeImageTab === tab.key ? 'bg-ink' : 'bg-card'
                 }`}
                 style={{ borderWidth: '1.5px', borderColor: activeImageTab === tab.key ? 'transparent' : '#b5ad9f' }}
@@ -138,24 +144,25 @@ export default function ResultPage() {
           {levels.map((level) => (
             <View
               key={level.key}
-              className={`flex-1 py-2 rounded flex items-center justify-center ${
+              className={`flex-1 py-2 rounded flex items-center justify-center hover-lift ${
                 displayLevel === level.key ? 'bg-ink' : 'bg-card'
               }`}
               style={{ borderWidth: '1.5px', borderColor: displayLevel === level.key ? 'transparent' : '#b5ad9f' }}
               onClick={() => { if (!addedToNext) setSelectedLevel(level.key) }}
             >
-              <Text className={`text-sm ${displayLevel === level.key ? 'text-white' : 'text-[#999]'}`}>
-                {level.label}
-                {displayLevel === level.key ? ' ✓' : ''}
-              </Text>
+              <View className="flex flex-col items-center">
+                <Text className={`text-sm ${displayLevel === level.key ? 'text-white' : 'text-[#999]'}`}>
+                  {level.label}
+                </Text>
+              </View>
             </View>
           ))}
         </View>
 
         {/* Why 这样改 */}
         <View className="px-5 mt-6">
-          <Text className="block text-base text-[#999] mb-2">Why 这样改</Text>
-          <View className="bg-card rounded p-4">
+          <BilingualTitle en="WHY" zh="为什么这样改" size="sm" />
+          <View className="bg-card rounded p-4 mt-2 hover-lift">
             <Text className="block text-sm text-[#3a3530] leading-relaxed">
               {currentData.diagnosis}
             </Text>
@@ -164,8 +171,8 @@ export default function ResultPage() {
 
         {/* How 怎么做 */}
         <View className="px-5 mt-6">
-          <Text className="block text-base text-[#999] mb-2">How 怎么做</Text>
-          <Text className="block text-sm text-[#3a3530] mb-3">最轻第一步:</Text>
+          <BilingualTitle en="HOW" zh="怎么做" size="sm" />
+          <Text className="block text-sm text-[#3a3530] mb-3 mt-2">最轻第一步:</Text>
           {currentData.firstSteps.map((s, i) => (
             <View key={i} className="flex flex-row items-start gap-2 mb-2">
               <View className="w-5 h-5 rounded flex items-center justify-center" style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}>
@@ -199,7 +206,7 @@ export default function ResultPage() {
         <View className="px-5 mt-6">
           {!addedToNext ? (
             <View
-              className="rounded-full py-4 flex items-center justify-center"
+              className="rounded-full py-4 flex items-center justify-center hover-lift"
               style={{ backgroundColor: '#1a1814', boxShadow: '4px 4px 0 #d9a823' }}
               onClick={handleTonightTry}
             >
@@ -208,14 +215,14 @@ export default function ResultPage() {
           ) : (
             <View>
               <View
-                className="rounded-full py-4 flex items-center justify-center mb-3"
+                className="rounded-full py-4 flex items-center justify-center mb-3 hover-lift"
                 style={{ backgroundColor: '#1a1814' }}
                 onClick={handleGoNext}
               >
                 <Text className="text-white text-lg">去 Next 看看</Text>
               </View>
               <View
-                className="rounded-full py-3 flex items-center justify-center"
+                className="rounded-full py-3 flex items-center justify-center hover-lift"
                 style={{ borderWidth: '1.5px', borderColor: '#1a1814' }}
                 onClick={handleShare}
               >
@@ -229,7 +236,6 @@ export default function ResultPage() {
         <View className="h-20" />
       </ScrollView>
 
-      {/* 底部导航栏 */}
       <CustomTabBar current="grow" />
     </View>
   )

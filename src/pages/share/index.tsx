@@ -1,30 +1,18 @@
-import { View, Text, ScrollView } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { useState } from 'react'
 
-import { Textarea } from '@/components/ui/textarea'
-import { PlaceholderImage } from '@/components/placeholder-image'
+import { useMemoryStore } from '@/lib/store/memory-store'
+import { MOCK_LETTERS } from '@/lib/mock/data'
 import { CustomTabBar } from '@/components/tab-bar'
+import { BilingualTitle } from '@/components/bilingual-title'
 
 export default function SharePage() {
-  const [feeling, setFeeling] = useState('')
-  const [notDone, setNotDone] = useState<string[]>([])
-
-  const notDoneOptions = [
-    '桌面收纳没动',
-    '没买台灯',
-    '没调整布局',
-    '没挂东西',
-  ]
-
-  const toggleNotDone = (opt: string) => {
-    setNotDone((prev) =>
-      prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]
-    )
-  }
+  const addLetter = useMemoryStore((s) => s.addLetter)
 
   const handleGenerate = () => {
-    Taro.navigateTo({ url: '/pages/generating/index?type=letter&sceneId=scene-01' })
+    const letter = MOCK_LETTERS[0]
+    addLetter(letter)
+    Taro.navigateTo({ url: '/pages/generating/index?type=letter' })
   }
 
   const handleBack = () => {
@@ -34,7 +22,7 @@ export default function SharePage() {
   return (
     <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
       {/* Header */}
-      <View className="flex flex-row items-center px-5 pt-12 pb-4">
+      <View className="flex flex-row items-center px-5 pt-12 pb-2">
         <View
           onClick={handleBack}
           className="w-9 h-9 rounded-full flex items-center justify-center"
@@ -42,73 +30,63 @@ export default function SharePage() {
         >
           <Text className="text-ink text-sm">&lt;</Text>
         </View>
-        <Text className="text-lg text-ink font-semibold ml-3">看看变化了</Text>
       </View>
 
-      <ScrollView scrollY style={{ height: 'calc(100vh - 100px)' }}>
-        {/* Step 1: 拍照 */}
-        <View className="px-5 mb-6">
-          <Text className="block text-base text-ink font-semibold mb-2">Step 1:</Text>
-          <Text className="block text-sm text-[#999] mb-3">拍一张现在的样子</Text>
-          <View
-            className="w-full rounded flex items-center justify-center"
-            style={{ borderWidth: '2px', borderColor: '#b5ad9f', borderStyle: 'dashed', height: '180px' }}
-          >
-            <PlaceholderImage label="点击拍照或上传" className="w-full h-full" />
-          </View>
-        </View>
+      {/* 标题 */}
+      <View className="px-5 mb-4">
+        <BilingualTitle en="SHARE CHANGES" zh="看看变化了" size="lg" />
+      </View>
 
-        {/* Step 2: 感受 */}
-        <View className="px-5 mb-6">
-          <Text className="block text-base text-ink font-semibold mb-2">Step 2: (可选)</Text>
-          <Text className="block text-sm text-[#999] mb-3">说说感受?</Text>
-          <View className="mb-3">
-            <Textarea
-              className="w-full"
-              placeholder="做完之后，你坐进去的感觉怎么样？"
-              maxlength={200}
-              value={feeling}
-              onInput={(e) => setFeeling(e.detail.value)}
-            />
-          </View>
+      {/* Step 1: 拍照 */}
+      <View className="px-5 mb-6">
+        <Text className="block text-sm text-[#999] mb-2">Step 1:</Text>
+        <Text className="block text-base text-ink mb-3">拍一张现在的样子</Text>
+        <View
+          className="w-full rounded flex items-center justify-center bg-[#f5f5f5] hover-lift"
+          style={{ aspectRatio: '4 / 3', borderStyle: 'dashed', borderWidth: '2px', borderColor: '#b5ad9f' }}
+        >
+          <Text className="text-4xl text-[#b5ad9f]" style={{ opacity: 0.5 }}>+</Text>
         </View>
+      </View>
 
-        {/* Step 3: 哪步没做到 */}
-        <View className="px-5 mb-6">
-          <Text className="block text-base text-ink font-semibold mb-2">Step 3: (可选)</Text>
-          <Text className="block text-sm text-[#999] mb-3">哪一步没做到?</Text>
-          {notDoneOptions.map((opt) => (
-            <View
-              key={opt}
-              className="flex flex-row items-center gap-2 mb-2"
-              onClick={() => toggleNotDone(opt)}
-            >
-              <View
-                className="w-5 h-5 rounded flex items-center justify-center"
-                style={{ borderWidth: '1.5px', borderColor: notDone.includes(opt) ? '#d9a823' : '#b5ad9f', backgroundColor: notDone.includes(opt) ? '#d9a823' : 'transparent' }}
-              >
-                {notDone.includes(opt) && <Text className="text-white text-xs">✓</Text>}
-              </View>
-              <Text className="text-sm text-ink">{opt}</Text>
+      {/* Step 2: 感受 */}
+      <View className="px-5 mb-6">
+        <Text className="block text-sm text-[#999] mb-2">Step 2: (可选)</Text>
+        <Text className="block text-base text-ink mb-3">说说感受?</Text>
+        <View className="bg-card rounded p-3" style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}>
+          <Text className="block text-sm text-[#999]">做完之后,你坐进去的感觉怎么样?</Text>
+        </View>
+      </View>
+
+      {/* Step 3: 未完成步骤 */}
+      <View className="px-5 mb-6">
+        <Text className="block text-sm text-[#999] mb-2">Step 3: (可选)</Text>
+        <Text className="block text-base text-ink mb-3">哪一步没做到?</Text>
+        {['桌面收纳没动', '没买台灯', '海报没挂'].map((item, i) => (
+          <View key={i} className="flex flex-row items-center gap-2 mb-2">
+            <View className="w-5 h-5 rounded flex items-center justify-center" style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}>
+              <Text className="text-xs text-[#999]">{i + 1}</Text>
             </View>
-          ))}
-        </View>
+            <Text className="flex-1 text-sm text-ink">{item}</Text>
+          </View>
+        ))}
+      </View>
 
-        {/* 主按钮 */}
-        <View className="px-5 mt-2">
-          <View
-            className="rounded-full py-4 flex items-center justify-center"
-            style={{ backgroundColor: '#1a1814', boxShadow: '4px 4px 0 #d9a823' }}
-            onClick={handleGenerate}
-          >
+      {/* 生成按钮 */}
+      <View className="px-5 mt-4">
+        <View
+          className="rounded-full py-4 flex items-center justify-center hover-lift"
+          style={{ backgroundColor: '#1a1814', boxShadow: '4px 4px 0 #d9a823' }}
+          onClick={handleGenerate}
+        >
+          <View className="flex flex-col items-center">
             <Text className="text-white text-lg">生成一封信</Text>
           </View>
         </View>
+      </View>
 
-        <View className="h-20" />
-      </ScrollView>
+      <View className="h-24" />
 
-      {/* 底部导航栏 */}
       <CustomTabBar current="grow" />
     </View>
   )

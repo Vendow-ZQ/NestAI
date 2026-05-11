@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 
-interface Letter {
+export interface Letter {
   id: string
-  text: string
+  title: string
+  content: string[]
   date: string
   lifestyleDirection: string
   beforeImage: string

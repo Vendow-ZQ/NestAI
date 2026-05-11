@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useLifestyleStore } from '@/lib/store/lifestyle-store'
 import { MOCK_SCENES } from '@/lib/mock/data'
 import { CustomTabBar } from '@/components/tab-bar'
+import { BilingualTitle } from '@/components/bilingual-title'
 
 const ASPIRATION_OPTIONS = [
   { id: 'focus', label: '更容易进入专注状态' },
@@ -87,10 +88,14 @@ export default function ChatPage() {
         >
           <Text className="text-ink text-sm">&lt;</Text>
         </View>
-        <Text className="text-lg text-ink font-semibold ml-3">Lifestyle Chat</Text>
       </View>
 
-      <ScrollView scrollY style={{ height: 'calc(100vh - 100px)' }}>
+      {/* 标题 */}
+      <View className="px-5 mb-4">
+        <BilingualTitle en="LIFESTYLE CHAT" zh="生活方式对话" size="lg" />
+      </View>
+
+      <ScrollView scrollY style={{ height: 'calc(100vh - 160px)' }}>
         {/* Agent 消息 */}
         <View className="px-5 mb-6">
           <View className="bg-card rounded p-4 mb-4">
@@ -129,7 +134,7 @@ export default function ChatPage() {
           {step === 'aspiration' && ASPIRATION_OPTIONS.map((opt) => (
             <View
               key={opt.id}
-              className={`mb-3 rounded p-4 ${
+              className={`mb-3 rounded p-4 hover-lift ${
                 aspiration.includes(opt.id) ? 'bg-[#f0d77a]' : 'bg-card'
               }`}
               style={{ borderWidth: '1.5px', borderColor: aspiration.includes(opt.id) ? '#d9a823' : '#b5ad9f' }}
@@ -142,7 +147,7 @@ export default function ChatPage() {
           {step === 'pain' && PAIN_OPTIONS.map((opt) => (
             <View
               key={opt.id}
-              className={`mb-3 rounded p-4 ${
+              className={`mb-3 rounded p-4 hover-lift ${
                 pain.includes(opt.id) ? 'bg-[#f0d77a]' : 'bg-card'
               }`}
               style={{ borderWidth: '1.5px', borderColor: pain.includes(opt.id) ? '#d9a823' : '#b5ad9f' }}
@@ -159,7 +164,7 @@ export default function ChatPage() {
                 {SHARING_OPTIONS.map((opt) => (
                   <View
                     key={opt}
-                    className={`rounded-full px-4 py-2 ${sharing === opt ? 'bg-ink' : 'bg-card'}`}
+                    className={`rounded-full px-4 py-2 hover-lift ${sharing === opt ? 'bg-ink' : 'bg-card'}`}
                     style={{ borderWidth: '1.5px', borderColor: sharing === opt ? 'transparent' : '#b5ad9f' }}
                     onClick={() => setSharing(opt)}
                   >
@@ -173,7 +178,7 @@ export default function ChatPage() {
                 {BUDGET_OPTIONS.map((opt) => (
                   <View
                     key={opt}
-                    className={`rounded-full px-4 py-2 ${budget === opt ? 'bg-ink' : 'bg-card'}`}
+                    className={`rounded-full px-4 py-2 hover-lift ${budget === opt ? 'bg-ink' : 'bg-card'}`}
                     style={{ borderWidth: '1.5px', borderColor: budget === opt ? 'transparent' : '#b5ad9f' }}
                     onClick={() => setBudget(opt)}
                   >
@@ -187,7 +192,7 @@ export default function ChatPage() {
                 {WALL_OPTIONS.map((opt) => (
                   <View
                     key={opt}
-                    className={`rounded-full px-4 py-2 ${wall === opt ? 'bg-ink' : 'bg-card'}`}
+                    className={`rounded-full px-4 py-2 hover-lift ${wall === opt ? 'bg-ink' : 'bg-card'}`}
                     style={{ borderWidth: '1.5px', borderColor: wall === opt ? 'transparent' : '#b5ad9f' }}
                     onClick={() => setWall(opt)}
                   >
@@ -202,7 +207,7 @@ export default function ChatPage() {
         {/* 继续按钮 */}
         <View className="px-5 mt-4">
           <View
-            className="bg-ink rounded-full py-4 flex items-center justify-center"
+            className="bg-ink rounded-full py-4 flex items-center justify-center hover-lift"
             onClick={handleNext}
           >
             <Text className="text-white text-base">
@@ -214,7 +219,6 @@ export default function ChatPage() {
         <View className="h-20" />
       </ScrollView>
 
-      {/* 底部导航栏 */}
       <CustomTabBar current="grow" />
     </View>
   )

@@ -2,104 +2,105 @@ import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useState, useEffect } from 'react'
 
+import { useUserStore } from '@/lib/store/user-store'
+import { useSpaceStore } from '@/lib/store/space-store'
 import { CustomTabBar } from '@/components/tab-bar'
+import { BilingualTitle } from '@/components/bilingual-title'
 
 export default function GeneratingPage() {
-  const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
+  const setHasUploadedSpace = useUserStore((s) => s.setHasUploadedSpace)
+  const setSpaceProfile = useSpaceStore((s) => s.setSpaceProfile)
 
   const params = Taro.getCurrentInstance().router?.params
   const type = params?.type || 'space'
   const sceneId = params?.sceneId || 'scene-01'
 
   const spaceSteps = [
-    '看见这个空间...',
-    '识别物件与布局...',
-    '注意可干预点...',
+    { zh: '看见这个空间...', en: 'SEEING THE SPACE' },
+    { zh: '识别物件与布局...', en: 'IDENTIFYING OBJECTS' },
+    { zh: '注意可干预点...', en: 'FINDING POSSIBILITIES' },
   ]
 
   const interventionSteps = [
-    '理解你想靠近的生活...',
-    '在养料库里找参考...',
-    '把方案翻译成今晚就能做的事...',
+    { zh: '理解你想靠近的生活...', en: 'UNDERSTANDING YOUR LIFE' },
+    { zh: '在养料库里找参考...', en: 'FINDING REFERENCES' },
+    { zh: '把方案翻译成今晚就能做的事...', en: 'MAKING IT ACTIONABLE' },
   ]
 
   const letterSteps = [
-    '看见你做了什么...',
-    '想想这次变化说出了什么...',
-    '写一封信...',
+    { zh: '看见你做了什么...', en: 'SEEING WHAT YOU DID' },
+    { zh: '想想这次变化说出了什么...', en: 'REFLECTING ON CHANGES' },
+    { zh: '写一封信...', en: 'WRITING A LETTER' },
   ]
 
-  const steps = type === 'intervention'
-    ? interventionSteps
-    : type === 'letter'
-    ? letterSteps
-    : spaceSteps
+  const steps = type === 'intervention' ? interventionSteps : type === 'letter' ? letterSteps : spaceSteps
+  const duration = type === 'intervention' ? 4500 : type === 'letter' ? 5500 : 3000
+  const stepDuration = duration / steps.length
 
-  const duration = type === 'intervention' ? 4000 : type === 'letter' ? 5000 : 3000
-
-  const getTargetUrl = () => {
-    if (type === 'intervention') {
-      return `/pages/result/index?sceneId=${sceneId}`
-    }
-    if (type === 'letter') {
-      return '/pages/letter/index'
-    }
-    return '/pages/chat/index'
+  const titleMap = {
+    space: { zh: '空间识别', en: 'SPACE ANALYSIS' },
+    intervention: { zh: '方案生成', en: 'INTERVENTION' },
+    letter: { zh: '信件生成', en: 'LETTER' },
   }
 
+  const currentTitle = titleMap[type] || titleMap.space
+
   useEffect(() => {
-    const stepInterval = duration / steps.length
+    if (type === 'space') {
+      setHasUploadedSpace(true)
+      setSpaceProfile({ type: 'dorm', layout: '7+1 single room', detectedObjects: [], constraints: [] })
+    }
+
     const timer = setInterval(() => {
       setCurrentStep((prev) => {
-        if (prev < steps.length - 1) return prev + 1
-        return prev
+        if (prev >= steps.length - 1) {
+          clearInterval(timer)
+          setTimeout(() => {
+            if (type === 'space') {
+              Taro.redirectTo({ url: `/pages/chat/index?sceneId=${sceneId}` })
+            } else if (type === 'intervention') {
+              Taro.redirectTo({ url: `/pages/result/index?sceneId=${sceneId}` })
+            } else {
+              Taro.redirectTo({ url: '/pages/letter/index' })
+            }
+          }, 800)
+          return prev
+        }
+        return prev + 1
       })
-    }, stepInterval)
+    }, stepDuration)
 
-    const progressTimer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) return 100
-        return prev + 2
-      })
-    }, duration / 50)
-
-    const targetUrl = getTargetUrl()
-    const finishTimer = setTimeout(() => {
-      Taro.redirectTo({ url: targetUrl })
-    }, duration + 500)
-
-    return () => {
-      clearInterval(timer)
-      clearInterval(progressTimer)
-      clearTimeout(finishTimer)
-    }
+    return () => clearInterval(timer)
   }, [])
+
+  const progress = ((currentStep + 1) / steps.length) * 100
 
   return (
     <View className="min-h-full bg-background flex flex-col items-center justify-center" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
+      {/* 标题 */}
+      <View className="mb-8">
+        <BilingualTitle en={currentTitle.en} zh={currentTitle.zh} size="lg" />
+      </View>
+
       {/* 进度条 */}
-      <View className="w-3/4 h-1 bg-card rounded-full mb-12 overflow-hidden">
-        <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: '#d9a823', transition: 'width 0.3s ease-out' }} />
+      <View className="w-48 h-1 bg-[#f0f0f0] rounded-full mb-10 overflow-hidden">
+        <View
+          className="h-full rounded-full"
+          style={{ width: `${progress}%`, backgroundColor: '#d9a823', transition: 'width 0.5s ease-out' }}
+        />
       </View>
 
       {/* 步骤文字 */}
-      <View className="flex flex-col items-center gap-4">
+      <View className="flex flex-col items-center gap-6">
         {steps.map((step, i) => (
-          <Text
-            key={i}
-            className="block text-base"
-            style={{
-              color: i <= currentStep ? '#1a1814' : '#b5ad9f',
-              transition: 'color 0.5s ease-out',
-            }}
-          >
-            {step}
-          </Text>
+          <View key={i} className="flex flex-col items-center" style={{ opacity: i <= currentStep ? 1 : 0.3, transition: 'opacity 0.5s ease-out' }}>
+            <Text className="block text-base text-ink">{step.zh}</Text>
+            <Text className="block text-xs text-[#999] mt-1" style={{ fontFamily: "'Arial Black', sans-serif" }}>{step.en}</Text>
+          </View>
         ))}
       </View>
 
-      {/* 底部导航栏 */}
       <CustomTabBar current="grow" />
     </View>
   )

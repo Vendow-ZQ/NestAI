@@ -6,6 +6,7 @@ import { useInterventionStore } from '@/lib/store/intervention-store'
 import { MOCK_FEED, MOCK_NEXT_ACTIONS } from '@/lib/mock/data'
 import { Badge } from '@/components/ui/badge'
 import { PlaceholderImage } from '@/components/placeholder-image'
+import { BilingualTitle } from '@/components/bilingual-title'
 
 export default function GrowPage() {
   const hasUploadedSpace = useUserStore((s) => s.hasUploadedSpace)
@@ -23,9 +24,7 @@ export default function GrowPage() {
     <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
       {/* Header */}
       <View className="flex flex-row items-center justify-between px-5 pt-12 pb-4">
-        <View className="flex flex-row items-center gap-2">
-          <Text className="text-2xl text-ink font-semibold">NestAI</Text>
-        </View>
+        <BilingualTitle en="NestAI" zh="你的栖巢" size="2xl" />
         <View className="w-8 h-8 rounded-full bg-[#f0f0f0] flex items-center justify-center">
           <Text className="text-xs text-[#999]">我</Text>
         </View>
@@ -34,7 +33,7 @@ export default function GrowPage() {
       <ScrollView scrollY className="px-5" style={{ height: 'calc(100vh - 140px)' }}>
         {/* 上传区 — 始终显示 */}
         <View
-          className="rounded flex flex-col items-center justify-center mb-4 relative overflow-hidden"
+          className="rounded flex flex-col items-center justify-center mb-4 relative overflow-hidden hover-lift"
           style={{
             borderWidth: '1.5px',
             borderStyle: 'dashed',
@@ -57,7 +56,7 @@ export default function GrowPage() {
 
         {/* 已上传空间卡 — 有空间时额外显示 */}
         {hasUploadedSpace && (
-          <View className="mb-4 bg-card rounded p-4">
+          <View className="mb-4 bg-card rounded p-4 hover-lift">
             <View className="flex flex-row items-center gap-3">
               <View className="w-10 h-10 rounded bg-[#f0f0f0] flex items-center justify-center">
                 <Text className="text-xs text-[#999]">空间</Text>
@@ -78,7 +77,7 @@ export default function GrowPage() {
               {(nextList.length > 0 ? nextList : MOCK_NEXT_ACTIONS.slice(0, 2)).map((item) => (
                 <View
                   key={item.id}
-                  className="inline-block w-40 bg-card rounded p-3 flex-shrink-0"
+                  className="inline-block w-40 bg-card rounded p-3 flex-shrink-0 hover-lift"
                   onClick={() => {
                     const sceneId = item.sceneId || 'scene-01'
                     Taro.navigateTo({ url: `/pages/result/index?sceneId=${sceneId}` })
@@ -104,7 +103,7 @@ export default function GrowPage() {
           {MOCK_FEED.map((feed) => (
             <View
               key={feed.id}
-              className="mb-3 bg-card rounded overflow-hidden"
+              className="mb-3 bg-card rounded overflow-hidden hover-lift"
               onClick={() => handleFeedClick(feed.id)}
             >
               <View className="flex flex-row" style={{ minHeight: '120px' }}>
