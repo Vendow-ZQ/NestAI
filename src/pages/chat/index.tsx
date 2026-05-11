@@ -43,7 +43,7 @@ export default function ChatPage() {
   const setStoreSoftConstraints = useLifestyleStore((s) => s.setSoftConstraints)
 
   const scene = MOCK_SCENES[0]
-  const objectDesc = scene.detectedObjects.map((o) => o.name).join('、')
+  const objectDesc = scene.description
 
   const handleSelectAspiration = (id: string) => {
     setAspiration((prev) =>

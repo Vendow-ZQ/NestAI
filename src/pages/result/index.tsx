@@ -63,23 +63,21 @@ export default function ResultPage() {
         {/* 改造后主视觉 */}
         <View className="relative" style={{ height: '55vh' }}>
           <PlaceholderImage label="改造后效果" className="w-full h-full" />
-          {/* 变化标注 */}
-          {currentIntervention.annotations.map((ann, i) => (
-            <View
-              key={i}
-              className="absolute flex flex-row items-center gap-1"
-              style={{ left: `${ann.x}%`, top: `${ann.y}%` }}
-            >
-              <View className="w-4 h-4 rounded-full flex items-center justify-center" style={{ borderWidth: '2px', borderColor: '#d9a823', backgroundColor: '#ffffff' }}>
-                <Text className="text-xs text-ink">{i + 1}</Text>
+          {/* 变化标注列表 */}
+          <View className="absolute bottom-3 left-3 right-3">
+            {currentIntervention.changes.map((change, i) => (
+              <View key={i} className="flex flex-row items-start gap-2 mb-1">
+                <View className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ borderWidth: '1.5px', borderColor: '#d9a823', backgroundColor: '#ffffff' }}>
+                  <Text className="text-xs text-ink" style={{ fontSize: '10px' }}>{i + 1}</Text>
+                </View>
+                <View className="bg-white rounded px-2 py-1">
+                  <Text className="text-xs text-ink">{change}</Text>
+                </View>
               </View>
-              <View className="bg-white rounded px-1">
-                <Text className="text-xs text-ink">{ann.label}</Text>
-              </View>
-            </View>
-          ))}
+            ))}
+          </View>
           {/* 改造前缩略图 */}
-          <View className="absolute bottom-3 left-3 w-16 h-12 rounded overflow-hidden" style={{ borderWidth: '2px', borderColor: '#ffffff' }}>
+          <View className="absolute top-3 right-3 w-16 h-12 rounded overflow-hidden" style={{ borderWidth: '2px', borderColor: '#ffffff' }}>
             <PlaceholderImage label="改造前" className="w-full h-full" />
           </View>
         </View>
