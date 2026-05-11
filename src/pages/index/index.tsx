@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Image } from '@tarojs/components'
+import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
 import { useUserStore } from '@/lib/store/user-store'
@@ -7,8 +7,6 @@ import { MOCK_FEED, MOCK_NEXT_ACTIONS } from '@/lib/mock/data'
 import { Badge } from '@/components/ui/badge'
 import { PlaceholderImage } from '@/components/placeholder-image'
 import { BilingualTitle } from '@/components/bilingual-title'
-
-import axisBg from '@/assets/axis-bg.jpg'
 
 export default function GrowPage() {
   const hasUploadedSpace = useUserStore((s) => s.hasUploadedSpace)
@@ -26,7 +24,7 @@ export default function GrowPage() {
     <View className="min-h-full bg-background overflow-hidden" style={{ fontFamily: "'Noto Sans SC', sans-serif", maxWidth: '100vw' }}>
       {/* Header */}
       <View className="flex flex-row items-center justify-between px-4 pt-12 pb-4">
-        <BilingualTitle en="NestAI" zh="你的栖巢" size="2xl" />
+        <BilingualTitle en="NestAI" zh="栖巢" size="2xl" />
         <View className="w-8 h-8 rounded-full bg-[#f0f0f0] flex items-center justify-center">
           <Text className="text-xs text-[#999]">我</Text>
         </View>
@@ -36,7 +34,7 @@ export default function GrowPage() {
         <View className="px-4">
         {/* 上传区 — 始终显示 */}
         <View
-          className="rounded flex flex-col items-center justify-center mb-4 relative overflow-hidden hover-lift"
+          className="rounded flex flex-col items-center justify-center mb-2 relative hover-lift"
           style={{
             borderWidth: '1.5px',
             borderStyle: 'dashed',
@@ -45,20 +43,23 @@ export default function GrowPage() {
           }}
           onClick={handleUpload}
         >
-          {/* 轴测图背景 50%透明度 */}
-          <Image
-            src={axisBg}
-            mode="aspectFill"
-            className="absolute top-0 left-0 w-full h-full"
-            style={{ opacity: 0.5 }}
-          />
-          {/* 文案覆盖层 */}
-          <View className="relative z-10 flex flex-col items-center justify-center">
-            <Text className="block text-base text-ink text-center px-6" style={{ fontWeight: 500 }}>
-              用你的生活方式改变身边空间
-            </Text>
-          </View>
+          {/* 大加号 */}
+          <Text
+            className="text-[#b5ad9f] leading-none"
+            style={{ fontSize: '100px', opacity: 0.35, lineHeight: 1 }}
+          >
+            +
+          </Text>
+          {/* 文案 */}
+          <Text className="block text-sm text-ink text-center px-6 mt-2" style={{ fontWeight: 500 }}>
+            用你的生活方式改变身边空间
+          </Text>
         </View>
+
+        {/* From Nest to Next */}
+        <Text className="block text-center text-xs text-[#b5ad9f] mb-4" style={{ letterSpacing: '2px' }}>
+          From Nest to Next
+        </Text>
 
         {/* 已上传空间卡 — 有空间时额外显示 */}
         {hasUploadedSpace && (

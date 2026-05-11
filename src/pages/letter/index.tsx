@@ -34,16 +34,19 @@ export default function LetterPage() {
       </View>
 
       <ScrollView scrollY style={{ height: 'calc(100vh - 160px)' }}>
-        {/* 改造前后小图对比 */}
+        {/* 改造后效果图 — 单张全幅，左滑看改造前 */}
         <View className="px-5 mb-6">
-          <View className="flex flex-row gap-3">
-            <View className="flex-1 rounded overflow-hidden hover-lift" style={{ aspectRatio: '4 / 3' }}>
-              <PlaceholderImage label="改造前" className="w-full h-full" />
+          <ScrollView scrollX style={{ width: '100%' }}>
+            <View className="flex flex-row gap-3" style={{ paddingRight: '16px' }}>
+              <View className="flex-shrink-0 rounded overflow-hidden hover-lift" style={{ width: '85vw', aspectRatio: '4 / 3' }}>
+                <PlaceholderImage label="改造后" className="w-full h-full" />
+              </View>
+              <View className="flex-shrink-0 rounded overflow-hidden hover-lift" style={{ width: '85vw', aspectRatio: '4 / 3' }}>
+                <PlaceholderImage label="改造前" className="w-full h-full" />
+              </View>
             </View>
-            <View className="flex-1 rounded overflow-hidden hover-lift" style={{ aspectRatio: '4 / 3' }}>
-              <PlaceholderImage label="改造后" className="w-full h-full" />
-            </View>
-          </View>
+          </ScrollView>
+          <Text className="block text-xs text-[#b5ad9f] mt-2 text-center">← 左滑查看改造前</Text>
         </View>
 
         {/* 信件正文 */}
@@ -81,12 +84,20 @@ export default function LetterPage() {
           </View>
 
           {/* 分享按钮 */}
-          <View className="mb-8">
+          <View className="mb-8 flex flex-col gap-3">
+            {/* 分享 Share to Grow */}
+            <View
+              className="rounded-full py-3 flex items-center justify-center hover-lift"
+              style={{ backgroundColor: '#1a1814' }}
+            >
+              <Text className="text-[#f7f3ea] text-sm">分享 Share to Grow</Text>
+            </View>
+            {/* 转发 Share to Friends */}
             <View
               className="rounded-full py-3 flex items-center justify-center hover-lift"
               style={{ borderWidth: '1.5px', borderColor: '#1a1814' }}
             >
-              <Text className="text-ink text-base">分享给朋友</Text>
+              <Text className="text-ink text-sm">转发 Share to Friends</Text>
             </View>
           </View>
         </View>
