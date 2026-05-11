@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { PlaceholderImage } from '@/components/placeholder-image'
 import { BilingualTitle } from '@/components/bilingual-title'
 
-import axisBg from '@/assets/axis-bg.png'
+import axisBg from '@/assets/axis-bg.jpg'
 
 export default function GrowPage() {
   const hasUploadedSpace = useUserStore((s) => s.hasUploadedSpace)
