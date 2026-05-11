@@ -9,14 +9,22 @@ import { CustomTabBar } from '@/components/tab-bar'
 
 type Level = 'free' | 'low' | 'advanced'
 
+type ImageTab = 'axonometric' | 'render1' | 'render2'
+
+const IMAGE_TABS: { key: ImageTab; label: string }[] = [
+  { key: 'axonometric', label: '轴测图' },
+  { key: 'render1', label: '效果图1' },
+  { key: 'render2', label: '效果图2' },
+]
+
 export default function ResultPage() {
   const [selectedLevel, setSelectedLevel] = useState<Level>('low')
   const [addedToNext, setAddedToNext] = useState(false)
+  const [activeImageTab, setActiveImageTab] = useState<ImageTab>('axonometric')
   const addToNext = useInterventionStore((s) => s.addToNext)
 
   const params = Taro.getCurrentInstance().router?.params
   const sceneId = params?.sceneId || 'scene-01'
-  // 支持 URL 传入 level 参数
   const levelParam = params?.level as Level | undefined
   const initialLevel = levelParam && ['free', 'low', 'advanced'].includes(levelParam) ? levelParam : 'low'
 
@@ -68,6 +76,12 @@ export default function ResultPage() {
 
   const currentData = interventions.find((i) => i.level === displayLevel) ?? interventions[1]
 
+  const imageLabelMap: Record<ImageTab, string> = {
+    axonometric: `${spaceName} · 轴测图`,
+    render1: `${spaceName} · 效果图1`,
+    render2: `${spaceName} · 效果图2`,
+  }
+
   return (
     <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
       {/* Header */}
@@ -82,30 +96,45 @@ export default function ResultPage() {
       </View>
 
       <ScrollView scrollY style={{ height: 'calc(100vh - 80px)' }}>
-        {/* 改造后主视觉 */}
-        <View className="relative" style={{ height: '55vh' }}>
-          <PlaceholderImage label={`${spaceName} · 改造后效果`} className="w-full h-full" />
-          {/* 变化标注列表 */}
-          <View className="absolute bottom-3 left-3 right-3">
-            {currentData.changes.map((change, i) => (
-              <View key={i} className="flex flex-row items-start gap-2 mb-1">
-                <View className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ borderWidth: '1.5px', borderColor: '#d9a823', backgroundColor: '#ffffff' }}>
-                  <Text className="text-xs text-ink" style={{ fontSize: '10px' }}>{i + 1}</Text>
-                </View>
-                <View className="bg-white rounded px-2 py-1">
-                  <Text className="text-xs text-ink">{change}</Text>
-                </View>
+        {/* 改造后主视觉 — 4:3 比例 */}
+        <View className="px-5">
+          <View className="w-full rounded overflow-hidden" style={{ aspectRatio: '4 / 3' }}>
+            <PlaceholderImage label={imageLabelMap[activeImageTab]} className="w-full h-full" />
+          </View>
+
+          {/* 图片 Tab 切换: 轴测图 / 效果图1 / 效果图2 */}
+          <View className="flex flex-row gap-2 mt-3">
+            {IMAGE_TABS.map((tab) => (
+              <View
+                key={tab.key}
+                className={`flex-1 py-2 rounded flex items-center justify-center ${
+                  activeImageTab === tab.key ? 'bg-ink' : 'bg-card'
+                }`}
+                style={{ borderWidth: '1.5px', borderColor: activeImageTab === tab.key ? 'transparent' : '#b5ad9f' }}
+                onClick={() => setActiveImageTab(tab.key)}
+              >
+                <Text className={`text-sm ${activeImageTab === tab.key ? 'text-white' : 'text-[#999]'}`}>
+                  {tab.label}
+                </Text>
               </View>
             ))}
           </View>
-          {/* 改造前缩略图 */}
-          <View className="absolute top-3 right-3 w-16 h-12 rounded overflow-hidden" style={{ borderWidth: '2px', borderColor: '#ffffff' }}>
-            <PlaceholderImage label="改造前" className="w-full h-full" />
+
+          {/* 变化标注 */}
+          <View className="mt-4">
+            {currentData.changes.map((change, i) => (
+              <View key={i} className="flex flex-row items-start gap-2 mb-2">
+                <View className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ borderWidth: '1.5px', borderColor: '#d9a823', backgroundColor: '#ffffff' }}>
+                  <Text className="text-xs text-ink" style={{ fontSize: '10px' }}>{i + 1}</Text>
+                </View>
+                <Text className="flex-1 text-sm text-ink">{change}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
         {/* 三档方案切换 */}
-        <View className="flex flex-row gap-2 px-5 mt-4">
+        <View className="flex flex-row gap-2 px-5 mt-5">
           {levels.map((level) => (
             <View
               key={level.key}
