@@ -1,12 +1,35 @@
 import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useState } from 'react'
-import { AgentMessage, UserMessage } from '@/components/agent'
+
 import { MOCK_LIFESTYLE_OPTIONS } from '@/lib/mock/data'
 import { useLifestyleStore } from '@/lib/store/lifestyle-store'
 import { useSpaceStore } from '@/lib/store/space-store'
 
 type ChatStep = 'aspiration' | 'currentState' | 'constraints' | 'done'
+
+function AgentBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <View className="flex flex-row gap-2 mb-3">
+      <View className="w-7 h-7 rounded bg-[#ede6d4] flex items-center justify-center flex-shrink-0 mt-1">
+        <Text className="text-xs text-[#d9a823]">N</Text>
+      </View>
+      <View className="flex-1 bg-card rounded p-3">
+        <Text className="block text-sm text-ink leading-relaxed">{children}</Text>
+      </View>
+    </View>
+  )
+}
+
+function UserBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <View className="flex flex-row justify-end mb-3">
+      <View className="max-w-[80%] rounded p-3" style={{ backgroundColor: '#f0d77a' }}>
+        <Text className="block text-sm text-ink">{children}</Text>
+      </View>
+    </View>
+  )
+}
 
 export default function ChatPage() {
   const [step, setStep] = useState<ChatStep>('aspiration')
@@ -60,7 +83,6 @@ export default function ChatPage() {
     } else {
       useLifestyleStore.getState().setSoftConstraints(newConstraints)
       setStep('done')
-      // 跳到方案生成
       Taro.navigateTo({ url: '/pages/generating/index?type=intervention' })
     }
   }
@@ -76,41 +98,41 @@ export default function ChatPage() {
   ]
 
   return (
-    <View className="min-h-full bg-background">
+    <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
       {/* Header */}
       <View className="flex flex-row items-center px-5 pt-12 pb-4">
         <View onClick={handleBack} className="mr-3">
-          <Text className="text-ink font-ui text-sm">← 返回</Text>
+          <Text className="text-ink text-sm">← 返回</Text>
         </View>
-        <Text className="font-handwritten text-lg text-ink">Lifestyle Chat</Text>
+        <Text className="text-lg text-ink font-semibold">Lifestyle Chat</Text>
       </View>
 
       <ScrollView scrollY className="px-5" style={{ height: 'calc(100vh - 100px)' }}>
         {/* Agent 初始观察 */}
-        <AgentMessage>
+        <AgentBubble>
           我看到了{objectDesc}。在我们继续之前，我想了解一下——
-        </AgentMessage>
+        </AgentBubble>
 
         {/* 层1: 向往生活 */}
-        <AgentMessage>
+        <AgentBubble>
           你最希望这个空间帮你做到什么？
-        </AgentMessage>
+        </AgentBubble>
 
         <View className="mb-4">
           {MOCK_LIFESTYLE_OPTIONS.aspiration.map((option) => (
             <View
               key={option}
-              className={`mb-2 p-3 rounded border ${
+              className={`mb-2 p-3 rounded ${
                 selectedAspiration.includes(option)
-                  ? 'border-bean bg-accent'
-                  : 'border-ink-faint bg-card'
+                  ? 'border-[#d9a823] bg-[#f0d77a]'
+                  : 'bg-card'
               }`}
-              style={{ borderWidth: '1.5px' }}
+              style={{ borderWidth: '1.5px', borderColor: selectedAspiration.includes(option) ? '#d9a823' : '#b5ad9f' }}
               onClick={() => handleSelectAspiration(option)}
             >
               <Text
-                className={`text-sm font-ui ${
-                  selectedAspiration.includes(option) ? 'text-ink' : 'text-ink-soft'
+                className={`text-sm ${
+                  selectedAspiration.includes(option) ? 'text-ink font-semibold' : 'text-[#3a3530]'
                 }`}
               >
                 {option}
@@ -125,7 +147,7 @@ export default function ChatPage() {
               className="bg-ink rounded-full py-3 px-6 flex items-center justify-center"
               onClick={handleAspirationNext}
             >
-              <Text className="text-paper font-ui text-sm">继续</Text>
+              <Text className="text-white text-sm">继续</Text>
             </View>
           </View>
         )}
@@ -134,26 +156,26 @@ export default function ChatPage() {
         {step !== 'aspiration' && (
           <>
             {selectedAspiration.map((a) => (
-              <UserMessage key={a}>{a}</UserMessage>
+              <UserBubble key={a}>{a}</UserBubble>
             ))}
-            <AgentMessage>
+            <AgentBubble>
               那现在这个空间，最常发生什么？
-            </AgentMessage>
+            </AgentBubble>
             <View className="mb-4">
               {MOCK_LIFESTYLE_OPTIONS.currentState.map((option) => (
                 <View
                   key={option}
-                  className={`mb-2 p-3 rounded border ${
+                  className={`mb-2 p-3 rounded ${
                     selectedCurrent.includes(option)
-                      ? 'border-bean bg-accent'
-                      : 'border-ink-faint bg-card'
+                      ? 'border-[#d9a823] bg-[#f0d77a]'
+                      : 'bg-card'
                   }`}
-                  style={{ borderWidth: '1.5px' }}
+                  style={{ borderWidth: '1.5px', borderColor: selectedCurrent.includes(option) ? '#d9a823' : '#b5ad9f' }}
                   onClick={() => handleSelectCurrent(option)}
                 >
                   <Text
-                    className={`text-sm font-ui ${
-                      selectedCurrent.includes(option) ? 'text-ink' : 'text-ink-soft'
+                    className={`text-sm ${
+                      selectedCurrent.includes(option) ? 'text-ink font-semibold' : 'text-[#3a3530]'
                     }`}
                   >
                     {option}
@@ -167,7 +189,7 @@ export default function ChatPage() {
                   className="bg-ink rounded-full py-3 px-6 flex items-center justify-center"
                   onClick={handleCurrentNext}
                 >
-                  <Text className="text-paper font-ui text-sm">继续</Text>
+                  <Text className="text-white text-sm">继续</Text>
                 </View>
               </View>
             )}
@@ -178,23 +200,23 @@ export default function ChatPage() {
         {step === 'constraints' && (
           <>
             {selectedCurrent.map((c) => (
-              <UserMessage key={c}>{c}</UserMessage>
+              <UserBubble key={c}>{c}</UserBubble>
             ))}
-            <AgentMessage>
+            <AgentBubble>
               为了不生成你做不到的方案，我再确认几个小条件。
-            </AgentMessage>
-            <AgentMessage>
+            </AgentBubble>
+            <AgentBubble>
               {constraintQuestions[constraintStep].question}
-            </AgentMessage>
+            </AgentBubble>
             <View className="mb-6">
               {constraintQuestions[constraintStep].options.map((option) => (
                 <View
                   key={option}
-                  className="mb-2 p-3 rounded border border-ink-faint bg-card"
-                  style={{ borderWidth: '1.5px' }}
+                  className="mb-2 p-3 rounded bg-card"
+                  style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}
                   onClick={() => handleConstraintSelect(option)}
                 >
-                  <Text className="text-sm font-ui text-ink-soft">{option}</Text>
+                  <Text className="text-sm text-[#3a3530]">{option}</Text>
                 </View>
               ))}
             </View>

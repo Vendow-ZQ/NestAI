@@ -1,12 +1,12 @@
-import { View, Text, Image, ScrollView } from '@tarojs/components'
+import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { NobiSVG } from '@/components/nobi'
 
 import { useUserStore } from '@/lib/store/user-store'
 import { useInterventionStore } from '@/lib/store/intervention-store'
 import { MOCK_FEED, MOCK_NEXT_ACTIONS } from '@/lib/mock/data'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { PlaceholderImage } from '@/components/placeholder-image'
 
 export default function GrowPage() {
   const hasUploadedSpace = useUserStore((s) => s.hasUploadedSpace)
@@ -21,15 +21,14 @@ export default function GrowPage() {
   }
 
   return (
-    <View className="min-h-full bg-background">
+    <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
       {/* Header */}
       <View className="flex flex-row items-center justify-between px-5 pt-12 pb-4">
         <View className="flex flex-row items-center gap-2">
-          <Text className="font-handwritten text-2xl text-ink">NestAI</Text>
-          <NobiSVG pose="avatar" size={24} />
+          <Text className="text-2xl text-ink font-semibold">NestAI</Text>
         </View>
-        <View className="w-8 h-8 rounded-full bg-paper-deep flex items-center justify-center">
-          <Text className="text-xs text-ink-mute font-ui">我</Text>
+        <View className="w-8 h-8 rounded-full bg-[#f0f0f0] flex items-center justify-center">
+          <Text className="text-xs text-[#999]">我</Text>
         </View>
       </View>
 
@@ -37,26 +36,23 @@ export default function GrowPage() {
         {/* 上传区 / 已上传空间卡 */}
         {!hasUploadedSpace ? (
           <View
-            className="border-2 border-dashed border-ink-faint rounded p-6 flex flex-col items-center justify-center mb-6"
+            className="rounded p-6 flex flex-col items-center justify-center mb-6"
             style={{ borderWidth: '1.5px', borderStyle: 'dashed', borderColor: '#b5ad9f' }}
             onClick={handleUpload}
           >
-            <Text className="block text-lg text-ink font-ui mb-1">上传你的空间</Text>
-            <Text className="block text-sm text-ink-mute font-ui mb-4">或描述一下</Text>
-            <View className="self-end">
-              <NobiSVG pose="lying" size={60} />
-            </View>
+            <Text className="block text-lg text-ink mb-1">上传你的空间</Text>
+            <Text className="block text-sm text-[#999] mb-4">或描述一下</Text>
           </View>
         ) : (
           <Card className="mb-6 bg-card">
             <CardContent className="p-5">
               <View className="flex flex-row items-center gap-3">
-                <View className="w-12 h-12 rounded bg-paper flex items-center justify-center">
-                  <NobiSVG pose="sitting" size={40} />
+                <View className="w-12 h-12 rounded bg-[#f0f0f0] flex items-center justify-center">
+                  <Text className="text-xs text-[#999]">空间</Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="block text-sm font-semibold text-ink font-ui">我的空间</Text>
-                  <Text className="block text-xs text-ink-mute font-ui">32号房 · 靠窗书桌</Text>
+                  <Text className="block text-sm font-semibold text-ink">我的空间</Text>
+                  <Text className="block text-xs text-[#999]">32号房 · 靠窗书桌</Text>
                 </View>
               </View>
             </CardContent>
@@ -66,7 +62,7 @@ export default function GrowPage() {
         {/* 我的 Next 横向滚动 */}
         {(nextList.length > 0 || MOCK_NEXT_ACTIONS.length > 0) && (
           <View className="mb-6">
-            <Text className="block text-sm text-ink-mute font-handwritten mb-3">我的 Next</Text>
+            <Text className="block text-sm text-[#999] mb-3">我的 Next</Text>
             <ScrollView scrollX className="flex flex-row gap-3" style={{ whiteSpace: 'nowrap' }}>
               {(nextList.length > 0 ? nextList : MOCK_NEXT_ACTIONS.slice(0, 2)).map((item) => (
                 <View
@@ -74,13 +70,9 @@ export default function GrowPage() {
                   className="inline-block w-40 bg-card rounded p-3 flex-shrink-0"
                   onClick={() => Taro.switchTab({ url: '/pages/next/index' })}
                 >
-                  <Image
-                    src={item.previewImage}
-                    className="w-full h-20 rounded mb-2"
-                    mode="aspectFill"
-                  />
-                  <Text className="block text-xs font-semibold text-ink font-ui">{item.title}</Text>
-                  <Text className="block text-xs text-ink-mute font-ui mt-1">{item.firstStep}</Text>
+                  <PlaceholderImage label={item.title} className="w-full h-20 rounded mb-2" />
+                  <Text className="block text-xs font-semibold text-ink">{item.title}</Text>
+                  <Text className="block text-xs text-[#999] mt-1">{item.firstStep}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -90,9 +82,9 @@ export default function GrowPage() {
         {/* 看看其他人在生长 */}
         <View className="mb-4">
           <View className="flex items-center gap-3 mb-4">
-            <View className="flex-1 h-px bg-ink-faint opacity-30" />
-            <Text className="font-handwritten text-sm text-ink-mute">看看其他人在生长</Text>
-            <View className="flex-1 h-px bg-ink-faint opacity-30" />
+            <View className="flex-1 h-px bg-[#ddd] opacity-30" />
+            <Text className="text-sm text-[#999]">看看其他人在生长</Text>
+            <View className="flex-1 h-px bg-[#ddd] opacity-30" />
           </View>
 
           {MOCK_FEED.map((feed) => (
@@ -100,11 +92,11 @@ export default function GrowPage() {
               <CardContent className="p-4">
                 <View className="flex flex-row gap-3">
                   <View className="flex-1">
-                    <Text className="block text-sm text-ink-soft font-serif italic leading-relaxed mb-2">
+                    <Text className="block text-sm text-ink-soft leading-relaxed mb-2">
                       &ldquo;{feed.letterExcerpt}&rdquo;
                     </Text>
                     <View className="flex flex-row items-center gap-2 mb-2">
-                      <Text className="text-xs text-ink-mute font-ui">{feed.anonymousTag}</Text>
+                      <Text className="text-xs text-[#999]">{feed.anonymousTag}</Text>
                     </View>
                     <View className="flex flex-row gap-1 flex-wrap">
                       {feed.lifestyleKeywords.map((kw) => (
@@ -115,8 +107,8 @@ export default function GrowPage() {
                     </View>
                   </View>
                   <View className="flex flex-col gap-1 w-20">
-                    <Image src={feed.beforeImage} className="w-20 h-14 rounded" mode="aspectFill" />
-                    <Image src={feed.afterImage} className="w-20 h-14 rounded" mode="aspectFill" />
+                    <PlaceholderImage label="改造前" className="w-20 h-14 rounded" />
+                    <PlaceholderImage label="改造后" className="w-20 h-14 rounded" />
                   </View>
                 </View>
               </CardContent>

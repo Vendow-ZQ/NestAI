@@ -1,7 +1,6 @@
 import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useState, useEffect } from 'react'
-import { NobiSVG } from '@/components/nobi'
 
 type GeneratingType = 'space' | 'intervention' | 'letter'
 
@@ -64,18 +63,21 @@ export default function GeneratingPage() {
   }, [config])
 
   return (
-    <View className="min-h-full bg-background flex flex-col items-center justify-center">
+    <View
+      className="min-h-full flex flex-col items-center justify-center"
+      style={{ backgroundColor: '#ffffff', fontFamily: "'Noto Sans SC', sans-serif" }}
+    >
       {/* 进度条 */}
-      <View className="w-48 h-1 bg-paper-deep rounded-full mb-12 overflow-hidden">
+      <View className="w-48 h-1 bg-[#f0f0f0] rounded-full mb-12 overflow-hidden">
         <View
           className="h-full bg-ink rounded-full"
           style={{ width: `${progress}%`, transition: 'width 100ms linear' }}
         />
       </View>
 
-      {/* Nobi 嗅来嗅去 */}
-      <View className="mb-8">
-        <NobiSVG pose="sniffing" size={120} />
+      {/* 动画指示 */}
+      <View className="mb-8 w-16 h-16 rounded-full bg-[#f5f5f5] flex items-center justify-center">
+        <Text className="text-2xl">✨</Text>
       </View>
 
       {/* 步骤文字 */}
@@ -83,8 +85,8 @@ export default function GeneratingPage() {
         {config.steps.map((step, i) => (
           <Text
             key={i}
-            className={`block text-sm font-ui ${
-              i <= currentStep ? 'text-ink' : 'text-ink-faint'
+            className={`block text-sm ${
+              i <= currentStep ? 'text-ink' : 'text-[#b5ad9f]'
             }`}
             style={{ opacity: i <= currentStep ? 1 : 0.4 }}
           >
