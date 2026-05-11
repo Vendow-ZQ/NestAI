@@ -15,14 +15,14 @@ export default function UploadPage() {
   const handleTakePhoto = () => {
     addImage('mock-dorm-photo-1.jpg')
     setUploaded(true)
-    Taro.navigateTo({ url: '/pages/generating/index?type=space' })
+    Taro.navigateTo({ url: '/pages/generating/index?type=space&sceneId=scene-01' })
   }
 
   const handleChooseImage = () => {
     addImage('mock-dorm-photo-2.jpg')
     addImage('mock-dorm-photo-3.jpg')
     setUploaded(true)
-    Taro.navigateTo({ url: '/pages/generating/index?type=space' })
+    Taro.navigateTo({ url: '/pages/generating/index?type=space&sceneId=scene-01' })
   }
 
   const handleSubmitDescription = () => {
@@ -46,10 +46,14 @@ export default function UploadPage() {
     <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
       {/* Header */}
       <View className="flex flex-row items-center px-5 pt-12 pb-4">
-        <View onClick={handleBack} className="mr-3">
-          <Text className="text-ink text-sm">← 返回</Text>
+        <View
+          onClick={handleBack}
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}
+        >
+          <Text className="text-ink text-sm">&lt;</Text>
         </View>
-        <Text className="text-lg text-ink font-semibold">上传你的空间</Text>
+        <Text className="text-lg text-ink font-semibold ml-3">上传你的空间</Text>
       </View>
 
       <ScrollView scrollY style={{ height: 'calc(100vh - 100px)' }}>

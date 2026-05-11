@@ -11,16 +11,23 @@ type Level = 'free' | 'low' | 'advanced'
 
 export default function ResultPage() {
   const [selectedLevel, setSelectedLevel] = useState<Level>('low')
+  const [addedToNext, setAddedToNext] = useState(false)
   const addToNext = useInterventionStore((s) => s.addToNext)
 
-  // 从页面参数获取 sceneId，默认 scene-01
   const params = Taro.getCurrentInstance().router?.params
   const sceneId = params?.sceneId || 'scene-01'
+  // 支持 URL 传入 level 参数
+  const levelParam = params?.level as Level | undefined
+  const initialLevel = levelParam && ['free', 'low', 'advanced'].includes(levelParam) ? levelParam : 'low'
+
+  const [activeLevel] = useState<Level>(initialLevel)
 
   const interventions = MOCK_INTERVENTIONS.filter((i) => i.sceneId === sceneId)
-  const currentIntervention = interventions.find((i) => i.level === selectedLevel) ?? interventions[1]
+  const currentIntervention = interventions.find((i) => i.level === (addedToNext ? activeLevel : selectedLevel)) ?? interventions[1]
   const scene = MOCK_SCENES.find((s) => s.id === sceneId)
   const spaceName = scene?.name || '32号房'
+
+  const displayLevel = addedToNext ? activeLevel : selectedLevel
 
   const levels: { key: Level; label: string }[] = [
     { key: 'free', label: '0元' },
@@ -36,36 +43,51 @@ export default function ResultPage() {
       lifestyleGoal: '为更专注的学习状态',
       firstStep: currentIntervention.firstSteps[0],
       estimatedTime: '约3分钟',
-      costRange: selectedLevel === 'free' ? '0元' : selectedLevel === 'low' ? '100元以内' : '300元以内',
+      costRange: displayLevel === 'free' ? '0元' : displayLevel === 'low' ? '100元以内' : '300元以内',
       previewImage: currentIntervention.afterImage,
       completed: false,
       interventionId: currentIntervention.id,
-      level: selectedLevel,
+      level: displayLevel,
       sceneId,
     })
+    setAddedToNext(true)
     Taro.showToast({ title: '已加入 Next', icon: 'none' })
+  }
+
+  const handleGoNext = () => {
+    Taro.switchTab({ url: '/pages/next/index' })
+  }
+
+  const handleShare = () => {
+    Taro.navigateTo({ url: '/pages/share/index' })
   }
 
   const handleBack = () => {
     Taro.navigateBack()
   }
 
+  const currentData = interventions.find((i) => i.level === displayLevel) ?? interventions[1]
+
   return (
     <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
       {/* Header */}
       <View className="flex flex-row items-center px-5 pt-12 pb-2">
-        <View onClick={handleBack} className="mr-3">
-          <Text className="text-ink text-sm">← 返回</Text>
+        <View
+          onClick={handleBack}
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}
+        >
+          <Text className="text-ink text-sm">&lt;</Text>
         </View>
       </View>
 
       <ScrollView scrollY style={{ height: 'calc(100vh - 80px)' }}>
         {/* 改造后主视觉 */}
         <View className="relative" style={{ height: '55vh' }}>
-          <PlaceholderImage label="改造后效果" className="w-full h-full" />
+          <PlaceholderImage label={`${spaceName} · 改造后效果`} className="w-full h-full" />
           {/* 变化标注列表 */}
           <View className="absolute bottom-3 left-3 right-3">
-            {currentIntervention.changes.map((change, i) => (
+            {currentData.changes.map((change, i) => (
               <View key={i} className="flex flex-row items-start gap-2 mb-1">
                 <View className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ borderWidth: '1.5px', borderColor: '#d9a823', backgroundColor: '#ffffff' }}>
                   <Text className="text-xs text-ink" style={{ fontSize: '10px' }}>{i + 1}</Text>
@@ -88,14 +110,14 @@ export default function ResultPage() {
             <View
               key={level.key}
               className={`flex-1 py-2 rounded flex items-center justify-center ${
-                selectedLevel === level.key ? 'bg-ink' : 'bg-card'
+                displayLevel === level.key ? 'bg-ink' : 'bg-card'
               }`}
-              style={{ borderWidth: '1.5px', borderColor: selectedLevel === level.key ? 'transparent' : '#b5ad9f' }}
-              onClick={() => setSelectedLevel(level.key)}
+              style={{ borderWidth: '1.5px', borderColor: displayLevel === level.key ? 'transparent' : '#b5ad9f' }}
+              onClick={() => { if (!addedToNext) setSelectedLevel(level.key) }}
             >
-              <Text className={`text-sm ${selectedLevel === level.key ? 'text-white' : 'text-[#999]'}`}>
+              <Text className={`text-sm ${displayLevel === level.key ? 'text-white' : 'text-[#999]'}`}>
                 {level.label}
-                {selectedLevel === level.key ? ' ✓' : ''}
+                {displayLevel === level.key ? ' ✓' : ''}
               </Text>
             </View>
           ))}
@@ -106,7 +128,7 @@ export default function ResultPage() {
           <Text className="block text-base text-[#999] mb-2">Why 这样改</Text>
           <View className="bg-card rounded p-4">
             <Text className="block text-sm text-[#3a3530] leading-relaxed">
-              {currentIntervention.diagnosis}
+              {currentData.diagnosis}
             </Text>
           </View>
         </View>
@@ -115,7 +137,7 @@ export default function ResultPage() {
         <View className="px-5 mt-6">
           <Text className="block text-base text-[#999] mb-2">How 怎么做</Text>
           <Text className="block text-sm text-[#3a3530] mb-3">最轻第一步:</Text>
-          {currentIntervention.firstSteps.map((s, i) => (
+          {currentData.firstSteps.map((s, i) => (
             <View key={i} className="flex flex-row items-start gap-2 mb-2">
               <View className="w-5 h-5 rounded flex items-center justify-center" style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}>
                 <Text className="text-xs text-[#999]">{i + 1}</Text>
@@ -124,11 +146,11 @@ export default function ResultPage() {
             </View>
           ))}
 
-          {currentIntervention.recommendations.length > 0 && (
+          {currentData.recommendations.length > 0 && (
             <View className="mt-4">
               <View className="h-px bg-[#ddd] opacity-30 mb-3" />
               <Text className="block text-sm text-[#999] mb-2">推荐方向:</Text>
-              {currentIntervention.recommendations.map((rec, i) => (
+              {currentData.recommendations.map((rec, i) => (
                 <View key={i} className="flex flex-row items-start gap-2 mb-1">
                   <Text className="text-[#999] text-sm">-</Text>
                   <Text className="flex-1 text-sm text-[#3a3530]">{rec}</Text>
@@ -138,15 +160,34 @@ export default function ResultPage() {
           )}
         </View>
 
-        {/* 主按钮: 今晚试试看 */}
+        {/* 主按钮区域 */}
         <View className="px-5 mt-6">
-          <View
-            className="rounded-full py-4 flex items-center justify-center"
-            style={{ backgroundColor: '#1a1814', boxShadow: '4px 4px 0 #d9a823' }}
-            onClick={handleTonightTry}
-          >
-            <Text className="text-white text-lg">今晚试试看</Text>
-          </View>
+          {!addedToNext ? (
+            <View
+              className="rounded-full py-4 flex items-center justify-center"
+              style={{ backgroundColor: '#1a1814', boxShadow: '4px 4px 0 #d9a823' }}
+              onClick={handleTonightTry}
+            >
+              <Text className="text-white text-lg">今晚试试看</Text>
+            </View>
+          ) : (
+            <View>
+              <View
+                className="rounded-full py-4 flex items-center justify-center mb-3"
+                style={{ backgroundColor: '#1a1814' }}
+                onClick={handleGoNext}
+              >
+                <Text className="text-white text-lg">去 Next 看看</Text>
+              </View>
+              <View
+                className="rounded-full py-3 flex items-center justify-center"
+                style={{ borderWidth: '1.5px', borderColor: '#1a1814' }}
+                onClick={handleShare}
+              >
+                <Text className="text-ink text-base">我做了，看看变化</Text>
+              </View>
+            </View>
+          )}
           <Text className="block text-center text-xs text-[#999] mt-1">Tonight, try.</Text>
         </View>
 

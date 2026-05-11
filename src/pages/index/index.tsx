@@ -40,7 +40,7 @@ export default function GrowPage() {
               borderWidth: '1.5px',
               borderStyle: 'dashed',
               borderColor: '#b5ad9f',
-              aspectRatio: '1 / 1',
+              aspectRatio: '2 / 3',
             }}
             onClick={handleUpload}
           >

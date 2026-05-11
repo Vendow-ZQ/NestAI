@@ -4,16 +4,13 @@ import { useState, useEffect } from 'react'
 
 import { CustomTabBar } from '@/components/tab-bar'
 
-interface GeneratingPageProps {
-  type?: string
-}
-
 export default function GeneratingPage() {
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
 
   const params = Taro.getCurrentInstance().router?.params
-  const type = (params?.type || 'space') as GeneratingPageProps['type']
+  const type = params?.type || 'space'
+  const sceneId = params?.sceneId || 'scene-01'
 
   const spaceSteps = [
     '看见这个空间...',
@@ -40,11 +37,16 @@ export default function GeneratingPage() {
     : spaceSteps
 
   const duration = type === 'intervention' ? 4000 : type === 'letter' ? 5000 : 3000
-  const targetUrl = type === 'intervention'
-    ? '/pages/result/index'
-    : type === 'letter'
-    ? '/pages/letter/index'
-    : '/pages/chat/index'
+
+  const getTargetUrl = () => {
+    if (type === 'intervention') {
+      return `/pages/result/index?sceneId=${sceneId}`
+    }
+    if (type === 'letter') {
+      return '/pages/letter/index'
+    }
+    return '/pages/chat/index'
+  }
 
   useEffect(() => {
     const stepInterval = duration / steps.length
@@ -62,6 +64,7 @@ export default function GeneratingPage() {
       })
     }, duration / 50)
 
+    const targetUrl = getTargetUrl()
     const finishTimer = setTimeout(() => {
       Taro.redirectTo({ url: targetUrl })
     }, duration + 500)

@@ -21,8 +21,12 @@ export default function LetterPage() {
     <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
       {/* Header */}
       <View className="flex flex-row items-center px-5 pt-12 pb-4">
-        <View onClick={() => Taro.navigateBack()} className="mr-3">
-          <Text className="text-ink text-sm">← 返回</Text>
+        <View
+          onClick={() => Taro.navigateBack()}
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}
+        >
+          <Text className="text-ink text-sm">&lt;</Text>
         </View>
       </View>
 
