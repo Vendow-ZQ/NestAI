@@ -23,11 +23,8 @@ export default function GrowPage() {
   return (
     <View className="min-h-full bg-background overflow-hidden" style={{ fontFamily: "'Noto Sans SC', sans-serif", maxWidth: '100vw' }}>
       {/* Header */}
-      <View className="flex flex-row items-center justify-between px-4 pt-12 pb-4">
+      <View className="flex flex-row items-center px-4 pt-12 pb-4">
         <BilingualTitle en="NestAI" zh="栖巢" size="2xl" />
-        <View className="w-8 h-8 rounded-full bg-[#f0f0f0] flex items-center justify-center">
-          <Text className="text-xs text-[#999]">我</Text>
-        </View>
       </View>
 
       <ScrollView scrollY style={{ height: 'calc(100vh - 140px)' }}>
@@ -50,16 +47,15 @@ export default function GrowPage() {
           >
             +
           </Text>
-          {/* 文案 */}
+          {/* 中文文案 */}
           <Text className="block text-sm text-ink text-center px-6 mt-2" style={{ fontWeight: 500 }}>
-            用你的生活方式改变身边空间
+            空间书写你的生活
+          </Text>
+          {/* 英文副标题 */}
+          <Text className="block text-xs text-[#b5ad9f] text-center mt-1" style={{ letterSpacing: '2px' }}>
+            From Nest to Next
           </Text>
         </View>
-
-        {/* From Nest to Next */}
-        <Text className="block text-center text-xs text-[#b5ad9f] mb-4" style={{ letterSpacing: '2px' }}>
-          From Nest to Next
-        </Text>
 
         {/* 已上传空间卡 — 有空间时额外显示 */}
         {hasUploadedSpace && (
