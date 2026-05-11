@@ -1,7 +1,9 @@
 import * as React from "react"
 import { View } from "@tarojs/components"
-import { type ITouchEvent } from "@tarojs/taro"
 import { cn } from "@/lib/utils"
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ITouchEvent = any
 
 const TabsContext = React.createContext<{
   value?: string

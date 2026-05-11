@@ -9,13 +9,16 @@
   <meta name="format-detection" content="telephone=no,address=no">
   <meta name="apple-mobile-web-app-status-bar-style" content="white">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>coze-mini-program</title>
+  <title>NestAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,400&family=Inter+Tight:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
   <script><%= htmlWebpackPlugin.options.script %></script>
 </head>
 
 <body>
   <div id="app">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="lab(2.86037 0.455312 0.568903)"
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#1a1814"
       stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="
         position: fixed;
         inset: 0;
@@ -28,9 +31,8 @@
     </svg>
     <style>
       @keyframes __app-loading-spin {
-        to {
-          transform: rotate(360deg);
-        }
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
       }
     </style>
   </div>

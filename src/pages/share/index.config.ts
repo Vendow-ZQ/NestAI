@@ -1,9 +1,9 @@
 export default typeof definePageConfig === 'function'
   ? definePageConfig({
-      navigationBarTitleText: 'Grow',
+      navigationBarTitleText: '新变化',
       navigationStyle: 'custom',
     })
   : {
-      navigationBarTitleText: 'Grow',
+      navigationBarTitleText: '新变化',
       navigationStyle: 'custom',
     }
