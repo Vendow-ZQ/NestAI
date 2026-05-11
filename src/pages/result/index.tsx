@@ -150,12 +150,18 @@ export default function ResultPage() {
             <View className="mt-4">
               <View className="h-px bg-[#ddd] opacity-30 mb-3" />
               <Text className="block text-sm text-[#999] mb-2">推荐方向:</Text>
-              {currentData.recommendations.map((rec, i) => (
-                <View key={i} className="flex flex-row items-start gap-2 mb-1">
-                  <Text className="text-[#999] text-sm">-</Text>
-                  <Text className="flex-1 text-sm text-[#3a3530]">{rec}</Text>
-                </View>
-              ))}
+              {currentData.recommendations.map((rec, i) => {
+                const name = typeof rec === 'string' ? rec : rec.name
+                const price = typeof rec === 'string' ? '' : rec.price
+                return (
+                  <View key={i} className="flex flex-row items-start gap-2 mb-1">
+                    <Text className="text-[#999] text-sm">-</Text>
+                    <Text className="flex-1 text-sm text-[#3a3530]">
+                      {name}{price ? <Text className="text-[#999]"> {price}</Text> : ''}
+                    </Text>
+                  </View>
+                )
+              })}
             </View>
           )}
         </View>
