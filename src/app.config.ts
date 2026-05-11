@@ -12,7 +12,7 @@ export default defineAppConfig({
   ],
   window: {
     backgroundTextStyle: 'light',
-    navigationBarBackgroundColor: '#f7f3ea',
+    navigationBarBackgroundColor: '#ffffff',
     navigationBarTitleText: 'NestAI',
     navigationBarTextStyle: 'black',
     navigationStyle: 'custom',
@@ -20,7 +20,7 @@ export default defineAppConfig({
   tabBar: {
     color: '#7a736a',
     selectedColor: '#d9a823',
-    backgroundColor: '#f7f3ea',
+    backgroundColor: '#ffffff',
     borderStyle: 'black',
     list: [
       {

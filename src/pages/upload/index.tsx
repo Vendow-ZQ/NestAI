@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import { useSpaceStore } from '@/lib/store/space-store'
 import { useUserStore } from '@/lib/store/user-store'
+import { CustomTabBar } from '@/components/tab-bar'
 
 export default function UploadPage() {
   const [activeTab, setActiveTab] = useState<string>('photo')
@@ -141,8 +142,11 @@ export default function UploadPage() {
           )}
         </View>
 
-        <View className="h-10" />
+        <View className="h-20" />
       </ScrollView>
+
+      {/* 底部导航栏 */}
+      <CustomTabBar current="grow" />
     </View>
   )
 }

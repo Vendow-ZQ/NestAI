@@ -68,7 +68,10 @@ export default function GrowPage() {
                 <View
                   key={item.id}
                   className="inline-block w-40 bg-card rounded p-3 flex-shrink-0"
-                  onClick={() => Taro.switchTab({ url: '/pages/next/index' })}
+                  onClick={() => {
+                    const sceneId = item.sceneId || 'scene-01'
+                    Taro.navigateTo({ url: `/pages/result/index?sceneId=${sceneId}` })
+                  }}
                 >
                   <PlaceholderImage label={item.title} className="w-full h-20 rounded mb-2" />
                   <Text className="block text-xs font-semibold text-ink">{item.title}</Text>

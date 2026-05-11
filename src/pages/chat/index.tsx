@@ -2,100 +2,79 @@ import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useState } from 'react'
 
-import { MOCK_LIFESTYLE_OPTIONS } from '@/lib/mock/data'
 import { useLifestyleStore } from '@/lib/store/lifestyle-store'
-import { useSpaceStore } from '@/lib/store/space-store'
+import { MOCK_SCENES } from '@/lib/mock/data'
+import { CustomTabBar } from '@/components/tab-bar'
 
-type ChatStep = 'aspiration' | 'currentState' | 'constraints' | 'done'
+const ASPIRATION_OPTIONS = [
+  { id: 'focus', label: '更容易进入专注状态' },
+  { id: 'relax', label: '回来之后真的能放松下来' },
+  { id: 'identity', label: '更像"我自己的地方"' },
+  { id: 'social', label: '更适合朋友来坐一会儿' },
+  { id: 'order', label: '更容易保持整洁和秩序' },
+  { id: 'sleep', label: '更适合睡觉和恢复' },
+]
 
-function AgentBubble({ children }: { children: React.ReactNode }) {
-  return (
-    <View className="flex flex-row gap-2 mb-3">
-      <View className="w-7 h-7 rounded bg-[#ede6d4] flex items-center justify-center flex-shrink-0 mt-1">
-        <Text className="text-xs text-[#d9a823]">N</Text>
-      </View>
-      <View className="flex-1 bg-card rounded p-3">
-        <Text className="block text-sm text-ink leading-relaxed">{children}</Text>
-      </View>
-    </View>
-  )
-}
+const PAIN_OPTIONS = [
+  { id: 'cant-focus', label: '我经常在这里学习，但很难进入状态' },
+  { id: 'procrastinate', label: '我经常在这里刷手机/拖延' },
+  { id: 'not-relax', label: '我主要在这里休息，但总觉得不够放松' },
+  { id: 'cluttered', label: '东西越来越多，找不到放的地方' },
+  { id: 'dark', label: '光线不好，白天也要开灯' },
+  { id: 'crowded', label: '空间太小，动线不舒服' },
+]
 
-function UserBubble({ children }: { children: React.ReactNode }) {
-  return (
-    <View className="flex flex-row justify-end mb-3">
-      <View className="max-w-[80%] rounded p-3" style={{ backgroundColor: '#f0d77a' }}>
-        <Text className="block text-sm text-ink">{children}</Text>
-      </View>
-    </View>
-  )
-}
+const SHARING_OPTIONS = ['一个人使用', '和室友共用']
+const BUDGET_OPTIONS = ['0元', '100元以内', '300元以内', '300元以上']
+const WALL_OPTIONS = ['可以打孔', '只能无痕', '都不方便']
+
+type ChatStep = 'aspiration' | 'pain' | 'constraints'
 
 export default function ChatPage() {
   const [step, setStep] = useState<ChatStep>('aspiration')
-  const [selectedAspiration, setSelectedAspiration] = useState<string[]>([])
-  const [selectedCurrent, setSelectedCurrent] = useState<string[]>([])
-  const [constraintStep, setConstraintStep] = useState(0)
-  const [constraints, setConstraints] = useState({ sharing: '', budget: '', wallModification: '' })
+  const [aspiration, setAspiration] = useState<string[]>([])
+  const [pain, setPain] = useState<string[]>([])
+  const [sharing, setSharing] = useState('')
+  const [budget, setBudget] = useState('')
+  const [wall, setWall] = useState('')
 
-  const detectedObjects = useSpaceStore((s) => s.spaceProfile?.detectedObjects ?? [])
+  const setStoreAspiration = useLifestyleStore((s) => s.setAspiration)
+  const setStoreCurrentState = useLifestyleStore((s) => s.setCurrentState)
+  const setStoreSoftConstraints = useLifestyleStore((s) => s.setSoftConstraints)
 
-  const objectDesc = detectedObjects.length > 0
-    ? detectedObjects.map((o) => `一张${o.name}（${o.position}，${o.condition}）`).join('、')
-    : '一张床、一张桌子，靠窗有一盆植物'
+  const scene = MOCK_SCENES[0]
+  const objectDesc = scene.detectedObjects.map((o) => o.name).join('、')
 
-  const handleSelectAspiration = (option: string) => {
-    const newSelection = selectedAspiration.includes(option)
-      ? selectedAspiration.filter((s) => s !== option)
-      : [...selectedAspiration, option]
-    setSelectedAspiration(newSelection)
+  const handleSelectAspiration = (id: string) => {
+    setAspiration((prev) =>
+      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
+    )
   }
 
-  const handleAspirationNext = () => {
-    if (selectedAspiration.length > 0) {
-      useLifestyleStore.getState().setAspiration(selectedAspiration)
-      setStep('currentState')
-    }
+  const handleSelectPain = (id: string) => {
+    setPain((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    )
   }
 
-  const handleSelectCurrent = (option: string) => {
-    const newSelection = selectedCurrent.includes(option)
-      ? selectedCurrent.filter((s) => s !== option)
-      : [...selectedCurrent, option]
-    setSelectedCurrent(newSelection)
-  }
-
-  const handleCurrentNext = () => {
-    if (selectedCurrent.length > 0) {
-      useLifestyleStore.getState().setCurrentState(selectedCurrent)
+  const handleNext = () => {
+    if (step === 'aspiration') {
+      setStoreAspiration(aspiration)
+      setStep('pain')
+    } else if (step === 'pain') {
+      setStoreCurrentState(pain)
       setStep('constraints')
-    }
-  }
-
-  const handleConstraintSelect = (value: string) => {
-    const keys = ['sharing', 'budget', 'wallModification'] as const
-    const key = keys[constraintStep]
-    const newConstraints = { ...constraints, [key]: value }
-    setConstraints(newConstraints)
-
-    if (constraintStep < 2) {
-      setConstraintStep(constraintStep + 1)
     } else {
-      useLifestyleStore.getState().setSoftConstraints(newConstraints)
-      setStep('done')
+      setStoreSoftConstraints({ sharing, budget, wallModification: wall })
       Taro.navigateTo({ url: '/pages/generating/index?type=intervention' })
     }
   }
 
   const handleBack = () => {
-    Taro.navigateBack()
+    if (step === 'pain') setStep('aspiration')
+    else if (step === 'constraints') setStep('pain')
+    else Taro.navigateBack()
   }
-
-  const constraintQuestions = [
-    { question: '这个空间主要是你一个人使用，还是和别人共用？', options: MOCK_LIFESTYLE_OPTIONS.sharing },
-    { question: '你能接受的投入大概是？', options: MOCK_LIFESTYLE_OPTIONS.budget },
-    { question: '墙面能不能贴东西？', options: MOCK_LIFESTYLE_OPTIONS.wallModification },
-  ]
 
   return (
     <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
@@ -107,124 +86,132 @@ export default function ChatPage() {
         <Text className="text-lg text-ink font-semibold">Lifestyle Chat</Text>
       </View>
 
-      <ScrollView scrollY className="px-5" style={{ height: 'calc(100vh - 100px)' }}>
-        {/* Agent 初始观察 */}
-        <AgentBubble>
-          我看到了{objectDesc}。在我们继续之前，我想了解一下——
-        </AgentBubble>
+      <ScrollView scrollY style={{ height: 'calc(100vh - 100px)' }}>
+        {/* Agent 消息 */}
+        <View className="px-5 mb-6">
+          <View className="bg-card rounded p-4 mb-4">
+            <Text className="block text-sm text-ink leading-relaxed">
+              我看到了{objectDesc}。在我们继续之前，我想了解一下——
+            </Text>
+          </View>
 
-        {/* 层1: 向往生活 */}
-        <AgentBubble>
-          你最希望这个空间帮你做到什么？
-        </AgentBubble>
-
-        <View className="mb-4">
-          {MOCK_LIFESTYLE_OPTIONS.aspiration.map((option) => (
-            <View
-              key={option}
-              className={`mb-2 p-3 rounded ${
-                selectedAspiration.includes(option)
-                  ? 'border-[#d9a823] bg-[#f0d77a]'
-                  : 'bg-card'
-              }`}
-              style={{ borderWidth: '1.5px', borderColor: selectedAspiration.includes(option) ? '#d9a823' : '#b5ad9f' }}
-              onClick={() => handleSelectAspiration(option)}
-            >
-              <Text
-                className={`text-sm ${
-                  selectedAspiration.includes(option) ? 'text-ink font-semibold' : 'text-[#3a3530]'
-                }`}
-              >
-                {option}
+          {step === 'aspiration' && (
+            <View className="bg-card rounded p-4 mb-4">
+              <Text className="block text-sm text-ink leading-relaxed">
+                你最希望这个空间帮你做到什么？
               </Text>
             </View>
-          ))}
+          )}
+
+          {step === 'pain' && (
+            <View className="bg-card rounded p-4 mb-4">
+              <Text className="block text-sm text-ink leading-relaxed">
+                那现在这个空间，最常发生什么？
+              </Text>
+            </View>
+          )}
+
+          {step === 'constraints' && (
+            <View className="bg-card rounded p-4 mb-4">
+              <Text className="block text-sm text-ink leading-relaxed">
+                为了不生成你做不到的方案，我再确认几个小条件。
+              </Text>
+            </View>
+          )}
         </View>
 
-        {selectedAspiration.length > 0 && step === 'aspiration' && (
-          <View className="mb-6">
+        {/* 选项 */}
+        <View className="px-5">
+          {step === 'aspiration' && ASPIRATION_OPTIONS.map((opt) => (
             <View
-              className="bg-ink rounded-full py-3 px-6 flex items-center justify-center"
-              onClick={handleAspirationNext}
+              key={opt.id}
+              className={`mb-3 rounded p-4 ${
+                aspiration.includes(opt.id) ? 'bg-[#f0d77a]' : 'bg-card'
+              }`}
+              style={{ borderWidth: '1.5px', borderColor: aspiration.includes(opt.id) ? '#d9a823' : '#b5ad9f' }}
+              onClick={() => handleSelectAspiration(opt.id)}
             >
-              <Text className="text-white text-sm">继续</Text>
+              <Text className="text-sm text-ink">{opt.label}</Text>
             </View>
-          </View>
-        )}
+          ))}
 
-        {/* 层2: 当前状态 */}
-        {step !== 'aspiration' && (
-          <>
-            {selectedAspiration.map((a) => (
-              <UserBubble key={a}>{a}</UserBubble>
-            ))}
-            <AgentBubble>
-              那现在这个空间，最常发生什么？
-            </AgentBubble>
-            <View className="mb-4">
-              {MOCK_LIFESTYLE_OPTIONS.currentState.map((option) => (
-                <View
-                  key={option}
-                  className={`mb-2 p-3 rounded ${
-                    selectedCurrent.includes(option)
-                      ? 'border-[#d9a823] bg-[#f0d77a]'
-                      : 'bg-card'
-                  }`}
-                  style={{ borderWidth: '1.5px', borderColor: selectedCurrent.includes(option) ? '#d9a823' : '#b5ad9f' }}
-                  onClick={() => handleSelectCurrent(option)}
-                >
-                  <Text
-                    className={`text-sm ${
-                      selectedCurrent.includes(option) ? 'text-ink font-semibold' : 'text-[#3a3530]'
-                    }`}
+          {step === 'pain' && PAIN_OPTIONS.map((opt) => (
+            <View
+              key={opt.id}
+              className={`mb-3 rounded p-4 ${
+                pain.includes(opt.id) ? 'bg-[#f0d77a]' : 'bg-card'
+              }`}
+              style={{ borderWidth: '1.5px', borderColor: pain.includes(opt.id) ? '#d9a823' : '#b5ad9f' }}
+              onClick={() => handleSelectPain(opt.id)}
+            >
+              <Text className="text-sm text-ink">{opt.label}</Text>
+            </View>
+          ))}
+
+          {step === 'constraints' && (
+            <View>
+              <Text className="block text-sm text-[#999] mb-2">空间使用:</Text>
+              <View className="flex flex-row flex-wrap gap-2 mb-4">
+                {SHARING_OPTIONS.map((opt) => (
+                  <View
+                    key={opt}
+                    className={`rounded-full px-4 py-2 ${sharing === opt ? 'bg-ink' : 'bg-card'}`}
+                    style={{ borderWidth: '1.5px', borderColor: sharing === opt ? 'transparent' : '#b5ad9f' }}
+                    onClick={() => setSharing(opt)}
                   >
-                    {option}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            {selectedCurrent.length > 0 && step === 'currentState' && (
-              <View className="mb-6">
-                <View
-                  className="bg-ink rounded-full py-3 px-6 flex items-center justify-center"
-                  onClick={handleCurrentNext}
-                >
-                  <Text className="text-white text-sm">继续</Text>
-                </View>
+                    <Text className={`text-sm ${sharing === opt ? 'text-white' : 'text-[#999]'}`}>{opt}</Text>
+                  </View>
+                ))}
               </View>
-            )}
-          </>
-        )}
 
-        {/* 层3: 必要条件 */}
-        {step === 'constraints' && (
-          <>
-            {selectedCurrent.map((c) => (
-              <UserBubble key={c}>{c}</UserBubble>
-            ))}
-            <AgentBubble>
-              为了不生成你做不到的方案，我再确认几个小条件。
-            </AgentBubble>
-            <AgentBubble>
-              {constraintQuestions[constraintStep].question}
-            </AgentBubble>
-            <View className="mb-6">
-              {constraintQuestions[constraintStep].options.map((option) => (
-                <View
-                  key={option}
-                  className="mb-2 p-3 rounded bg-card"
-                  style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}
-                  onClick={() => handleConstraintSelect(option)}
-                >
-                  <Text className="text-sm text-[#3a3530]">{option}</Text>
-                </View>
-              ))}
+              <Text className="block text-sm text-[#999] mb-2">预算:</Text>
+              <View className="flex flex-row flex-wrap gap-2 mb-4">
+                {BUDGET_OPTIONS.map((opt) => (
+                  <View
+                    key={opt}
+                    className={`rounded-full px-4 py-2 ${budget === opt ? 'bg-ink' : 'bg-card'}`}
+                    style={{ borderWidth: '1.5px', borderColor: budget === opt ? 'transparent' : '#b5ad9f' }}
+                    onClick={() => setBudget(opt)}
+                  >
+                    <Text className={`text-sm ${budget === opt ? 'text-white' : 'text-[#999]'}`}>{opt}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <Text className="block text-sm text-[#999] mb-2">墙面:</Text>
+              <View className="flex flex-row flex-wrap gap-2 mb-4">
+                {WALL_OPTIONS.map((opt) => (
+                  <View
+                    key={opt}
+                    className={`rounded-full px-4 py-2 ${wall === opt ? 'bg-ink' : 'bg-card'}`}
+                    style={{ borderWidth: '1.5px', borderColor: wall === opt ? 'transparent' : '#b5ad9f' }}
+                    onClick={() => setWall(opt)}
+                  >
+                    <Text className={`text-sm ${wall === opt ? 'text-white' : 'text-[#999]'}`}>{opt}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
-          </>
-        )}
+          )}
+        </View>
+
+        {/* 继续按钮 */}
+        <View className="px-5 mt-4">
+          <View
+            className="bg-ink rounded-full py-4 flex items-center justify-center"
+            onClick={handleNext}
+          >
+            <Text className="text-white text-base">
+              {step === 'aspiration' ? '继续' : step === 'pain' ? '继续' : '生成方案'}
+            </Text>
+          </View>
+        </View>
 
         <View className="h-20" />
       </ScrollView>
+
+      {/* 底部导航栏 */}
+      <CustomTabBar current="grow" />
     </View>
   )
 }

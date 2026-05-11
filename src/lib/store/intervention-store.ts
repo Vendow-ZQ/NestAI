@@ -16,6 +16,9 @@ interface NextAction {
   costRange: string
   previewImage: string
   completed: boolean
+  interventionId?: string
+  level?: 'free' | 'low' | 'advanced'
+  sceneId?: string
 }
 
 interface InterventionResult {
@@ -84,3 +87,5 @@ export const useInterventionStore = create<InterventionState>((set) => ({
     }),
   reset: () => set(initialState),
 }))
+
+export type { NextAction, InterventionResult, ChangeAnnotation }

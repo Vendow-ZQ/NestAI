@@ -3,8 +3,9 @@ import Taro from '@tarojs/taro'
 import { useState } from 'react'
 
 import { PlaceholderImage } from '@/components/placeholder-image'
-import { MOCK_INTERVENTIONS } from '@/lib/mock/data'
+import { MOCK_INTERVENTIONS, MOCK_SCENES } from '@/lib/mock/data'
 import { useInterventionStore } from '@/lib/store/intervention-store'
+import { CustomTabBar } from '@/components/tab-bar'
 
 type Level = 'free' | 'low' | 'advanced'
 
@@ -12,8 +13,14 @@ export default function ResultPage() {
   const [selectedLevel, setSelectedLevel] = useState<Level>('low')
   const addToNext = useInterventionStore((s) => s.addToNext)
 
-  const interventions = MOCK_INTERVENTIONS.filter((i) => i.sceneId === 'scene-01')
+  // 从页面参数获取 sceneId，默认 scene-01
+  const params = Taro.getCurrentInstance().router?.params
+  const sceneId = params?.sceneId || 'scene-01'
+
+  const interventions = MOCK_INTERVENTIONS.filter((i) => i.sceneId === sceneId)
   const currentIntervention = interventions.find((i) => i.level === selectedLevel) ?? interventions[1]
+  const scene = MOCK_SCENES.find((s) => s.id === sceneId)
+  const spaceName = scene?.name || '32号房'
 
   const levels: { key: Level; label: string }[] = [
     { key: 'free', label: '0元' },
@@ -24,14 +31,17 @@ export default function ResultPage() {
   const handleTonightTry = () => {
     addToNext({
       id: `next-${Date.now()}`,
-      title: '你的书桌',
-      spaceName: '32号房 · 靠窗书桌',
+      title: spaceName,
+      spaceName,
       lifestyleGoal: '为更专注的学习状态',
       firstStep: currentIntervention.firstSteps[0],
       estimatedTime: '约3分钟',
       costRange: selectedLevel === 'free' ? '0元' : selectedLevel === 'low' ? '100元以内' : '300元以内',
       previewImage: currentIntervention.afterImage,
       completed: false,
+      interventionId: currentIntervention.id,
+      level: selectedLevel,
+      sceneId,
     })
     Taro.showToast({ title: '已加入 Next', icon: 'none' })
   }
@@ -109,7 +119,7 @@ export default function ResultPage() {
           <Text className="block text-sm text-[#3a3530] mb-3">最轻第一步:</Text>
           {currentIntervention.firstSteps.map((s, i) => (
             <View key={i} className="flex flex-row items-start gap-2 mb-2">
-              <View className="w-5 h-5 rounded flex items-center justify-center mt-0" style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}>
+              <View className="w-5 h-5 rounded flex items-center justify-center" style={{ borderWidth: '1.5px', borderColor: '#b5ad9f' }}>
                 <Text className="text-xs text-[#999]">{i + 1}</Text>
               </View>
               <Text className="flex-1 text-sm text-ink">{s}</Text>
@@ -142,8 +152,11 @@ export default function ResultPage() {
           <Text className="block text-center text-xs text-[#999] mt-1">Tonight, try.</Text>
         </View>
 
-        <View className="h-10" />
+        <View className="h-20" />
       </ScrollView>
+
+      {/* 底部导航栏 */}
+      <CustomTabBar current="grow" />
     </View>
   )
 }

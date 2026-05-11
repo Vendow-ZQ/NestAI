@@ -388,6 +388,9 @@ export const MOCK_NEXT_ACTIONS = [
     costRange: '0元',
     previewImage: '',
     completed: false,
+    interventionId: 'int-01-free',
+    level: 'free' as const,
+    sceneId: 'scene-01',
   },
   {
     id: 'next-02',
@@ -399,6 +402,9 @@ export const MOCK_NEXT_ACTIONS = [
     costRange: '0元',
     previewImage: '',
     completed: false,
+    interventionId: 'int-02-free',
+    level: 'free' as const,
+    sceneId: 'scene-02',
   },
   {
     id: 'next-03',
@@ -410,6 +416,9 @@ export const MOCK_NEXT_ACTIONS = [
     costRange: '0元',
     previewImage: '',
     completed: false,
+    interventionId: 'int-03-free',
+    level: 'free' as const,
+    sceneId: 'scene-03',
   },
 ]
 
