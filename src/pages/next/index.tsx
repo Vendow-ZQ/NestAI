@@ -11,7 +11,7 @@ export default function NextPage() {
   const displayList = nextList.length > 0 ? nextList : MOCK_NEXT_ACTIONS
 
   return (
-    <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
+    <View className="min-h-full bg-background overflow-hidden" style={{ fontFamily: "'Noto Sans SC', sans-serif", maxWidth: '100vw' }}>
       {/* Header */}
       <View className="px-5 pt-12 pb-4">
         <BilingualTitle en="NEXT" zh="你准备试试看的" size="2xl" />

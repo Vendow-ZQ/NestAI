@@ -14,7 +14,7 @@ export default function MePage() {
   const displayLetters = letters.length > 0 ? letters : MOCK_LETTERS
 
   return (
-    <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
+    <View className="min-h-full bg-background overflow-hidden" style={{ fontFamily: "'Noto Sans SC', sans-serif", maxWidth: '100vw' }}>
       {/* Header */}
       <View className="px-5 pt-12 pb-4">
         <BilingualTitle en="ME" zh="我的" size="2xl" />

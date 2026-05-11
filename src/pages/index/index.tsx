@@ -23,16 +23,17 @@ export default function GrowPage() {
   }
 
   return (
-    <View className="min-h-full bg-background" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
+    <View className="min-h-full bg-background overflow-hidden" style={{ fontFamily: "'Noto Sans SC', sans-serif", maxWidth: '100vw' }}>
       {/* Header */}
-      <View className="flex flex-row items-center justify-between px-5 pt-12 pb-4">
+      <View className="flex flex-row items-center justify-between px-4 pt-12 pb-4">
         <BilingualTitle en="NestAI" zh="你的栖巢" size="2xl" />
         <View className="w-8 h-8 rounded-full bg-[#f0f0f0] flex items-center justify-center">
           <Text className="text-xs text-[#999]">我</Text>
         </View>
       </View>
 
-      <ScrollView scrollY className="px-5" style={{ height: 'calc(100vh - 140px)' }}>
+      <ScrollView scrollY style={{ height: 'calc(100vh - 140px)' }}>
+        <View className="px-4">
         {/* 上传区 — 始终显示 */}
         <View
           className="rounded flex flex-col items-center justify-center mb-4 relative overflow-hidden hover-lift"
@@ -78,7 +79,8 @@ export default function GrowPage() {
         {(nextList.length > 0 || MOCK_NEXT_ACTIONS.length > 0) && (
           <View className="mb-6">
             <Text className="block text-sm text-[#999] mb-3">我的 Next</Text>
-            <ScrollView scrollX className="flex flex-row gap-3" style={{ whiteSpace: 'nowrap' }}>
+            <ScrollView scrollX style={{ whiteSpace: 'nowrap', width: '100%' }}>
+              <View className="flex flex-row gap-3" style={{ paddingRight: '16px' }}>
               {(nextList.length > 0 ? nextList : MOCK_NEXT_ACTIONS.slice(0, 2)).map((item) => (
                 <View
                   key={item.id}
@@ -93,6 +95,7 @@ export default function GrowPage() {
                   <Text className="block text-xs text-[#999] mt-1">{item.firstStep}</Text>
                 </View>
               ))}
+              </View>
             </ScrollView>
           </View>
         )}
@@ -111,13 +114,13 @@ export default function GrowPage() {
               className="mb-3 bg-card rounded overflow-hidden hover-lift"
               onClick={() => handleFeedClick(feed.id)}
             >
-              <View className="flex flex-row" style={{ minHeight: '120px' }}>
+              <View className="flex flex-row" style={{ minHeight: '110px' }}>
                 {/* 左半边：改造后大图 */}
-                <View className="w-1/2 flex-shrink-0">
-                  <PlaceholderImage label={feed.title} className="w-full h-full rounded-l" />
+                <View className="flex-shrink-0 overflow-hidden" style={{ width: '45%' }}>
+                  <PlaceholderImage label={feed.title} className="w-full h-full" />
                 </View>
                 {/* 右半边：文案 */}
-                <View className="flex-1 p-3 flex flex-col justify-between">
+                <View className="flex-1 p-2 flex flex-col justify-between overflow-hidden">
                   <View>
                     <Text className="block text-xs font-semibold text-ink mb-1 leading-tight">
                       {feed.title}
@@ -144,6 +147,7 @@ export default function GrowPage() {
 
         {/* 底部留白 */}
         <View className="h-20" />
+        </View>
       </ScrollView>
     </View>
   )

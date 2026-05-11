@@ -77,7 +77,7 @@ export default function GeneratingPage() {
   const progress = ((currentStep + 1) / steps.length) * 100
 
   return (
-    <View className="min-h-full bg-background flex flex-col items-center justify-center" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
+    <View className="min-h-full bg-background overflow-hidden flex flex-col items-center justify-center" style={{ fontFamily: "'Noto Sans SC', sans-serif", maxWidth: '100vw' }}>
       {/* 标题 */}
       <View className="mb-8">
         <BilingualTitle en={currentTitle.en} zh={currentTitle.zh} size="lg" />

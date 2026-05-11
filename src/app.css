@@ -187,6 +187,12 @@ image {
   color: var(--selection-foreground);
 }
 
+/* 防止移动端水平溢出 */
+page, body, #app {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 /* NestAI 手绘元素样式 */
 .hand-underline {
   background-image: linear-gradient(180deg, transparent 55%, var(--bean-soft) 55%, var(--bean-soft) 88%, transparent 88%);
