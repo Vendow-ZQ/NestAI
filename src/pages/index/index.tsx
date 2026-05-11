@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from '@tarojs/components'
+import { View, Text, ScrollView, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
 import { useUserStore } from '@/lib/store/user-store'
@@ -7,6 +7,8 @@ import { MOCK_FEED, MOCK_NEXT_ACTIONS } from '@/lib/mock/data'
 import { Badge } from '@/components/ui/badge'
 import { PlaceholderImage } from '@/components/placeholder-image'
 import { BilingualTitle } from '@/components/bilingual-title'
+
+import axisBg from '@/assets/axis-bg.png'
 
 export default function GrowPage() {
   const hasUploadedSpace = useUserStore((s) => s.hasUploadedSpace)
@@ -42,16 +44,19 @@ export default function GrowPage() {
           }}
           onClick={handleUpload}
         >
-          {/* 半透明大加号 */}
-          <Text
-            className="block text-[#b5ad9f] font-light select-none"
-            style={{ fontSize: '120px', lineHeight: 1, opacity: 0.35 }}
-          >
-            +
-          </Text>
-          <Text className="block text-base text-ink text-center mt-4 px-6">
-            用你的生活方式改变身边空间
-          </Text>
+          {/* 轴测图背景 50%透明度 */}
+          <Image
+            src={axisBg}
+            mode="aspectFill"
+            className="absolute top-0 left-0 w-full h-full"
+            style={{ opacity: 0.5 }}
+          />
+          {/* 文案覆盖层 */}
+          <View className="relative z-10 flex flex-col items-center justify-center">
+            <Text className="block text-base text-ink text-center px-6" style={{ fontWeight: 500 }}>
+              用你的生活方式改变身边空间
+            </Text>
+          </View>
         </View>
 
         {/* 已上传空间卡 — 有空间时额外显示 */}
