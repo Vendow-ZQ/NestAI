@@ -32,33 +32,34 @@ export default function GrowPage() {
       </View>
 
       <ScrollView scrollY className="px-5" style={{ height: 'calc(100vh - 140px)' }}>
-        {/* 上传区 / 已上传空间卡 */}
-        {!hasUploadedSpace ? (
-          <View
-            className="rounded flex flex-col items-center justify-center mb-6 relative overflow-hidden"
-            style={{
-              borderWidth: '1.5px',
-              borderStyle: 'dashed',
-              borderColor: '#b5ad9f',
-              aspectRatio: '4 / 3',
-            }}
-            onClick={handleUpload}
+        {/* 上传区 — 始终显示 */}
+        <View
+          className="rounded flex flex-col items-center justify-center mb-4 relative overflow-hidden"
+          style={{
+            borderWidth: '1.5px',
+            borderStyle: 'dashed',
+            borderColor: '#b5ad9f',
+            aspectRatio: '4 / 3',
+          }}
+          onClick={handleUpload}
+        >
+          {/* 半透明大加号 */}
+          <Text
+            className="block text-[#b5ad9f] font-light select-none"
+            style={{ fontSize: '120px', lineHeight: 1, opacity: 0.35 }}
           >
-            {/* 半透明大加号 */}
-            <Text
-              className="block text-[#b5ad9f] font-light select-none"
-              style={{ fontSize: '120px', lineHeight: 1, opacity: 0.35 }}
-            >
-              +
-            </Text>
-            <Text className="block text-base text-ink text-center mt-4 px-6">
-              用你的生活方式改变身边空间
-            </Text>
-          </View>
-        ) : (
-          <View className="mb-6 bg-card rounded p-5">
+            +
+          </Text>
+          <Text className="block text-base text-ink text-center mt-4 px-6">
+            用你的生活方式改变身边空间
+          </Text>
+        </View>
+
+        {/* 已上传空间卡 — 有空间时额外显示 */}
+        {hasUploadedSpace && (
+          <View className="mb-4 bg-card rounded p-4">
             <View className="flex flex-row items-center gap-3">
-              <View className="w-12 h-12 rounded bg-[#f0f0f0] flex items-center justify-center">
+              <View className="w-10 h-10 rounded bg-[#f0f0f0] flex items-center justify-center">
                 <Text className="text-xs text-[#999]">空间</Text>
               </View>
               <View className="flex-1">
