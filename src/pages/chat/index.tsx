@@ -6,6 +6,7 @@ import { useLifestyleStore } from '@/lib/store/lifestyle-store'
 import { MOCK_SCENES } from '@/lib/mock/data'
 import { CustomTabBar } from '@/components/tab-bar'
 import { BilingualTitle } from '@/components/bilingual-title'
+import { Input } from '@/components/ui/input'
 
 const ASPIRATION_OPTIONS = [
   { id: 'focus', label: '更容易进入专注状态' },
@@ -38,6 +39,7 @@ export default function ChatPage() {
   const [sharing, setSharing] = useState('')
   const [budget, setBudget] = useState('')
   const [wall, setWall] = useState('')
+  const [customInput, setCustomInput] = useState('')
 
   const setStoreAspiration = useLifestyleStore((s) => s.setAspiration)
   const setStoreCurrentState = useLifestyleStore((s) => s.setCurrentState)
@@ -56,6 +58,16 @@ export default function ChatPage() {
     setPain((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     )
+  }
+
+  const handleSubmitCustomInput = () => {
+    if (!customInput.trim()) return
+    if (step === 'aspiration') {
+      setAspiration((prev) => [...prev, customInput.trim()])
+    } else if (step === 'pain') {
+      setPain((prev) => [...prev, customInput.trim()])
+    }
+    setCustomInput('')
   }
 
   const handleNext = () => {
@@ -204,8 +216,50 @@ export default function ChatPage() {
           )}
         </View>
 
+        {/* 自定义输入框 — 只在 aspiration 和 pain 步骤显示 */}
+        {step !== 'constraints' && (
+          <View className="px-5 mt-2 mb-4">
+            <View
+              className="flex flex-row items-center gap-2 rounded-lg p-1"
+              style={{ backgroundColor: '#f5f5f5' }}
+            >
+              <View className="flex-1 px-3">
+                <Input
+                  className="bg-transparent text-sm py-2"
+                  placeholder="或者直接告诉我..."
+                  value={customInput}
+                  onInput={(e) => setCustomInput(e.detail.value)}
+                  onConfirm={handleSubmitCustomInput}
+                />
+              </View>
+              {/* 语音输入按钮 */}
+              <View
+                className="flex items-center justify-center rounded-full"
+                style={{ width: '36px', height: '36px', backgroundColor: '#e8e4dc' }}
+                onClick={() => {
+                  Taro.showToast({ title: '语音功能仅在小程序中可用', icon: 'none', duration: 1500 })
+                }}
+              >
+                <Text className="text-[#7a736a] text-sm">🎤</Text>
+              </View>
+              {/* 发送按钮 */}
+              <View
+                className="flex items-center justify-center rounded-full"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  backgroundColor: customInput.trim() ? '#1a1814' : '#ccc',
+                }}
+                onClick={handleSubmitCustomInput}
+              >
+                <Text className="text-white text-sm">↑</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* 继续按钮 */}
-        <View className="px-5 mt-4">
+        <View className="px-5 mt-2">
           <View
             className="bg-ink rounded-full py-4 flex items-center justify-center hover-lift"
             onClick={handleNext}
@@ -216,7 +270,7 @@ export default function ChatPage() {
           </View>
         </View>
 
-        <View className="h-20" />
+        <View className="h-24" />
       </ScrollView>
 
       <CustomTabBar current="grow" />
