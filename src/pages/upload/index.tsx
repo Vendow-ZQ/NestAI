@@ -50,51 +50,65 @@ export default function UploadPage() {
 
       {/* 拍照/上传区 */}
       <View className="px-5 flex-1">
-        <View
-          className="rounded flex flex-col items-center justify-center mb-4 relative overflow-hidden hover-lift"
-          style={{
-            borderWidth: '1.5px',
-            borderStyle: 'dashed',
-            borderColor: '#b5ad9f',
-            aspectRatio: '4 / 3',
-          }}
-          onClick={handleChooseImage}
-        >
-          {uploadedImages.length > 0 ? (
-            <View className="w-full h-full relative">
-              <PlaceholderImage label="已上传照片" className="w-full h-full rounded" />
+        {uploadedImages.length === 0 ? (
+          /* 空状态：大虚线框 */
+          <View
+            className="rounded flex flex-col items-center justify-center mb-4 relative overflow-hidden hover-lift"
+            style={{
+              borderWidth: '1.5px',
+              borderStyle: 'dashed',
+              borderColor: '#b5ad9f',
+              aspectRatio: '4 / 3',
+            }}
+            onClick={handleChooseImage}
+          >
+            <Text
+              className="block text-[#b5ad9f] font-light select-none"
+              style={{ fontSize: '120px', lineHeight: 1, opacity: 0.35 }}
+            >
+              +
+            </Text>
+            <Text className="block text-base text-ink mt-2">认识你的空间</Text>
+            <Text className="block text-xs text-[#999] mt-1">建议拍 3-5 张：整体、桌面、床、窗、地</Text>
+          </View>
+        ) : (
+          /* 已有图片：横向排列 编号缩略图 + 虚线加号框 */
+          <View className="flex flex-row flex-wrap gap-2 mb-4">
+            {uploadedImages.map((_img, i) => (
               <View
-                className="absolute bottom-2 right-2 bg-ink text-background rounded-full px-3 py-1"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleChooseImage()
-                }}
+                key={i}
+                className="rounded overflow-hidden hover-lift relative"
+                style={{ width: '30%', aspectRatio: '4 / 3' }}
               >
-                <Text className="text-xs">+ 添加更多</Text>
+                <PlaceholderImage label="" className="w-full h-full" />
+                {/* 编号角标 */}
+                <View
+                  className="absolute top-1 left-1 bg-ink text-background rounded-full flex items-center justify-center"
+                  style={{ width: '18px', height: '18px' }}
+                >
+                  <Text className="text-white" style={{ fontSize: '10px' }}>{i + 1}</Text>
+                </View>
               </View>
-            </View>
-          ) : (
-            <>
+            ))}
+            {/* 虚线加号框 */}
+            <View
+              className="rounded flex items-center justify-center hover-lift"
+              style={{
+                width: '30%',
+                aspectRatio: '4 / 3',
+                borderWidth: '1.5px',
+                borderStyle: 'dashed',
+                borderColor: '#b5ad9f',
+              }}
+              onClick={handleChooseImage}
+            >
               <Text
-                className="block text-[#b5ad9f] font-light select-none"
-                style={{ fontSize: '120px', lineHeight: 1, opacity: 0.35 }}
+                className="text-[#b5ad9f] select-none"
+                style={{ fontSize: '40px', lineHeight: 1, opacity: 0.35 }}
               >
                 +
               </Text>
-              <Text className="block text-base text-ink mt-2">认识你的空间</Text>
-              <Text className="block text-xs text-[#999] mt-1">建议拍 3-5 张：整体、桌面、床、窗、地</Text>
-            </>
-          )}
-        </View>
-
-        {/* 已选图片缩略图 */}
-        {uploadedImages.length > 0 && (
-          <View className="flex flex-row gap-2 flex-wrap mb-4">
-            {uploadedImages.map((_img, i) => (
-              <View key={i} className="w-16 h-16 rounded overflow-hidden hover-lift">
-                <PlaceholderImage label={`${i + 1}`} className="w-full h-full" />
-              </View>
-            ))}
+            </View>
           </View>
         )}
       </View>
