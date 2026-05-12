@@ -60,7 +60,7 @@ export default function NextPage() {
                       Taro.navigateTo({ url: `/pages/result/index?sceneId=${sceneId}` })
                     }}
                   >
-                    <Text className="text-white text-sm">今晚试试看</Text>
+                    <Text className="text-white text-sm">Let&apos;s do it!</Text>
                   </View>
                   <View
                     className="flex-1 rounded-full py-3 flex items-center justify-center hover-lift"

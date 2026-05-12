@@ -210,7 +210,7 @@ export default function ResultPage() {
               style={{ backgroundColor: '#1a1814', boxShadow: '4px 4px 0 #d9a823' }}
               onClick={handleTonightTry}
             >
-              <Text className="text-white text-lg">今晚试试看</Text>
+              <Text className="text-white text-lg">Let&apos;s do it!</Text>
             </View>
           ) : (
             <View>

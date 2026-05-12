@@ -49,7 +49,7 @@ interface TonightButtonProps {
   subLabel?: string
 }
 
-export const TonightButton = ({ onClick, label = '今晚试试看', subLabel = 'Tonight, try.' }: TonightButtonProps) => {
+export const TonightButton = ({ onClick, label = "Let&apos;s do it!", subLabel = '' }: TonightButtonProps) => {
   return (
     <View className="flex justify-center mt-4 mb-4">
       <View
