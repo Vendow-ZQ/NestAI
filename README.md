@@ -142,17 +142,68 @@ Memory 是 NestAI 区别于一次性 AI 设计工具的关键。它记录的不�
 
 ---
 
-## 当前状态
+## 技术架构
 
-第一版前端界面开发中。核心链路（上传 → Chat → 方案 → Next → 反馈 → 信件）的 UI 已完成，正在接通真实 AI 与数据持久化。
+本项目采用前后端分离的纯 Web 架构：
+
+```
+项目根目录/
+├── web/              # 前端（Vite + React + TypeScript + Tailwind CSS）
+│   ├── src/          # 页面组件、状态管理、API调用
+│   ├── package.json  # 前端依赖
+│   └── vite.config.ts
+├── web-server/       # 后端（Express + SQL.js）
+│   ├── index.js      # 主入口
+│   ├── package.json  # 后端依赖
+│   └── prompts/      # AI Prompt 文件
+├── package.json      # 根目录脚本（同时启动前后端）
+└── README.md
+```
+
+## 快速启动
+
+### 开发模式（同时启动前后端）
+
+```bash
+pnpm dev
+```
+
+前端运行于 `http://localhost:5173`
+后端运行于 `http://localhost:3000`
+
+### 单独启动
+
+```bash
+# 仅启动前端
+pnpm dev:web
+
+# 仅启动后端
+pnpm dev:server
+```
+
+### 生产构建
+
+```bash
+pnpm build        # 构建前端 + 后端
+pnpm build:web    # 仅构建前端
+pnpm build:server # 仅构建后端
+pnpm start        # 启动生产服务器
+```
+
+## 项目迁移说明
+
+✅ **已完成从 Taro 小程序到纯 Web App 的迁移**  
+- 保留页面：Grow首页、Next行动页、Chat对话页、Result方案页  
+- 保留功能：三档干预方案、信件生成、Memory系统  
+- 新增：更简洁的架构、更快的开发体验、跨平台浏览器支持
 
 ## 相关文档
 
 | 文档 | 内容 |
 |------|------|
 | [NestAI Product Definition v0.5](NestAI_Product_Definition_v0.5.md) | 完整产品定义：用户旅程、页面规格、AI 工作流、Memory 设计、品牌定义 |
-| [TECH_STACK.md](TECH_STACK.md) | 技术栈现状与开发细节 |
-| [SOP.md](SOP.md) | 后端 AI 链路开发标准操作流程 |
+| [TECH_STACK.md](TECH_STACK.md) | 技术栈详情（注意：已更新为Web架构） |
+| [MIGRATION_SOP.md](MIGRATION_SOP.md) | 迁移过程文档 |
 
 ---
 

@@ -13,35 +13,40 @@ export default function UploadPage() {
   const uploadedImages = useSpaceStore((s) => s.uploadedImages)
   const addImage = useSpaceStore((s) => s.addUploadedImage)
   const [uploading, setUploading] = useState(false)
+  // 直接保存 File 对象，避免重复 fetch blob URL
+  const [files, setFiles] = useState<File[]>([])
 
   const handleChooseImage = () => {
     fileInputRef.current?.click()
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files) return
+    const selectedFiles = e.target.files
+    if (!selectedFiles) return
     const remaining = 9 - uploadedImages.length
-    Array.from(files).slice(0, remaining).forEach((file) => {
+    const newFiles = Array.from(selectedFiles).slice(0, remaining)
+
+    newFiles.forEach((file) => {
       const url = URL.createObjectURL(file)
       addImage(url)
     })
+    setFiles(prev => [...prev, ...newFiles])
+
     // 清空 input 以便重复选择同一文件
     e.target.value = ''
   }
 
   const handleStart = async () => {
-    if (uploadedImages.length === 0) return
+    if (uploadedImages.length === 0 || files.length === 0) return
     setUploading(true)
     setUploaded(true)
 
     try {
-      // 1. 上传图片到后端
-      const fileUrl = uploadedImages[0]
-      const response = await fetch(fileUrl)
-      const blob = await response.blob()
+      // 1. 上传图片到后端（直接使用保存的 File 对象）
       const formData = new FormData()
-      formData.append('images', blob, 'image.jpg')
+      files.forEach((file) => {
+        formData.append('images', file, file.name)
+      })
 
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
@@ -74,7 +79,7 @@ export default function UploadPage() {
       navigate(`/generating?type=space&sessionId=${sessionId}`)
     } catch (err) {
       console.error('上传失败:', err)
-      alert(errorMessages.uploadFailed)
+      alert(errorMessages.sessionFailed)
       setUploading(false)
     }
   }

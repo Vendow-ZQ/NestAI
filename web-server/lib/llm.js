@@ -1,4 +1,9 @@
 import { loadPrompt } from './prompt-loader.js'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 function interpolate(template, vars) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
@@ -13,6 +18,38 @@ function extractJson(raw) {
   const bare = raw.match(/\{[\s\S]*\}/)
   if (bare) return JSON.parse(bare[0])
   throw new Error('No JSON found in LLM response')
+}
+
+/**
+ * 将图片URL转换为可发送给LLM的格式
+ * - 本地文件 (/uploads/xxx.jpg) → base64 data URL
+ * - 远程URL → 保持原样
+ */
+function processImageUrl(imageUrl) {
+  // 本地文件路径，需要转换为base64
+  if (imageUrl.startsWith('/uploads/')) {
+    try {
+      const filePath = path.join(__dirname, '..', imageUrl)
+      if (fs.existsSync(filePath)) {
+        const data = fs.readFileSync(filePath)
+        const base64 = data.toString('base64')
+        // 根据文件扩展名判断MIME类型
+        const ext = path.extname(filePath).toLowerCase()
+        const mimeType = ext === '.png' ? 'image/png' :
+                         ext === '.gif' ? 'image/gif' :
+                         ext === '.webp' ? 'image/webp' : 'image/jpeg'
+        return `data:${mimeType};base64,${base64}`
+      } else {
+        console.warn(`Image file not found: ${filePath}`)
+        return imageUrl
+      }
+    } catch (err) {
+      console.error(`Failed to convert image to base64: ${imageUrl}`, err)
+      return imageUrl
+    }
+  }
+  // 远程URL，保持原样
+  return imageUrl
 }
 
 export async function callLLM({ promptId, variables = {}, images = [] }) {
@@ -31,11 +68,31 @@ export async function callLLM({ promptId, variables = {}, images = [] }) {
   const prompt = loadPrompt(promptId)
   const userText = interpolate(prompt.userTemplate, variables)
 
+  // 处理图片URL（本地文件转base64）
+  const processedImages = images.map(processImageUrl)
+
   let raw
   if (provider === 'anthropic') {
     const content = []
-    for (const url of images) {
-      content.push({ type: 'image', source: { type: 'url', url } })
+    for (const imgUrl of processedImages) {
+      if (imgUrl.startsWith('data:')) {
+        // base64格式: data:image/jpeg;base64,/9j/4AAQ...
+        const match = imgUrl.match(/^data:(.+?);base64,(.+)$/)
+        if (match) {
+          const [, mediaType, data] = match
+          content.push({
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: mediaType,
+              data: data
+            }
+          })
+        }
+      } else {
+        // 普通URL
+        content.push({ type: 'image', source: { type: 'url', url: imgUrl } })
+      }
     }
     content.push({ type: 'text', text: userText })
 
@@ -66,8 +123,8 @@ export async function callLLM({ promptId, variables = {}, images = [] }) {
   } else {
     // OpenAI 兼容
     const content = []
-    for (const url of images) {
-      content.push({ type: 'image_url', image_url: { url } })
+    for (const imgUrl of processedImages) {
+      content.push({ type: 'image_url', image_url: { url: imgUrl } })
     }
     content.push({ type: 'text', text: userText })
 

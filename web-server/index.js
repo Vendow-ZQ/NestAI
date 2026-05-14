@@ -127,7 +127,7 @@ app.post('/api/sessions/:id/analyze', async (req, res) => {
     })
 
     const parsed = result.parsed || JSON.parse(result.raw)
-    const memory = parsed.observation || result.raw.slice(0, 200)
+    const memory = parsed.description || result.raw.slice(0, 200)
     const questions = parsed.questions || [
       { q: '你最希望这个空间帮你做到什么？', options: ['更容易进入专注状态', '回来之后真的能放松下来', '更像"我自己的地方"'] },
       { q: '那现在这个空间，最常发生什么？', options: ['我经常在这里学习，但很难进入状态', '我经常在这里刷手机/拖延', '我主要在这里休息，但总觉得不够放松'] },
@@ -291,6 +291,28 @@ app.post('/api/next/:id/letter', async (req, res) => {
 // 11. 获取长期记忆
 app.get('/api/me/memory', (_req, res) => {
   res.json({ status: 'success', data: { memory: '' } })
+})
+
+// 12. 测试 LLM 调用（调试用）
+app.post('/api/test/llm', async (req, res) => {
+  try {
+    const { promptId = 'p001_space_reader', imageUrl } = req.body
+    const result = await callLLM({
+      promptId,
+      variables: {},
+      images: imageUrl ? [imageUrl] : [],
+    })
+    res.json({
+      status: 'success',
+      data: {
+        raw: result.raw,
+        parsed: result.parsed,
+      },
+    })
+  } catch (err) {
+    console.error('LLM test error:', err)
+    res.status(500).json({ status: 'error', message: err.message })
+  }
 })
 
 app.listen(PORT, () => {
