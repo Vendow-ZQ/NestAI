@@ -4,6 +4,7 @@ import GrowPage from '@/pages/index/GrowPage'
 import UploadPage from '@/pages/upload/UploadPage'
 import ChatPage from '@/pages/chat/ChatPage'
 import GeneratingPage from '@/pages/generating/GeneratingPage'
+import ResultPage from '@/pages/result/ResultPage'
 
 const Layout = () => (
   <div className="relative min-h-screen bg-background">
@@ -28,7 +29,7 @@ const App = () => {
         <Route path="/upload" element={<UploadPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/generating" element={<GeneratingPage />} />
-        <Route path="/result" element={<div className="p-4">方案页（待迁移）</div>} />
+        <Route path="/result" element={<ResultPage />} />
         <Route path="/share" element={<div className="p-4">新变化分享（待迁移）</div>} />
         <Route path="/letter" element={<div className="p-4">一封信（待迁移）</div>} />
       </Routes>
