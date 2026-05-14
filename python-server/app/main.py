@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
-from app.api import sessions_router
+from app.api import sessions_router, upload_router, spaces_router
 from app.core.config import get_settings
 from app.services.memory_service import init_db
 
@@ -20,21 +20,21 @@ from app.services.memory_service import init_db
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时初始化
-    print("🚀 NestAI Backend Starting...")
+    print("[START] NestAI Backend Starting...")
 
     # 初始化数据库
     init_db()
-    print("✅ Database initialized")
+    print("[OK] Database initialized")
 
     # 加载环境变量
     settings = get_settings()
-    print(f"✅ Environment: {settings.app_env}")
-    print(f"✅ Database URL: {settings.database_url}")
+    print(f"[OK] Environment: {settings.app_env}")
+    print(f"[OK] Database URL: {settings.database_url}")
 
     yield
 
     # 关闭时清理
-    print("🛑 NestAI Backend Shutting down...")
+    print("[STOP] NestAI Backend Shutting down...")
 
 
 def create_app() -> FastAPI:
@@ -58,6 +58,8 @@ def create_app() -> FastAPI:
 
     # 注册路由
     app.include_router(sessions_router)
+    app.include_router(upload_router)
+    app.include_router(spaces_router)
 
     # 静态文件服务（上传的图片等）
     settings = get_settings()

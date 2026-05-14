@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.services.memory_service import MemoryService, get_db
 from app.services.workflow_service import get_workflow_service, WorkflowService
+from app.services.vision_service import get_vision_service
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
@@ -71,7 +72,7 @@ async def create_session(
     return JSONResponse({
         "success": True,
         "data": {
-            "sessionId": session_id,
+            "id": session_id,
             "spaceId": req.spaceId,
             "status": memory.status,
             "createdAt": memory.created_at.isoformat()
@@ -87,31 +88,45 @@ async def analyze_space(
     """
     分析空间图片 (P001)
     对应前端：GeneratingPage调用，type=space
+    使用多模态视觉模型分析图片
     """
     try:
         memory_service = MemoryService(db)
-        workflow_service = get_workflow_service(memory_service)
 
-        # 获取session信息（需要图片描述）
+        # 获取session信息
         memory = memory_service.get_session_memory(session_id)
         if not memory:
             raise HTTPException(status_code=404, detail="Session not found")
 
-        # TODO: 获取图片描述（从图片上传服务）
-        # 暂时使用占位符，实际应该从空间图片解析
-        image_description = f"Space image for {memory.space_id}"
+        # 获取空间图片URL（从spaces服务获取）
+        from app.api.spaces import spaces_db
+        space_data = spaces_db.get(memory.space_id, {})
+        image_urls = space_data.get("images", [])
 
-        # 运行空间分析工作流
-        result = await workflow_service.run_space_analysis(
-            session_id=session_id,
-            image_description=image_description
+        if not image_urls:
+            raise HTTPException(status_code=400, detail="No images found for this space")
+
+        print(f"Analyzing {len(image_urls)} images for session {session_id}")
+
+        # 使用视觉服务分析图片
+        vision_service = get_vision_service()
+        result = await vision_service.analyze_space_image(
+            image_urls=image_urls,
+            space_id=memory.space_id
         )
 
+        # 保存结果到数据库
+        if result.get("space_summary"):
+            memory_service.update_session_field(
+                session_id,
+                "space_analysis",
+                {"summary": result["space_summary"], "questions": result.get("questions", [])}
+            )
+            memory_service.update_session_status(session_id, "analyzed")
+
         if result.get("error"):
-            return JSONResponse({
-                "success": False,
-                "error": result["error"]
-            }, status_code=500)
+            print(f"Vision analysis returned error: {result['error']}")
+            # 即使有错误也返回默认问题，让流程继续
 
         return JSONResponse({
             "success": True,
@@ -122,6 +137,9 @@ async def analyze_space(
         })
 
     except Exception as e:
+        import traceback
+        print(f"Analyze error: {e}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
