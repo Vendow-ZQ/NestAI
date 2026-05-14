@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show:*)",
+      "Bash(python -c \"import langchain_anthropic; print\\(langchain_anthropic.__version__\\)\")",
+      "Bash(python -c \"import anthropic; print\\(anthropic.__version__\\)\")",
+      "Bash(python -c \" from langchain_anthropic import ChatAnthropic import inspect sig = inspect.signature\\(ChatAnthropic.__init__\\) for name, param in sig.parameters.items\\(\\): print\\(f'{name}: {param.default if param.default is not param.empty else \\\\\"\\(required\\)\\\\\"}'\\) \")",
+      "Bash(python -c ':*)",
+      "Bash(python)",
+      "Bash(ls -d .venv* venv* env*)",
+      "Bash(which python:*)",
+      "Bash(where python:*)",
+      "Bash(curl -x http://127.0.0.1:7897 https://dkpn7pqjvu3iq.cloudfront.net -s -o /dev/null -w \"%{http_code}\" --connect-timeout 10)",
+      "Bash(python run_agents.py)",
+      "Bash(pip list:*)",
+      "Bash(pip install:*)",
+      "Bash(python -c \"import tavily; print\\('tavily OK'\\)\")",
+      "Bash(curl -x http://127.0.0.1:7897 https://dkpn7pqjvu3iq.cloudfront.net/v1/messages -H 'x-api-key: test' -H 'anthropic-version: 2023-06-01' -H 'content-type: application/json' -d '{\"model\":\"bedrock-claude-opus\",\"max_tokens\":10,\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}' -s -w '\\\\n%{http_code} %{time_total}s' --connect-timeout 15 --max-time 30)",
+      "Bash(curl -x http://127.0.0.1:7897 https://dkpn7pqjvu3iq.cloudfront.net/v1/messages -H 'x-api-key: sk-ahYPmddLOVKjXtKaoUEDbA' -H 'anthropic-version: 2023-06-01' -H 'content-type: application/json' -d '{\"model\":\"bedrock-claude-opus\",\"max_tokens\":10,\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}' -s -w '\\\\nHTTP_CODE=%{http_code} TIME=%{time_total}s' --connect-timeout 15 --max-time 60)",
+      "Bash(python test_concurrency.py)",
+      "Bash(python -c \"import anthropic; help\\(anthropic.Anthropic.__init__\\)\")"
+    ]
+  }
+}

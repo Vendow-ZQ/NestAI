@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "description": {"type": "string"},
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "q": {"type": "string"},
+          "options": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["q", "options"]
+      }
+    }
+  },
+  "required": ["description", "questions"]
+}

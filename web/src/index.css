@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14% 10%;
+    --card: 30 10% 96%;
+    --card-foreground: 20 14% 10%;
+    --primary: 45 70% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 10% 90%;
+    --secondary-foreground: 20 14% 10%;
+    --muted: 30 10% 90%;
+    --muted-foreground: 20 5% 45%;
+    --accent: 30 10% 90%;
+    --accent-foreground: 20 14% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 10% 85%;
+    --input: 30 10% 85%;
+    --ring: 45 70% 50%;
+    --radius: 0.5rem;
+
+    /* NestAI 品牌色 */
+    --paper: #ffffff;
+    --paper-deep: #f5f5f5;
+    --ink: #1a1814;
+    --ink-soft: #3a3530;
+    --ink-mute: #7a736a;
+    --ink-faint: #b5ad9f;
+    --bean: #d9a823;
+    --bean-soft: #f0d77a;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .hover-lift {
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: pointer;
+  }
+
+  .hover-lift:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .btn-tonight {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    padding: 16px 32px;
+    border-radius: 100px;
+    box-shadow: 4px 4px 0 var(--bean);
+    transform: rotate(-0.5deg);
+    transition: transform 200ms ease-out;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .btn-tonight:hover {
+    transform: rotate(-0.5deg) translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--bean);
+  }
+
+  .btn-tonight-text {
+    font-size: 11px;
+    font-family: 'Inter Tight', sans-serif;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+}
