@@ -1,15 +1,19 @@
 import { View, Text, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { useState } from 'react'
 
 import { useUserStore } from '@/lib/store/user-store'
 import { useSpaceStore } from '@/lib/store/space-store'
 import { CustomTabBar } from '@/components/tab-bar'
 import { BilingualTitle } from '@/components/bilingual-title'
+import { Network } from '@/network'
+import { errorMessages } from '@/lib/error-messages'
 
 export default function UploadPage() {
   const setUploaded = useUserStore((s) => s.setHasUploadedSpace)
   const uploadedImages = useSpaceStore((s) => s.uploadedImages)
   const addImage = useSpaceStore((s) => s.addUploadedImage)
+  const [uploading, setUploading] = useState(false)
 
   const handleChooseImage = () => {
     Taro.chooseImage({
@@ -24,11 +28,69 @@ export default function UploadPage() {
     })
   }
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    if (uploadedImages.length === 0) return
+    setUploading(true)
     setUploaded(true)
-    Taro.navigateTo({
-      url: '/pages/generating/index?type=space&sceneId=scene-01',
-    })
+
+    try {
+      const filePath = uploadedImages[0]
+      const isH5Blob = Taro.getEnv() === 'WEB' && filePath.startsWith('blob:')
+      let imageUrl: string
+
+      if (isH5Blob) {
+        // H5 blob URL workaround
+        const blob = await fetch(filePath).then((r) => r.blob())
+        const formData = new FormData()
+        formData.append('file', blob, 'image.jpg')
+        const baseUrl = typeof PROJECT_DOMAIN !== 'undefined' ? PROJECT_DOMAIN : ''
+        const res = await fetch(`${baseUrl}/api/upload`, {
+          method: 'POST',
+          body: formData,
+        })
+        const data = await res.json()
+        imageUrl = data.data.url
+      } else {
+        // 正常 Taro uploadFile
+        const uploadRes = await Network.uploadFile({
+          url: '/api/upload',
+          filePath,
+          name: 'file',
+        })
+        const uploadData = JSON.parse(uploadRes.data)
+        imageUrl = uploadData.data.url
+      }
+
+      // 2. 创建 space
+      const spaceRes = await Network.request({
+        url: '/api/spaces',
+        method: 'POST',
+        header: { 'Content-Type': 'application/json' },
+        data: {
+          userId: 'dev-user',
+          images: [{ s3Url: imageUrl, uploadedAt: new Date().toISOString() }],
+        },
+      })
+      const spaceId = spaceRes.data.data.id
+
+      // 3. 创建 session
+      const sessionRes = await Network.request({
+        url: '/api/sessions',
+        method: 'POST',
+        header: { 'Content-Type': 'application/json' },
+        data: { spaceId },
+      })
+      const sessionId = sessionRes.data.data.id
+
+      // 4. 跳转到生成中页面
+      Taro.navigateTo({
+        url: `/pages/generating/index?type=space&sessionId=${sessionId}`,
+      })
+    } catch (err) {
+      console.error('上传失败:', err)
+      Taro.showToast({ title: errorMessages.uploadFailed, icon: 'none' })
+      setUploading(false)
+    }
   }
 
   return (
@@ -149,11 +211,15 @@ export default function UploadPage() {
       >
         <View
           className="btn-tonight"
-          style={{ opacity: uploadedImages.length > 0 ? 1 : 0.4 }}
-          onClick={uploadedImages.length > 0 ? handleStart : undefined}
+          style={{ opacity: uploadedImages.length > 0 && !uploading ? 1 : 0.4 }}
+          onClick={uploadedImages.length > 0 && !uploading ? handleStart : undefined}
         >
-          <Text className="block text-background text-lg">开始分析</Text>
-          <Text className="block btn-tonight-text">Analyze</Text>
+          <Text className="block text-background text-lg">
+            {uploading ? '正在上传...' : '开始分析'}
+          </Text>
+          <Text className="block btn-tonight-text">
+            {uploading ? 'Uploading...' : 'Analyze'}
+          </Text>
         </View>
       </View>
 

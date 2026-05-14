@@ -1,91 +1,128 @@
 import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import { useLifestyleStore } from '@/lib/store/lifestyle-store'
-import { MOCK_SCENES } from '@/lib/mock/data'
 import { CustomTabBar } from '@/components/tab-bar'
 import { BilingualTitle } from '@/components/bilingual-title'
 import { Input } from '@/components/ui/input'
+import { Network } from '@/network'
+import { errorMessages } from '@/lib/error-messages'
 
-const ASPIRATION_OPTIONS = [
-  { id: 'focus', label: '更容易进入专注状态' },
-  { id: 'relax', label: '回来之后真的能放松下来' },
-  { id: 'identity', label: '更像"我自己的地方"' },
-  { id: 'social', label: '更适合朋友来坐一会儿' },
-  { id: 'order', label: '更容易保持整洁和秩序' },
-  { id: 'sleep', label: '更适合睡觉和恢复' },
+const DEFAULT_QUESTIONS = [
+  {
+    q: '你最希望这个空间帮你做到什么？',
+    options: ['更容易进入专注状态', '回来之后真的能放松下来', '更像"我自己的地方"', '更适合朋友来坐一会儿', '更容易保持整洁和秩序', '更适合睡觉和恢复'],
+  },
+  {
+    q: '那现在这个空间，最常发生什么？',
+    options: ['我经常在这里学习，但很难进入状态', '我经常在这里刷手机/拖延', '我主要在这里休息，但总觉得不够放松', '东西越来越多，找不到放的地方', '光线不好，白天也要开灯', '空间太小，动线不舒服'],
+  },
+  {
+    q: '为了不生成你做不到的方案，我再确认几个小条件。',
+    options: ['一个人使用', '和室友共用', '0元', '100元以内', '300元以内', '300元以上', '可以打孔', '只能无痕', '都不方便'],
+  },
 ]
 
-const PAIN_OPTIONS = [
-  { id: 'cant-focus', label: '我经常在这里学习，但很难进入状态' },
-  { id: 'procrastinate', label: '我经常在这里刷手机/拖延' },
-  { id: 'not-relax', label: '我主要在这里休息，但总觉得不够放松' },
-  { id: 'cluttered', label: '东西越来越多，找不到放的地方' },
-  { id: 'dark', label: '光线不好，白天也要开灯' },
-  { id: 'crowded', label: '空间太小，动线不舒服' },
-]
-
-const SHARING_OPTIONS = ['一个人使用', '和室友共用']
-const BUDGET_OPTIONS = ['0元', '100元以内', '300元以内', '300元以上']
-const WALL_OPTIONS = ['可以打孔', '只能无痕', '都不方便']
-
-type ChatStep = 'aspiration' | 'pain' | 'constraints'
+type ChatStep = 0 | 1 | 2
 
 export default function ChatPage() {
-  const [step, setStep] = useState<ChatStep>('aspiration')
-  const [aspiration, setAspiration] = useState<string[]>([])
-  const [pain, setPain] = useState<string[]>([])
-  const [sharing, setSharing] = useState('')
-  const [budget, setBudget] = useState('')
-  const [wall, setWall] = useState('')
+  const [step, setStep] = useState<ChatStep>(0)
+  const [answers, setAnswers] = useState<string[][]>([[], [], []])
   const [customInput, setCustomInput] = useState('')
+  const [agentFirstMsg, setAgentFirstMsg] = useState('')
+  const [questions, setQuestions] = useState<Array<{ q: string; options: string[] }>>([])
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false)
 
   const setStoreAspiration = useLifestyleStore((s) => s.setAspiration)
   const setStoreCurrentState = useLifestyleStore((s) => s.setCurrentState)
   const setStoreSoftConstraints = useLifestyleStore((s) => s.setSoftConstraints)
 
-  const scene = MOCK_SCENES[0]
-  const objectDesc = scene.description
+  // 从 URL 获取 sessionId，调用后端获取 analyze 结果（description + questions）
+  useEffect(() => {
+    const tryFetch = (isRetry = false) => {
+      const sessionId = Taro.getCurrentInstance().router?.params?.sessionId as string | undefined
+      if (sessionId) {
+        setLoadingAnalysis(true)
+        Network.request({
+          url: `/api/sessions/${sessionId}`,
+          method: 'GET',
+        }).then((res) => {
+          const data = res.data?.data
+          const memory = data?.shortTermMemory as string | undefined
+          const qList = data?.questions as Array<{ q: string; options: string[] }> | undefined
+          if (memory) {
+            setAgentFirstMsg(memory)
+          }
+          if (qList && qList.length >= 3) {
+            setQuestions(qList)
+          } else {
+            // LLM 没返回足够问题，用默认的
+            setQuestions(DEFAULT_QUESTIONS)
+          }
+          setLoadingAnalysis(false)
+        }).catch((err) => {
+          console.error('获取 session 失败:', err)
+          Taro.showToast({ title: errorMessages.sessionFailed, icon: 'none' })
+          setLoadingAnalysis(false)
+          setQuestions(DEFAULT_QUESTIONS)
+        })
+      } else if (!isRetry) {
+        setTimeout(() => tryFetch(true), 50)
+      } else {
+        // 重试也失败，用默认问题
+        setQuestions(DEFAULT_QUESTIONS)
+      }
+    }
+    tryFetch()
+  }, [])
 
-  const handleSelectAspiration = (id: string) => {
-    setAspiration((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
-    )
-  }
+  const currentQuestion = questions[step] || DEFAULT_QUESTIONS[step]
 
-  const handleSelectPain = (id: string) => {
-    setPain((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    )
+  const handleSelectOption = (option: string) => {
+    setAnswers((prev) => {
+      const next = [...prev]
+      const current = next[step]
+      if (current.includes(option)) {
+        next[step] = current.filter((o) => o !== option)
+      } else {
+        next[step] = [...current, option]
+      }
+      return next
+    })
   }
 
   const handleSubmitCustomInput = () => {
     if (!customInput.trim()) return
-    if (step === 'aspiration') {
-      setAspiration((prev) => [...prev, customInput.trim()])
-    } else if (step === 'pain') {
-      setPain((prev) => [...prev, customInput.trim()])
-    }
+    setAnswers((prev) => {
+      const next = [...prev]
+      next[step] = [...next[step], customInput.trim()]
+      return next
+    })
     setCustomInput('')
   }
 
   const handleNext = () => {
-    if (step === 'aspiration') {
-      setStoreAspiration(aspiration)
-      setStep('pain')
-    } else if (step === 'pain') {
-      setStoreCurrentState(pain)
-      setStep('constraints')
+    if (step === 0) {
+      setStoreAspiration(answers[0])
+      setStep(1)
+    } else if (step === 1) {
+      setStoreCurrentState(answers[1])
+      setStep(2)
     } else {
+      // 第3步：把选项分类为 sharing/budget/wall（简化处理）
+      const step2Answers = answers[2]
+      const sharing = step2Answers.find((a) => ['一个人使用', '和室友共用'].includes(a)) || ''
+      const budget = step2Answers.find((a) => ['0元', '100元以内', '300元以内', '300元以上'].includes(a)) || ''
+      const wall = step2Answers.find((a) => ['可以打孔', '只能无痕', '都不方便'].includes(a)) || ''
       setStoreSoftConstraints({ sharing, budget, wallModification: wall })
       Taro.navigateTo({ url: '/pages/generating/index?type=intervention&sceneId=scene-01' })
     }
   }
 
   const handleBack = () => {
-    if (step === 'pain') setStep('aspiration')
-    else if (step === 'constraints') setStep('pain')
+    if (step === 1) setStep(0)
+    else if (step === 2) setStep(1)
     else Taro.navigateBack()
   }
 
@@ -112,151 +149,75 @@ export default function ChatPage() {
         <View className="px-5 mb-6">
           <View className="bg-card rounded p-4 mb-4">
             <Text className="block text-sm text-ink leading-relaxed">
-              我看到了{objectDesc}。在我们继续之前，我想了解一下——
+              {loadingAnalysis
+                ? '正在观察你的空间...'
+                : agentFirstMsg || '我看到了一个温馨的空间。在我们继续之前，我想了解一下——'}
             </Text>
           </View>
 
-          {step === 'aspiration' && (
-            <View className="bg-card rounded p-4 mb-4">
-              <Text className="block text-sm text-ink leading-relaxed">
-                你最希望这个空间帮你做到什么？
-              </Text>
-            </View>
-          )}
-
-          {step === 'pain' && (
-            <View className="bg-card rounded p-4 mb-4">
-              <Text className="block text-sm text-ink leading-relaxed">
-                那现在这个空间，最常发生什么？
-              </Text>
-            </View>
-          )}
-
-          {step === 'constraints' && (
-            <View className="bg-card rounded p-4 mb-4">
-              <Text className="block text-sm text-ink leading-relaxed">
-                为了不生成你做不到的方案，我再确认几个小条件。
-              </Text>
-            </View>
-          )}
+          {/* 当前问题 */}
+          <View className="bg-card rounded p-4 mb-4">
+            <Text className="block text-sm text-ink leading-relaxed">
+              {currentQuestion?.q || '请选择'}
+            </Text>
+          </View>
         </View>
 
         {/* 选项 */}
         <View className="px-5">
-          {step === 'aspiration' && ASPIRATION_OPTIONS.map((opt) => (
+          {currentQuestion?.options.map((opt, i) => (
             <View
-              key={opt.id}
+              key={i}
               className={`mb-3 rounded p-4 hover-lift ${
-                aspiration.includes(opt.id) ? 'bg-[#f0d77a]' : 'bg-card'
+                answers[step].includes(opt) ? 'bg-[#f0d77a]' : 'bg-card'
               }`}
-              style={{ borderWidth: '1.5px', borderColor: aspiration.includes(opt.id) ? '#d9a823' : '#b5ad9f' }}
-              onClick={() => handleSelectAspiration(opt.id)}
+              style={{ borderWidth: '1.5px', borderColor: answers[step].includes(opt) ? '#d9a823' : '#b5ad9f' }}
+              onClick={() => handleSelectOption(opt)}
             >
-              <Text className="text-sm text-ink">{opt.label}</Text>
+              <Text className="text-sm text-ink">{opt}</Text>
             </View>
           ))}
-
-          {step === 'pain' && PAIN_OPTIONS.map((opt) => (
-            <View
-              key={opt.id}
-              className={`mb-3 rounded p-4 hover-lift ${
-                pain.includes(opt.id) ? 'bg-[#f0d77a]' : 'bg-card'
-              }`}
-              style={{ borderWidth: '1.5px', borderColor: pain.includes(opt.id) ? '#d9a823' : '#b5ad9f' }}
-              onClick={() => handleSelectPain(opt.id)}
-            >
-              <Text className="text-sm text-ink">{opt.label}</Text>
-            </View>
-          ))}
-
-          {step === 'constraints' && (
-            <View>
-              <Text className="block text-sm text-[#999] mb-2">空间使用:</Text>
-              <View className="flex flex-row flex-wrap gap-2 mb-4">
-                {SHARING_OPTIONS.map((opt) => (
-                  <View
-                    key={opt}
-                    className={`rounded-full px-4 py-2 hover-lift ${sharing === opt ? 'bg-ink' : 'bg-card'}`}
-                    style={{ borderWidth: '1.5px', borderColor: sharing === opt ? 'transparent' : '#b5ad9f' }}
-                    onClick={() => setSharing(opt)}
-                  >
-                    <Text className={`text-sm ${sharing === opt ? 'text-white' : 'text-[#999]'}`}>{opt}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <Text className="block text-sm text-[#999] mb-2">预算:</Text>
-              <View className="flex flex-row flex-wrap gap-2 mb-4">
-                {BUDGET_OPTIONS.map((opt) => (
-                  <View
-                    key={opt}
-                    className={`rounded-full px-4 py-2 hover-lift ${budget === opt ? 'bg-ink' : 'bg-card'}`}
-                    style={{ borderWidth: '1.5px', borderColor: budget === opt ? 'transparent' : '#b5ad9f' }}
-                    onClick={() => setBudget(opt)}
-                  >
-                    <Text className={`text-sm ${budget === opt ? 'text-white' : 'text-[#999]'}`}>{opt}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <Text className="block text-sm text-[#999] mb-2">墙面:</Text>
-              <View className="flex flex-row flex-wrap gap-2 mb-4">
-                {WALL_OPTIONS.map((opt) => (
-                  <View
-                    key={opt}
-                    className={`rounded-full px-4 py-2 hover-lift ${wall === opt ? 'bg-ink' : 'bg-card'}`}
-                    style={{ borderWidth: '1.5px', borderColor: wall === opt ? 'transparent' : '#b5ad9f' }}
-                    onClick={() => setWall(opt)}
-                  >
-                    <Text className={`text-sm ${wall === opt ? 'text-white' : 'text-[#999]'}`}>{opt}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
         </View>
 
-        {/* 自定义输入框 — 只在 aspiration 和 pain 步骤显示 */}
-        {step !== 'constraints' && (
-          <View className="px-5 mt-2 mb-4">
+        {/* 自定义输入框 */}
+        <View className="px-5 mt-2 mb-4">
+          <View
+            className="flex flex-row items-center gap-2 rounded-lg p-1"
+            style={{ backgroundColor: '#f5f5f5' }}
+          >
+            <View className="flex-1 px-3">
+              <Input
+                className="bg-transparent text-sm py-2"
+                placeholder="或者直接告诉我..."
+                value={customInput}
+                onInput={(e) => setCustomInput(e.detail.value)}
+                onConfirm={handleSubmitCustomInput}
+              />
+            </View>
+            {/* 语音输入按钮 */}
             <View
-              className="flex flex-row items-center gap-2 rounded-lg p-1"
-              style={{ backgroundColor: '#f5f5f5' }}
+              className="flex items-center justify-center rounded-full"
+              style={{ width: '36px', height: '36px', backgroundColor: '#e8e4dc' }}
+              onClick={() => {
+                Taro.showToast({ title: '语音功能仅在小程序中可用', icon: 'none', duration: 1500 })
+              }}
             >
-              <View className="flex-1 px-3">
-                <Input
-                  className="bg-transparent text-sm py-2"
-                  placeholder="或者直接告诉我..."
-                  value={customInput}
-                  onInput={(e) => setCustomInput(e.detail.value)}
-                  onConfirm={handleSubmitCustomInput}
-                />
-              </View>
-              {/* 语音输入按钮 */}
-              <View
-                className="flex items-center justify-center rounded-full"
-                style={{ width: '36px', height: '36px', backgroundColor: '#e8e4dc' }}
-                onClick={() => {
-                  Taro.showToast({ title: '语音功能仅在小程序中可用', icon: 'none', duration: 1500 })
-                }}
-              >
-                <Text className="text-[#7a736a] text-sm">🎤</Text>
-              </View>
-              {/* 发送按钮 */}
-              <View
-                className="flex items-center justify-center rounded-full"
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  backgroundColor: customInput.trim() ? '#1a1814' : '#ccc',
-                }}
-                onClick={handleSubmitCustomInput}
-              >
-                <Text className="text-white text-sm">↑</Text>
-              </View>
+              <Text className="text-[#7a736a] text-sm">🎤</Text>
+            </View>
+            {/* 发送按钮 */}
+            <View
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: '36px',
+                height: '36px',
+                backgroundColor: customInput.trim() ? '#1a1814' : '#ccc',
+              }}
+              onClick={handleSubmitCustomInput}
+            >
+              <Text className="text-white text-sm">↑</Text>
             </View>
           </View>
-        )}
+        </View>
 
         {/* 继续按钮 */}
         <View className="px-5 mt-2">
@@ -265,7 +226,7 @@ export default function ChatPage() {
             onClick={handleNext}
           >
             <Text className="text-white text-base">
-              {step === 'aspiration' ? '继续' : step === 'pain' ? '继续' : '生成方案'}
+              {step === 0 ? '继续' : step === 1 ? '继续' : '生成方案'}
             </Text>
           </View>
         </View>

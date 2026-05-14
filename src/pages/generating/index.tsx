@@ -6,6 +6,8 @@ import { useUserStore } from '@/lib/store/user-store'
 import { useSpaceStore } from '@/lib/store/space-store'
 import { CustomTabBar } from '@/components/tab-bar'
 import { BilingualTitle } from '@/components/bilingual-title'
+import { Network } from '@/network'
+import { errorMessages } from '@/lib/error-messages'
 
 export default function GeneratingPage() {
   const [currentStep, setCurrentStep] = useState(0)
@@ -15,6 +17,7 @@ export default function GeneratingPage() {
   const params = Taro.getCurrentInstance().router?.params
   const type = params?.type || 'space'
   const sceneId = params?.sceneId || 'scene-01'
+  const sessionId = params?.sessionId
 
   const spaceSteps = [
     { zh: '看见这个空间...', en: 'SEEING THE SPACE' },
@@ -52,6 +55,34 @@ export default function GeneratingPage() {
       setSpaceProfile({ type: 'dorm', layout: '7+1 single room', detectedObjects: [], constraints: [] })
     }
 
+    // space 类型 & 有 sessionId: 真调用 analyze API
+    if (type === 'space' && sessionId) {
+      // 保持进度条动画
+      const timer = setInterval(() => {
+        setCurrentStep((prev) => {
+          if (prev >= steps.length - 1) return prev
+          return prev + 1
+        })
+      }, stepDuration)
+
+      // 真调用 analyze
+      Network.request({
+        url: `/api/sessions/${sessionId}/analyze`,
+        method: 'POST',
+        timeout: 60000,
+      }).then(() => {
+        clearInterval(timer)
+        Taro.redirectTo({ url: `/pages/chat/index?sessionId=${sessionId}` })
+      }).catch((err) => {
+        clearInterval(timer)
+        console.error('analyze 失败:', err)
+        Taro.showToast({ title: errorMessages.analyzeFailed, icon: 'none' })
+      })
+
+      return () => clearInterval(timer)
+    }
+
+    // 原有逻辑: intervention / letter / 无 sessionId 的 space
     const timer = setInterval(() => {
       setCurrentStep((prev) => {
         if (prev >= steps.length - 1) {
