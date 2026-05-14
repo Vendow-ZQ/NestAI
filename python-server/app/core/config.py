@@ -4,6 +4,10 @@ import os
 from typing import Dict, List, Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from dotenv import load_dotenv
+
+# 加载.env文件到环境变量
+load_dotenv()
 
 
 class LLMConfig(BaseSettings):
