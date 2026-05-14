@@ -129,18 +129,30 @@ async def analyze_space(
             space_id=memory.space_id
         )
 
-        # 保存结果到数据库（保留原有的images）
+        # 保存结果到数据库（保留原有的images + 新的人格洞察数据）
         if result.get("space_summary"):
+            import json
+            analysis_data = {
+                "summary": result["space_summary"],
+                "questions": result.get("questions", []),
+                "qa_markdown": result.get("qa_markdown", ""),  # 完整QA markdown
+                "personality_insights": result.get("personality_insights", {}),
+                "images": image_urls  # 保留图片URL
+            }
             memory_service.update_session_field(
                 session_id,
                 "space_analysis",
-                {
-                    "summary": result["space_summary"],
-                    "questions": result.get("questions", []),
-                    "images": image_urls  # 保留图片URL
-                }
+                analysis_data
             )
             memory_service.update_session_status(session_id, "analyzed")
+
+            # 同时保存人格洞察到单独的长期记忆字段
+            if result.get("personality_insights"):
+                memory_service.append_to_session_memory(
+                    session_id,
+                    f"## 人格洞察摘要\n{result['space_summary'][:500]}...",
+                    "personality_analysis"
+                )
 
         if result.get("error"):
             print(f"Vision analysis returned error: {result['error']}")
@@ -194,20 +206,31 @@ async def get_session(
             except:
                 pass
 
+        # 构建响应数据
+        response_data = {
+            "sessionId": memory.session_id,
+            "spaceId": memory.space_id,
+            "userId": memory.user_id,
+            "status": memory.status,
+            "shortTermMemory": memory.content,
+            "spaceAnalysis": space_analysis,
+            "interventionPlan": intervention_plan,
+            "questions": space_analysis.get("questions", []),
+            "createdAt": memory.created_at.isoformat(),
+            "updatedAt": memory.updated_at.isoformat()
+        }
+
+        # 如果有人格洞察数据，添加到响应
+        if "personality_insights" in space_analysis:
+            response_data["personalityInsights"] = space_analysis["personality_insights"]
+
+        # 如果有QA markdown，也返回（供前端展示用）
+        if "qa_markdown" in space_analysis:
+            response_data["qaMarkdown"] = space_analysis["qa_markdown"]
+
         return JSONResponse({
             "success": True,
-            "data": {
-                "sessionId": memory.session_id,
-                "spaceId": memory.space_id,
-                "userId": memory.user_id,
-                "status": memory.status,
-                "shortTermMemory": memory.content,
-                "spaceAnalysis": space_analysis,
-                "interventionPlan": intervention_plan,
-                "questions": space_analysis.get("questions", []),
-                "createdAt": memory.created_at.isoformat(),
-                "updatedAt": memory.updated_at.isoformat()
-            }
+            "data": response_data
         })
 
     except Exception as e:

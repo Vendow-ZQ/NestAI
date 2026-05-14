@@ -115,78 +115,14 @@ class VisionService:
             if not image_contents:
                 raise ValueError("No valid images to analyze")
 
-            # 系统提示词
-            system_prompt = """你是一位空间观察助手，名为"NestAI"。你的任务是通过分析用户居住空间的图片，理解空间特征、功能分布和潜在改善点。
-
-## 观察框架
-
-你需要从以下几个维度分析空间：
-
-1. **空间类型识别**
-   - 卧室、客厅、书房、合租单间等
-   - 面积估算和布局特点
-
-2. **功能区域划分**
-   - 睡眠区、工作区、储物区、休闲区
-   - 区域之间的边界清晰度
-
-3. **物品清单**
-   - 主要家具（床、桌、椅、柜等）
-   - 电子产品（电脑、显示器、灯具等）
-   - 装饰品和个人物品
-
-4. **空间使用模式**
-   - 当前使用方式暗示
-   - 潜在的功能冲突（如床与书桌过近）
-
-5. **可干预点识别**
-   - 明显的杂乱区域
-   - 未充分利用的角落
-   - 光照、通风等环境问题
-
-## 输出要求
-
-你的输出将用于两个用途：
-
-1. **生成空间观察摘要** (Markdown格式)
-   - 用温暖、不评判的语气描述你"看到"的
-   - 不超过300字
-   - 避免使用"问题"、"错误"等负面词汇
-   - 使用"注意到"、"感受到"等中性表达
-
-2. **生成3个对话问题** (JSON格式)
-   基于空间观察，设计3个选择题帮助用户澄清生活方式：
-
-   问题1: 关于期望 (aspiration)
-   - 聚焦：用户希望空间帮他们实现什么生活状态
-
-   问题2: 关于现状 (current_state)
-   - 聚焦：当前空间最常发生的真实场景
-
-   问题3: 关于约束条件 (constraints)
-   - 聚焦：预算、共享情况、改造权限等实际限制
-
-   每个问题格式：
-   {
-     "q": "问题文本",
-     "options": ["选项1", "选项2", "选项3", ...]
-   }
-
-## 输出格式
-
-请严格按以下格式输出：
-
----MEMORY---
-[空间观察摘要Markdown]
----QUESTIONS---
-[问题JSON数组]
----END---
-
-注意：
-- 对话语气要像一个理解空间的朋友，不是专家在点评
-- 避免建议或解决方案，这只是观察阶段
-- 问题要具体、有洞察力，避免泛泛而谈
-"""
+            # 加载人格化深度分析Prompt
+            prompt_path = Path(__file__).parent.parent.parent / "api_test" / "Prompt1.md"
+            if prompt_path.exists():
+                with open(prompt_path, "r", encoding="utf-8") as f:
+                    system_prompt = f.read()
+            else:
+                #  fallback to embedded prompt
+                system_prompt = self._get_default_personality_prompt()
 
             # 构建消息
             messages = [
@@ -204,32 +140,39 @@ class VisionService:
             response = model.invoke(messages)
             content = response.content
 
-            # 解析输出
-            memory_match = re.search(r'---MEMORY---(.*?)---QUESTIONS---', content, re.DOTALL)
-            questions_match = re.search(r'---QUESTIONS---(.*?)---END---', content, re.DOTALL)
+            # 解析输出（新格式：MEMORY01 + QA）
+            memory_match = re.search(r'---MEMORY01_START---(.*?)---MEMORY01_END---', content, re.DOTALL)
+            qa_match = re.search(r'---QA_START---(.*?)---QA_END---', content, re.DOTALL)
 
-            if memory_match and questions_match:
-                space_summary = memory_match.group(1).strip()
-                questions_json = questions_match.group(1).strip()
+            if memory_match and qa_match:
+                memory_content = memory_match.group(1).strip()
+                qa_content = qa_match.group(1).strip()
 
-                # 解析问题JSON
+                # 使用QAConverter转换QA为前端格式
                 try:
-                    questions = json.loads(questions_json)
-                except json.JSONDecodeError:
-                    # 尝试从Markdown代码块解析
-                    json_match = re.search(r'```json\s*(.*?)\s*```', questions_json, re.DOTALL)
-                    if json_match:
-                        questions = json.loads(json_match.group(1))
-                    else:
-                        questions = self._get_default_questions()
+                    from app.utils.qa_converter import QAConverter
+                    converter = QAConverter()
+                    parsed_questions = converter.parse_qa_markdown(qa_content)
+                    frontend_questions = converter.to_frontend_format(parsed_questions)
+
+                    # 提取人格洞察（从Memory01中）
+                    personality_insights = extract_personality_insights(memory_content)
+                except Exception as e:
+                    print(f"QA conversion error: {e}")
+                    frontend_questions = self._get_default_questions()
+                    personality_insights = {}
             else:
                 # 如果解析失败，使用默认问题
-                space_summary = content[:500] if len(content) > 500 else content
-                questions = self._get_default_questions()
+                memory_content = content[:1000] if len(content) > 1000 else content
+                frontend_questions = self._get_default_questions()
+                personality_insights = {}
+                qa_content = ""
 
             return {
-                "space_summary": space_summary,
-                "questions": questions,
+                "space_summary": memory_content,  # 完整的人格洞察档案
+                "personality_insights": personality_insights,  # 结构化人格数据
+                "questions": frontend_questions,  # 前端格式的问题
+                "qa_markdown": qa_content,  # 完整QA markdown供后端使用
                 "error": None
             }
 
@@ -239,9 +182,26 @@ class VisionService:
             traceback.print_exc()
             return {
                 "space_summary": "我看到你的空间了。这是一个有待探索的生活场所，让我们进一步了解你对它的期待。",
+                "personality_insights": {},
                 "questions": self._get_default_questions(),
+                "qa_markdown": "",
                 "error": str(e)
             }
+
+    def _get_default_personality_prompt(self) -> str:
+        """默认人格化分析Prompt（当文件不存在时使用）"""
+        return """你是一位空间心理学家。分析空间图片，输出人格与空间洞察档案和验证问卷。
+
+输出格式：
+---MEMORY01_START---
+# 人格与空间洞察档案
+[深度分析]
+---MEMORY01_END---
+
+---QA_START---
+# 深度验证问卷
+[3个精准问题]
+---QA_END---"""
 
     def _get_default_questions(self) -> List[Dict[str, Any]]:
         """获取默认问题（当图像分析失败时使用）"""
@@ -271,3 +231,53 @@ def get_vision_service() -> VisionService:
     if _vision_service is None:
         _vision_service = VisionService()
     return _vision_service
+
+
+def extract_personality_insights(memory_content: str):
+    """从Memory01中提取结构化人格洞察"""
+    import re
+    insights = {
+        "raw_markdown": memory_content,
+        "dominant_personality": "",
+        "lifestyle_prototype": "",
+        "unmet_needs": [],
+        "key_contradictions": [],
+        "aesthetic_direction": ""
+    }
+
+    try:
+        # 提取主导人格特质
+        personality_match = re.search(r"### 主导人格特质\s*\n(.+?)\n", memory_content)
+        if personality_match:
+            insights["dominant_personality"] = personality_match.group(1).strip()
+
+        # 提取生活方式原型
+        prototype_match = re.search(r"### 生活方式原型\s*\n(.+?)\n", memory_content)
+        if prototype_match:
+            insights["lifestyle_prototype"] = prototype_match.group(1).strip()
+
+        # 提取未满足的心理需求
+        needs_section = re.search(r"### 未满足的心理需求.*?\n([\s\S]*?)(?=###|##|$)", memory_content)
+        if needs_section:
+            needs_text = needs_section.group(1)
+            needs = re.findall(r"\d+\.\s*(.+?)\n", needs_text)
+            insights["unmet_needs"] = [n.strip() for n in needs if n.strip()]
+
+        # 提取关键矛盾点
+        contradictions_section = re.search(r"### 关键矛盾点.*?\n([\s\S]*?)(?=###|##|$)", memory_content)
+        if contradictions_section:
+            contradictions_text = contradictions_section.group(1)
+            contradictions = re.findall(r"\d+\.\s*(.+?)\n", contradictions_text)
+            insights["key_contradictions"] = [c.strip() for c in contradictions if c.strip()]
+
+        # 提取审美方向
+        aesthetic_match = re.search(r"### 审美心理.*?\n([\s\S]*?)(?=###|##|$)", memory_content)
+        if aesthetic_match:
+            aesthetic_text = aesthetic_match.group(1)
+            color_match = re.search(r"色彩[:\s]+(.+?)\n", aesthetic_text)
+            if color_match:
+                insights["aesthetic_direction"] += "色彩: " + color_match.group(1).strip() + "; "
+    except Exception as e:
+        print(f"Extract personality insights error: {e}")
+
+    return insights
