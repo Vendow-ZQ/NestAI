@@ -20,6 +20,7 @@ router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 class CreateSessionRequest(BaseModel):
     spaceId: str
     userId: Optional[str] = "dev_user"
+    images: Optional[List[str]] = []  # 图片URL列表，避免依赖spaces_db
 
 
 class AnalyzeResponse(BaseModel):
@@ -69,6 +70,14 @@ async def create_session(
         user_id=req.userId
     )
 
+    # 保存图片URL到session（避免依赖内存中的spaces_db）
+    if req.images:
+        memory_service.update_session_field(
+            session_id,
+            "space_analysis",
+            {"images": req.images, "summary": "", "questions": []}
+        )
+
     return JSONResponse({
         "success": True,
         "data": {
@@ -98,10 +107,15 @@ async def analyze_space(
         if not memory:
             raise HTTPException(status_code=404, detail="Session not found")
 
-        # 获取空间图片URL（从spaces服务获取）
-        from app.api.spaces import spaces_db
-        space_data = spaces_db.get(memory.space_id, {})
-        image_urls = space_data.get("images", [])
+        # 获取空间图片URL（从session的space_analysis字段获取）
+        image_urls = []
+        if memory.space_analysis:
+            try:
+                import json
+                analysis_data = json.loads(memory.space_analysis)
+                image_urls = analysis_data.get("images", [])
+            except:
+                pass
 
         if not image_urls:
             raise HTTPException(status_code=400, detail="No images found for this space")
@@ -115,12 +129,16 @@ async def analyze_space(
             space_id=memory.space_id
         )
 
-        # 保存结果到数据库
+        # 保存结果到数据库（保留原有的images）
         if result.get("space_summary"):
             memory_service.update_session_field(
                 session_id,
                 "space_analysis",
-                {"summary": result["space_summary"], "questions": result.get("questions", [])}
+                {
+                    "summary": result["space_summary"],
+                    "questions": result.get("questions", []),
+                    "images": image_urls  # 保留图片URL
+                }
             )
             memory_service.update_session_status(session_id, "analyzed")
 

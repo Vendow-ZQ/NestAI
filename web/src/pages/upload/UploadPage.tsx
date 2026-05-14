@@ -66,11 +66,11 @@ export default function UploadPage() {
       const spaceData = await spaceRes.json()
       const spaceId = spaceData.data.id
 
-      // 3. 创建 session
+      // 3. 创建 session（携带图片URL，避免后端内存数据丢失）
       const sessionRes = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spaceId }),
+        body: JSON.stringify({ spaceId, images: [imageUrl] }),
       })
       const sessionData = await sessionRes.json()
       const sessionId = sessionData.data.id
