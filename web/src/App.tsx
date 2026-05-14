@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { CustomTabBar } from '@/components/CustomTabBar'
 import GrowPage from '@/pages/index/GrowPage'
+import UploadPage from '@/pages/upload/UploadPage'
 
 const Layout = () => (
   <div className="relative min-h-screen bg-background">
@@ -22,7 +23,7 @@ const App = () => {
           <Route path="/next" element={<NextPage />} />
           <Route path="/me" element={<MePage />} />
         </Route>
-        <Route path="/upload" element={<div className="p-4">上传空间（待迁移）</div>} />
+        <Route path="/upload" element={<UploadPage />} />
         <Route path="/chat" element={<div className="p-4">Lifestyle Chat（待迁移）</div>} />
         <Route path="/generating" element={<div className="p-4">生成中（待迁移）</div>} />
         <Route path="/result" element={<div className="p-4">方案页（待迁移）</div>} />
