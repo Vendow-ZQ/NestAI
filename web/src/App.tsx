@@ -5,6 +5,10 @@ import UploadPage from '@/pages/upload/UploadPage'
 import ChatPage from '@/pages/chat/ChatPage'
 import GeneratingPage from '@/pages/generating/GeneratingPage'
 import ResultPage from '@/pages/result/ResultPage'
+import NextPage from '@/pages/next/NextPage'
+import SharePage from '@/pages/share/SharePage'
+import LetterPage from '@/pages/letter/LetterPage'
+import MePage from '@/pages/me/MePage'
 
 const Layout = () => (
   <div className="relative min-h-screen bg-background">
@@ -12,9 +16,6 @@ const Layout = () => (
     <CustomTabBar />
   </div>
 )
-
-const NextPage = () => <div className="p-4 pt-12">Next 收藏夹（待迁移）</div>
-const MePage = () => <div className="p-4 pt-12">Me 个人中心（待迁移）</div>
 
 const App = () => {
   return (
@@ -30,8 +31,8 @@ const App = () => {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/generating" element={<GeneratingPage />} />
         <Route path="/result" element={<ResultPage />} />
-        <Route path="/share" element={<div className="p-4">新变化分享（待迁移）</div>} />
-        <Route path="/letter" element={<div className="p-4">一封信（待迁移）</div>} />
+        <Route path="/share" element={<SharePage />} />
+        <Route path="/letter" element={<LetterPage />} />
       </Routes>
     </BrowserRouter>
   )
