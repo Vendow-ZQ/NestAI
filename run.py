@@ -40,6 +40,11 @@ def start_backend():
 def start_frontend():
     log("Frontend", "Starting Vite (web)...", Colors.BLUE)
     pnpm_cmd = shutil.which("pnpm") or shutil.which("pnpm.cmd")
+    if not pnpm_cmd and os.name == "nt":
+        appdata = os.environ.get("APPDATA")
+        candidate = Path(appdata or "") / "npm" / "pnpm.cmd"
+        if candidate.exists():
+            pnpm_cmd = str(candidate)
     if not pnpm_cmd:
         raise RuntimeError("pnpm not found in PATH")
     return subprocess.Popen(

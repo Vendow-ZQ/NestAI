@@ -61,6 +61,14 @@ IMAGE_MODEL=gpt-image-1.5
 pnpm dev
 ```
 
+Windows 也可以直接双击根目录的 `start.bat`，它会分别打开 Backend 和 Frontend 两个终端窗口。
+
+PowerShell 用户可以运行：
+
+```powershell
+.\start.ps1
+```
+
 默认地址：
 
 - 前端：`http://localhost:5000`
