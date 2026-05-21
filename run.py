@@ -24,10 +24,72 @@ def log(service, message, color=Colors.BLUE):
     safe_message = str(message).encode(encoding, errors="replace").decode(encoding, errors="replace")
     print(f"{color}[{service}]{Colors.END} {safe_message}")
 
+def unique_paths(paths):
+    seen = set()
+    result = []
+    for path in paths:
+        if not path:
+            continue
+        normalized = str(Path(path)).lower()
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append(str(path))
+    return result
+
+def has_backend_dependencies(python_cmd):
+    probe = "import fastapi, sqlalchemy, uvicorn"
+    try:
+        completed = subprocess.run(
+            [python_cmd, "-c", probe],
+            cwd="python-server",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=10,
+        )
+        return completed.returncode == 0, completed.stderr.strip()
+    except Exception as exc:
+        return False, str(exc)
+
+def resolve_backend_python():
+    candidates = [
+        os.environ.get("NESTAI_PYTHON"),
+        Path(".venv") / "Scripts" / "python.exe",
+        Path("python-server") / ".venv" / "Scripts" / "python.exe",
+        Path("E:/Software/Anaconda/python.exe"),
+        sys.executable,
+        shutil.which("python"),
+        shutil.which("python3"),
+    ]
+
+    failures = []
+    for candidate in unique_paths(candidates):
+        path = Path(candidate)
+        if path.is_absolute() and not path.exists():
+            continue
+        ok, error = has_backend_dependencies(candidate)
+        if ok:
+            log("Backend", f"Using Python: {candidate}", Colors.GREEN)
+            return candidate
+        failures.append(f"{candidate}: {error or 'missing backend dependencies'}")
+
+    hint = (
+        "No Python with backend dependencies was found. "
+        "Install them with: python -m pip install -r python-server/requirements.txt "
+        "or set NESTAI_PYTHON to the correct python.exe."
+    )
+    if failures:
+        hint += "\nChecked:\n- " + "\n- ".join(failures)
+    raise RuntimeError(hint)
+
 def start_backend():
     log("Backend", "Starting FastAPI (python-server)...", Colors.GREEN)
+    backend_python = resolve_backend_python()
     return subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "app.main:app", "--reload", "--port", "8000", "--host", "0.0.0.0"],
+        [backend_python, "-m", "uvicorn", "app.main:app", "--reload", "--port", "8000", "--host", "0.0.0.0"],
         cwd="python-server",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
