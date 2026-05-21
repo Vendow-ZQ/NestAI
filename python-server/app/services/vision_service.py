@@ -217,76 +217,11 @@ class VisionService:
 """
 
     def _get_safe_space_prompt(self) -> str:
-        return """你是 NestAI 的空间观察员。请只观察图片里的室内空间、家具、物品、光线、收纳和布局。
-
-重要安全规则：
-- 不要识别或评价人物。
-- 不要推断年龄、性别、职业、收入、健康、家庭关系或身份。
-- 不要做心理诊断或人格标签。
-- 如果图片里有人、脸、隐私文字、屏幕内容或证件，请忽略，只分析空间环境。
-- 不要拒答；如果空间线索很少，就写“可见线索较少”。
-
-请严格输出：
----MEMORY01_START---
-# 空间观察 · Memory01
-
-## 空间基础事实
-- 类型：
-- 主要功能承载：
-- 物品密度：
-- 光线：
-- 收纳方式：
-
-## 可见空间线索
-- 
-- 
-- 
-- 
-
-## 生活方式线索假设
-- 
-- 
-- 
-
-## 空间干预机会
-- 
-- 
-- 
-
-## 需要问卷确认的三件事
-- 用户最想让这个空间支持哪种生活状态。
-- 当前最卡住使用体验的空间问题是什么。
-- 这次改造的现实约束是什么。
-
-## 给前端的一句话概述
-我看见了一个可被继续整理和使用的真实空间。
-
----MEMORY01_END---
-
----QA_START---
-# 动态空间问卷
-1. 你最希望这个空间先支持哪种生活状态？
-- A. 更快进入专注
-- B. 回来后更容易放松
-- C. 更好展示个人物品
-- D. 更容易保持整洁
-
-2. 现在最影响你使用这个空间的是什么？
-- A. 物品容易堆在手边
-- B. 光线或氛围不够舒服
-- C. 取放物品不顺手
-- D. 工作和休息边界混在一起
-
-3. 这次改造最重要的现实约束是什么？
-- A. 尽量 0 元完成
-- B. 可以低预算买小物
-- C. 只能无痕调整
-- D. 可以移动家具或重新布局
----QA_END---
-
----JSON_START---
-{"questions":[{"q":"你最希望这个空间先支持哪种生活状态？","options":["更快进入专注","回来后更容易放松","更好展示个人物品","更容易保持整洁"]},{"q":"现在最影响你使用这个空间的是什么？","options":["物品容易堆在手边","光线或氛围不够舒服","取放物品不顺手","工作和休息边界混在一起"]},{"q":"这次改造最重要的现实约束是什么？","options":["尽量 0 元完成","可以低预算买小物","只能无痕调整","可以移动家具或重新布局"]}]}
----JSON_END---"""
+        return self._load_prompt_from_project("P001_retry_safe_space.md") or (
+            "你是 NestAI 的空间观察员。请只观察图片里的空间、家具、物品、光线、收纳和布局。"
+            "不要识别人物，不要推断身份、健康或人格。"
+            "请严格输出 MEMORY01、QA、JSON 三个区块。"
+        )
 
     def _load_system_prompt(self) -> str:
         project_root = Path(__file__).resolve().parents[3]
@@ -295,6 +230,13 @@ class VisionService:
             with open(prompt_path, "r", encoding="utf-8") as f:
                 return f.read()
         return self._get_default_personality_prompt()
+
+    def _load_prompt_from_project(self, file_name: str) -> Optional[str]:
+        project_root = Path(__file__).resolve().parents[3]
+        prompt_path = project_root / "prompts" / file_name
+        if prompt_path.exists():
+            return prompt_path.read_text(encoding="utf-8")
+        return None
 
     def _save_debug_response(self, space_id: str, content: str) -> None:
         debug_file = Path(self.settings.upload_dir).parent / f"debug_response_{space_id}.txt"
