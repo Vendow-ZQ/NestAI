@@ -1,283 +1,407 @@
-"""
-视觉分析服务 - 使用多模态LLM分析空间图片
-支持 Claude 3 Sonnet 和 GPT-4 Vision
+"""Vision analysis service for P001.
+
+The service turns uploaded space photos into:
+- an internal Memory01 observation
+- a short dynamic questionnaire for the frontend
+- lightweight structured insight data for later workflow steps
 """
 
-import os
 import base64
 import json
+import os
 import re
 from pathlib import Path
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_anthropic import ChatAnthropic
-from langchain_openai import ChatOpenAI
 
 from app.core.config import get_settings, load_llm_configs
+from app.core.llm_manager import llm_manager
 
 
 class VisionService:
-    """图像分析服务 - 使用多模态模型理解空间图片"""
+    """Analyze uploaded room/desk images with the configured multimodal model."""
 
     def __init__(self):
         self.settings = get_settings()
         self._model = None
 
     def get_vision_model(self):
-        """获取支持视觉的模型实例"""
+        """Get the configured multimodal model through the shared LLM manager."""
         if self._model is None:
             configs = load_llm_configs()
+            provider = os.getenv("VISION_LLM_PROVIDER", os.getenv("DEFAULT_LLM_PROVIDER", "OPENAI")).strip().upper()
+            model_name = os.getenv("VISION_LLM_MODEL", os.getenv("DEFAULT_LLM_MODEL", "gpt-4o")).strip()
 
-            # 优先使用 Anthropic Claude 3 (支持视觉)
-            if "ANTHROPIC" in configs:
-                config = configs["ANTHROPIC"]
-                # 使用视觉兼容的模型名称
-                model_name = "claude-3-sonnet-20240229"  # Claude 3 Sonnet 支持视觉
+            debug_log = Path(self.settings.upload_dir).parent / "debug_vision.log"
+            with open(debug_log, "a", encoding="utf-8") as f:
+                f.write(f"[VisionService] Loaded configs: {list(configs.keys())}\n")
+                f.write(f"[VisionService] Provider: {provider}, model: {model_name}\n")
 
-                self._model = ChatAnthropic(
-                    api_key=config.api_key,
-                    base_url=config.base_url,
-                    model=model_name,
-                    temperature=0.7,
-                    max_tokens=4096
-                )
-            elif "OPENAI" in configs:
-                config = configs["OPENAI"]
-                # GPT-4 Vision
-                model_name = "gpt-4o"  # GPT-4o 支持视觉
+            if provider not in configs:
+                available = ", ".join(configs.keys()) or "none"
+                raise ValueError(f"Vision provider {provider} is not configured. Available providers: {available}")
 
-                self._model = ChatOpenAI(
-                    api_key=config.api_key,
-                    base_url=config.base_url,
-                    model=model_name,
-                    temperature=0.7,
-                    max_tokens=4096
-                )
-            else:
-                raise ValueError("No vision-capable LLM configured. Please set ANTHROPIC_API_KEY or OPENAI_API_KEY")
+            self._model = llm_manager.get_model(provider=provider, model_name=model_name)
 
         return self._model
 
     def encode_image(self, image_path: str) -> str:
-        """将图片编码为base64"""
-        # 移除开头的 /uploads/
-        if image_path.startswith('/uploads/'):
-            relative_path = image_path[9:]  # 移除 '/uploads/'
-        else:
-            relative_path = image_path
-
+        """Encode a locally uploaded image URL/path as base64."""
+        relative_path = image_path[9:] if image_path.startswith("/uploads/") else image_path
         full_path = Path(self.settings.upload_dir) / relative_path
 
         if not full_path.exists():
             raise FileNotFoundError(f"Image not found: {full_path}")
 
         with open(full_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
+            return base64.b64encode(image_file.read()).decode("utf-8")
 
     async def analyze_space_image(
         self,
         image_urls: List[str],
-        space_id: str
+        space_id: str,
+        long_term_context: str = "",
     ) -> Dict[str, Any]:
-        """
-        分析空间图片并生成观察报告
-
-        Args:
-            image_urls: 图片URL列表
-            space_id: 空间ID
-
-        Returns:
-            {
-                "space_summary": "空间观察摘要Markdown",
-                "questions": [{"q": "...", "options": [...]}, ...]
-            }
-        """
+        """Analyze space images and return Memory01 plus frontend-ready questions."""
         try:
             model = self.get_vision_model()
-
-            # 准备图片消息
-            image_contents = []
-            for url in image_urls:
-                try:
-                    base64_image = self.encode_image(url)
-                    image_contents.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}"
-                        }
-                    })
-                except Exception as e:
-                    print(f"Failed to encode image {url}: {e}")
-                    continue
-
+            image_contents = self._build_image_messages(image_urls)
             if not image_contents:
                 raise ValueError("No valid images to analyze")
 
-            # 加载人格化深度分析Prompt
-            prompt_path = Path(__file__).parent.parent.parent / "api_test" / "Prompt1.md"
-            if prompt_path.exists():
-                with open(prompt_path, "r", encoding="utf-8") as f:
-                    system_prompt = f.read()
-            else:
-                #  fallback to embedded prompt
-                system_prompt = self._get_default_personality_prompt()
-
-            # 构建消息
+            system_prompt = self._load_system_prompt()
+            long_term_note = ""
+            if long_term_context.strip():
+                long_term_note = (
+                    "\n\n用户长期记忆摘要（压缩版）：\n"
+                    f"{long_term_context}\n\n"
+                    "请只把长期记忆用于理解用户稳定偏好和过往有效/无效的空间行动；"
+                    "当前图片中的可见事实仍然是主要依据。"
+                )
             messages = [
                 SystemMessage(content=system_prompt),
-                HumanMessage(content=[
-                    {
-                        "type": "text",
-                        "text": f"请分析我上传的空间图片（空间ID: {space_id}）。这是我居住的空间，请仔细观察并提供温暖的空间观察报告。"
-                    },
-                    *image_contents
-                ])
+                HumanMessage(
+                    content=[
+                        *(
+                            [
+                                {
+                                    "type": "text",
+                                    "text": (
+                                        "用户长期记忆摘要（压缩版）：\n"
+                                        f"{long_term_context}\n\n"
+                                        "请只把长期记忆用于理解稳定偏好和过往有效/无效的空间行动；"
+                                        "当前图片中的可见事实仍然是主要依据。"
+                                    ),
+                                }
+                            ]
+                            if long_term_context.strip()
+                            else []
+                        ),
+                        {
+                            "type": "text",
+                            "text": (
+                                f"请分析我上传的空间图片（空间ID: {space_id}）。"
+                                "请只基于图片中可见事实，输出 Memory01、QA 和严格 JSON。"
+                            ),
+                        },
+                        *image_contents,
+                    ]
+                ),
             ]
 
-            # 调用模型
             response = model.invoke(messages)
-            content = response.content
+            content = str(response.content or "").strip()
+            self._save_debug_response(space_id, content)
 
-            # 解析输出（新格式：MEMORY01 + QA）
-            memory_match = re.search(r'---MEMORY01_START---(.*?)---MEMORY01_END---', content, re.DOTALL)
-            qa_match = re.search(r'---QA_START---(.*?)---QA_END---', content, re.DOTALL)
+            parsed = self._parse_model_response(content)
+            memory_content = parsed["memory_content"]
+            qa_content = parsed["qa_content"]
+            frontend_questions = parsed["questions"]
 
-            if memory_match and qa_match:
-                memory_content = memory_match.group(1).strip()
-                qa_content = qa_match.group(1).strip()
+            if not self._valid_questions(frontend_questions):
+                print("[VisionService] Repairing questions from Memory01/raw response")
+                frontend_questions = self._repair_questions_from_memory(memory_content or content)
 
-                # 使用QAConverter转换QA为前端格式
-                try:
-                    from app.utils.qa_converter import QAConverter
-                    converter = QAConverter()
-                    parsed_questions = converter.parse_qa_markdown(qa_content)
-                    frontend_questions = converter.to_frontend_format(parsed_questions)
-
-                    # 提取人格洞察（从Memory01中）
-                    personality_insights = extract_personality_insights(memory_content)
-                except Exception as e:
-                    print(f"QA conversion error: {e}")
-                    frontend_questions = self._get_default_questions()
-                    personality_insights = {}
-            else:
-                # 如果解析失败，使用默认问题
-                memory_content = content[:1000] if len(content) > 1000 else content
+            if not self._valid_questions(frontend_questions):
+                print("[VisionService] Using fallback questions")
                 frontend_questions = self._get_default_questions()
+
+            memory_content = memory_content or self._fallback_summary_from_response(content)
+
+            try:
+                personality_insights = extract_personality_insights(memory_content)
+            except Exception as e:
+                print(f"[VisionService] Personality insight extraction error: {e}")
                 personality_insights = {}
-                qa_content = ""
 
             return {
-                "space_summary": memory_content,  # 完整的人格洞察档案
-                "personality_insights": personality_insights,  # 结构化人格数据
-                "questions": frontend_questions,  # 前端格式的问题
-                "qa_markdown": qa_content,  # 完整QA markdown供后端使用
-                "error": None
+                "space_summary": memory_content,
+                "personality_insights": personality_insights,
+                "questions": self._normalize_questions(frontend_questions),
+                "qa_markdown": qa_content,
+                "error": None,
             }
-
         except Exception as e:
-            print(f"Vision analysis error: {e}")
+            print(f"[VisionService] Vision analysis error: {e}")
             import traceback
+
             traceback.print_exc()
             return {
-                "space_summary": "我看到你的空间了。这是一个有待探索的生活场所，让我们进一步了解你对它的期待。",
+                "space_summary": "我看见了你的空间。我们先用几个小问题确认你真正想让它支持的生活状态。",
                 "personality_insights": {},
                 "questions": self._get_default_questions(),
                 "qa_markdown": "",
-                "error": str(e)
+                "error": str(e),
             }
 
-    def _get_default_personality_prompt(self) -> str:
-        """默认人格化分析Prompt（当文件不存在时使用）"""
-        return """你是一位空间心理学家。分析空间图片，输出人格与空间洞察档案和验证问卷。
+    def _build_image_messages(self, image_urls: List[str]) -> List[Dict[str, Any]]:
+        image_contents = []
+        for url in image_urls:
+            try:
+                base64_image = self.encode_image(url)
+                image_contents.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                    }
+                )
+            except Exception as e:
+                print(f"[VisionService] Failed to encode image {url}: {e}")
+        return image_contents
 
-输出格式：
+    def _load_system_prompt(self) -> str:
+        project_root = Path(__file__).resolve().parents[3]
+        prompt_path = project_root / "api_test" / "Prompt1.md"
+        if prompt_path.exists():
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                return f.read()
+        return self._get_default_personality_prompt()
+
+    def _save_debug_response(self, space_id: str, content: str) -> None:
+        debug_file = Path(self.settings.upload_dir).parent / f"debug_response_{space_id}.txt"
+        with open(debug_file, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"[VisionService] Saved raw response to {debug_file}")
+
+    def _parse_model_response(self, content: str) -> Dict[str, Any]:
+        memory_match = re.search(r"---MEMORY01_START---(.*?)---MEMORY01_END---", content, re.DOTALL)
+        qa_match = re.search(r"---QA_START---(.*?)---QA_END---", content, re.DOTALL)
+        json_match = re.search(r"---JSON_START---(.*?)---JSON_END---", content, re.DOTALL)
+
+        memory_content = memory_match.group(1).strip() if memory_match else ""
+        qa_content = qa_match.group(1).strip() if qa_match else ""
+        questions: List[Dict[str, Any]] = []
+
+        if json_match:
+            try:
+                json_data = json.loads(json_match.group(1).strip())
+                questions = json_data.get("questions", [])
+                print(f"[VisionService] Parsed JSON questions: {len(questions)}")
+            except Exception as e:
+                print(f"[VisionService] JSON parsing error: {e}")
+
+        if not self._valid_questions(questions) and qa_content:
+            questions = self._extract_questions_from_qa(qa_content)
+            print(f"[VisionService] Extracted QA questions: {len(questions)}")
+
+        return {
+            "memory_content": memory_content,
+            "qa_content": qa_content,
+            "questions": questions,
+        }
+
+    def _get_default_personality_prompt(self) -> str:
+        return """你是 NestAI 的空间观察员 Nobi。请根据用户上传的空间图片，严格输出三个区块：
 ---MEMORY01_START---
-# 人格与空间洞察档案
-[深度分析]
+# 空间与生活方式观察
+## 给前端的一句话概述
+我看见了一个具体、温暖、有待被重新整理的空间。
 ---MEMORY01_END---
 
 ---QA_START---
 # 深度验证问卷
-[3个精准问题]
----QA_END---"""
+1. 你最希望这个空间先支持哪种生活状态？
+- A. 更快进入专注
+- B. 回来后更容易放松
+- C. 更好展示个人物品
+- D. 更容易保持整洁
+2. 现在最影响你使用这个空间的是什么？
+- A. 桌面或地面容易堆东西
+- B. 光线不够舒服
+- C. 动线或取物不顺手
+- D. 休息和工作边界不清
+3. 这次改造最重要的约束是什么？
+- A. 尽量 0 元完成
+- B. 可以低预算购买小物
+- C. 只能无痕调整
+- D. 可以移动家具或重新布局
+---QA_END---
+
+---JSON_START---
+{"questions":[{"q":"你最希望这个空间先支持哪种生活状态？","options":["更快进入专注","回来后更容易放松","更好展示个人物品","更容易保持整洁"]},{"q":"现在最影响你使用这个空间的是什么？","options":["桌面或地面容易堆东西","光线不够舒服","动线或取物不顺手","休息和工作边界不清"]},{"q":"这次改造最重要的约束是什么？","options":["尽量 0 元完成","可以低预算购买小物","只能无痕调整","可以移动家具或重新布局"]}]}
+---JSON_END---"""
+
+    def _valid_questions(self, questions: List[Dict[str, Any]]) -> bool:
+        if not isinstance(questions, list) or len(questions) < 3:
+            return False
+        for question in questions[:3]:
+            if not isinstance(question, dict):
+                return False
+            if not isinstance(question.get("q"), str) or not question["q"].strip():
+                return False
+            options = question.get("options")
+            if not isinstance(options, list) or len(options) < 4:
+                return False
+            if any(not isinstance(option, str) or not option.strip() for option in options[:4]):
+                return False
+        return True
+
+    def _normalize_questions(self, questions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        normalized = []
+        for question in questions[:3]:
+            normalized.append(
+                {
+                    "q": str(question["q"]).strip(),
+                    "options": [str(option).strip() for option in question["options"][:4]],
+                }
+            )
+        return normalized
+
+    def _repair_questions_from_memory(self, memory_content: str) -> List[Dict[str, Any]]:
+        """Ask the model to turn P001 observations into strict frontend questions."""
+        lowered = (memory_content or "").lower()
+        if not memory_content or "can't help" in lowered or "cannot help" in lowered or "sorry" in lowered:
+            return []
+
+        try:
+            model = self.get_vision_model()
+            prompt = f"""请根据下面的空间观察，生成手机前端可直接展示的动态问卷。
+
+规则：
+- 必须正好 3 题，每题正好 4 个选项。
+- 问题必须来自空间观察，不要写通用问题。
+- 不要推断心理健康、人格定论、身份、年龄、性别、收入或职业。
+- 第 1 题确认用户想让空间支持的生活状态。
+- 第 2 题确认当前空间阻碍。
+- 第 3 题确认改造约束。
+- 只返回可 json.loads 解析的 JSON，不要 Markdown。
+
+JSON schema:
+{{"questions":[{{"q":"...","options":["...","...","...","..."]}},{{"q":"...","options":["...","...","...","..."]}},{{"q":"...","options":["...","...","...","..."]}}]}}
+
+空间观察：
+{memory_content[:2500]}
+"""
+            response = model.invoke([HumanMessage(content=prompt)])
+            text = str(response.content or "").strip()
+            json_match = re.search(r"\{.*\}", text, re.DOTALL)
+            data = json.loads(json_match.group(0) if json_match else text)
+            questions = data.get("questions", [])
+            return self._normalize_questions(questions) if self._valid_questions(questions) else []
+        except Exception as e:
+            print(f"[VisionService] Question repair failed: {e}")
+            return []
+
+    def _extract_questions_from_qa(self, qa_content: str) -> List[Dict[str, Any]]:
+        questions = []
+        current_question = None
+        current_options: List[str] = []
+
+        for raw_line in qa_content.strip().splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            if re.match(r"^\d+[.)、]\s*", line):
+                if current_question and len(current_options) >= 4:
+                    questions.append({"q": current_question, "options": current_options[:4]})
+                current_question = re.sub(r"^\d+[.)、]\s*", "", line).strip()
+                current_options = []
+                continue
+
+            if line.startswith("- ") or re.match(r"^[A-Da-d][.)、]\s*", line):
+                option_text = re.sub(r"^-+\s*", "", line)
+                option_text = re.sub(r"^[A-Da-d][.)、]\s*", "", option_text).strip()
+                if option_text:
+                    current_options.append(option_text)
+
+        if current_question and len(current_options) >= 4:
+            questions.append({"q": current_question, "options": current_options[:4]})
+
+        return self._normalize_questions(questions) if self._valid_questions(questions) else []
 
     def _get_default_questions(self) -> List[Dict[str, Any]]:
-        """获取默认问题（当图像分析失败时使用）"""
+        """Fallback questions used only when P001 analysis cannot produce valid dynamic questions."""
         return [
             {
-                "q": "你最希望这个空间帮你做到什么？",
-                "options": ["更容易进入专注状态", "回来之后真的能放松下来", "更像'我自己的地方'", "更适合朋友来坐一会儿", "更容易保持整洁和秩序", "更适合睡觉和恢复"]
+                "q": "你最希望这个空间先帮你做到什么？",
+                "options": ["更容易进入专注状态", "回来后真的能放松", "更像我自己的地方", "更容易保持整洁"],
             },
             {
-                "q": "那现在这个空间，最常发生什么？",
-                "options": ["我经常在这里学习，但很难进入状态", "我经常在这里刷手机/拖延", "我主要在这里休息，但总觉得不够放松", "我想让它更像'我的'，但不知道从哪开始", "东西越来越多，越来越乱", "我其实很少待在这个房间里"]
+                "q": "现在最影响你使用这个空间的是什么？",
+                "options": ["东西容易堆在手边", "光线或氛围不够舒服", "取放物品不顺手", "工作和休息边界混在一起"],
             },
             {
-                "q": "为了不生成你做不到的方案，我再确认几个小条件。",
-                "options": ["一个人使用", "和室友共用", "0元", "100元以内", "300元以内", "300元以上", "可以打孔", "只能无痕", "都不太方便"]
-            }
+                "q": "这次改造最重要的现实约束是什么？",
+                "options": ["尽量 0 元完成", "可以低预算买小物", "只能无痕调整", "可以移动家具或重新布局"],
+            },
         ]
 
+    def _fallback_summary_from_response(self, content: str) -> str:
+        compact = re.sub(r"\s+", " ", content).strip()
+        if compact and "can't help" not in compact.lower() and "sorry" not in compact.lower():
+            return compact[:500]
+        return "我看见了你的空间。我们先用几个小问题确认你真正想让它支持的生活状态。"
 
-# 全局视觉服务实例
+
 _vision_service: Optional[VisionService] = None
 
 
 def get_vision_service() -> VisionService:
-    """获取视觉服务实例"""
+    """Get the shared vision service instance."""
     global _vision_service
     if _vision_service is None:
         _vision_service = VisionService()
     return _vision_service
 
 
-def extract_personality_insights(memory_content: str):
-    """从Memory01中提取结构化人格洞察"""
-    import re
-    insights = {
+def extract_personality_insights(memory_content: str) -> Dict[str, Any]:
+    """Extract lightweight structured data from Memory01 without over-claiming."""
+    insights: Dict[str, Any] = {
         "raw_markdown": memory_content,
         "dominant_personality": "",
         "lifestyle_prototype": "",
         "unmet_needs": [],
         "key_contradictions": [],
-        "aesthetic_direction": ""
+        "aesthetic_direction": "",
     }
 
-    try:
-        # 提取主导人格特质
-        personality_match = re.search(r"### 主导人格特质\s*\n(.+?)\n", memory_content)
-        if personality_match:
-            insights["dominant_personality"] = personality_match.group(1).strip()
+    def section(title: str) -> str:
+        match = re.search(rf"##\s*{re.escape(title)}\s*\n([\s\S]*?)(?=\n##\s+|\Z)", memory_content)
+        return match.group(1).strip() if match else ""
 
-        # 提取生活方式原型
-        prototype_match = re.search(r"### 生活方式原型\s*\n(.+?)\n", memory_content)
-        if prototype_match:
-            insights["lifestyle_prototype"] = prototype_match.group(1).strip()
+    lifestyle = section("生活方式假设")
+    intervention = section("空间干预机会")
+    visible_clues = section("可见空间线索")
 
-        # 提取未满足的心理需求
-        needs_section = re.search(r"### 未满足的心理需求.*?\n([\s\S]*?)(?=###|##|$)", memory_content)
-        if needs_section:
-            needs_text = needs_section.group(1)
-            needs = re.findall(r"\d+\.\s*(.+?)\n", needs_text)
-            insights["unmet_needs"] = [n.strip() for n in needs if n.strip()]
-
-        # 提取关键矛盾点
-        contradictions_section = re.search(r"### 关键矛盾点.*?\n([\s\S]*?)(?=###|##|$)", memory_content)
-        if contradictions_section:
-            contradictions_text = contradictions_section.group(1)
-            contradictions = re.findall(r"\d+\.\s*(.+?)\n", contradictions_text)
-            insights["key_contradictions"] = [c.strip() for c in contradictions if c.strip()]
-
-        # 提取审美方向
-        aesthetic_match = re.search(r"### 审美心理.*?\n([\s\S]*?)(?=###|##|$)", memory_content)
-        if aesthetic_match:
-            aesthetic_text = aesthetic_match.group(1)
-            color_match = re.search(r"色彩[:\s]+(.+?)\n", aesthetic_text)
-            if color_match:
-                insights["aesthetic_direction"] += "色彩: " + color_match.group(1).strip() + "; "
-    except Exception as e:
-        print(f"Extract personality insights error: {e}")
-
+    insights["lifestyle_prototype"] = _first_non_empty_line(lifestyle)
+    insights["dominant_personality"] = _first_non_empty_line(visible_clues)
+    insights["key_contradictions"] = _bullet_lines(intervention)
+    insights["aesthetic_direction"] = _first_non_empty_line(section("给前端的一句话概述"))
     return insights
+
+
+def _bullet_lines(text: str) -> List[str]:
+    lines = []
+    for line in text.splitlines():
+        cleaned = re.sub(r"^\s*(?:[-*]|\d+[.)、])\s*", "", line).strip()
+        if cleaned:
+            lines.append(cleaned)
+    return lines
+
+
+def _first_non_empty_line(text: str) -> str:
+    for line in _bullet_lines(text):
+        return line
+    return ""

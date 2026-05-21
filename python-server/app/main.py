@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
-from app.api import sessions_router, upload_router, spaces_router
+from app.api import sessions_router, upload_router, spaces_router, memory_router
 from app.core.config import get_settings
 from app.services.memory_service import init_db
 
@@ -60,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(sessions_router)
     app.include_router(upload_router)
     app.include_router(spaces_router)
+    app.include_router(memory_router)
 
     # 静态文件服务（上传的图片等）
     settings = get_settings()
@@ -83,6 +84,29 @@ def create_app() -> FastAPI:
             "status": "healthy",
             "timestamp": __import__('datetime').datetime.utcnow().isoformat()
         }
+
+    # TEMPORARY TEST ENDPOINT
+    @app.get("/test-config")
+    async def test_config():
+        import os
+        from app.core.config import load_llm_configs, get_default_llm_config
+
+        result = {
+            "cwd": os.getcwd(),
+            "openai_key_exists": "OPENAI_API_KEY" in os.environ,
+            "configs_loaded": list(load_llm_configs().keys()),
+            "default_config": None
+        }
+
+        default = get_default_llm_config()
+        if default:
+            result["default_config"] = {
+                "name": default.name,
+                "api_key_preview": default.api_key[:10] + "..." if default.api_key else "EMPTY",
+                "type": default.type
+            }
+
+        return result
 
     return app
 

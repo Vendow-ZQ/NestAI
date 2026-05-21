@@ -5,6 +5,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
 from .config import LLMConfig, load_llm_configs, get_default_llm_config
+import sys
 import os
 
 
@@ -20,7 +21,7 @@ class LLMManager:
         根据配置创建LangChain模型实例
         参考test.py的pick_model函数
         """
-        model_name = model_name or config.models[0] if config.models else None
+        model_name = model_name or (config.models[0] if config.models else None)
         if not model_name:
             raise ValueError("No model specified")
 
@@ -43,13 +44,21 @@ class LLMManager:
         """
         获取模型实例（带缓存）
         """
-        cache_key = f"{provider or 'default'}:{model_name or 'default'}"
+        selected_provider = provider or os.getenv("DEFAULT_LLM_PROVIDER", "").strip().upper() or None
+        selected_model = model_name or os.getenv("DEFAULT_LLM_MODEL", "").strip() or None
+        cache_key = f"{selected_provider or 'default'}:{selected_model or 'default'}"
 
         if cache_key not in self._models:
             configs = load_llm_configs()
 
-            if provider and provider in configs:
-                config = configs[provider]
+            # Debug logging
+            import sys
+            sys.stderr.write(f"[LLMManager] load_llm_configs returned: {list(configs.keys())}\n")
+            sys.stderr.write(f"[LLMManager] OPENAI_API_KEY in env: {'OPENAI_API_KEY' in os.environ}\n")
+            sys.stderr.flush()
+
+            if selected_provider and selected_provider in configs:
+                config = configs[selected_provider]
             else:
                 config = get_default_llm_config()
 
@@ -57,7 +66,7 @@ class LLMManager:
                 raise ValueError("No LLM configuration found. Please set API keys in .env")
 
             self._current_config = config
-            self._models[cache_key] = self.create_model(config, model_name)
+            self._models[cache_key] = self.create_model(config, selected_model)
 
         return self._models[cache_key]
 

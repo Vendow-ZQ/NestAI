@@ -2,12 +2,14 @@ import { create } from 'zustand'
 
 export interface Letter {
   id: string
+  sessionId?: string
   title: string
   content: string[]
   date: string
   lifestyleDirection: string
   beforeImage: string
   afterImage: string
+  nextStep?: string
 }
 
 interface Intervention {

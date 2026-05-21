@@ -16,10 +16,14 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        timeout: 180000,
+        proxyTimeout: 180000,
       },
       '/uploads': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        timeout: 180000,
+        proxyTimeout: 180000,
       },
     },
   },

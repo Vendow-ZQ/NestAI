@@ -36,7 +36,7 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        ink: "#1a1814",
+        ink: "var(--ink)",
       },
       borderRadius: {
         lg: "var(--radius)",

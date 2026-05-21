@@ -1,4 +1,0 @@
-MODEL = "claude-sonnet-4-5"
-TEMPERATURE = 0.7
-MAX_TOKENS = 4096
-TOP_P = 1.0

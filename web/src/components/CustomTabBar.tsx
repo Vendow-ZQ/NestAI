@@ -12,7 +12,7 @@ export function CustomTabBar() {
   const location = useLocation()
 
   const currentPath = location.pathname
-  const current = tabs.find(t => t.path === currentPath)?.key || 'grow'
+  const current = tabs.find(t => t.path === currentPath)?.key
 
   const handleTab = (path: string) => {
     navigate(path)
@@ -20,34 +20,32 @@ export function CustomTabBar() {
 
   return (
     <div
-      className="flex flex-row items-center justify-around"
+      className="app-fixed-bottom flex flex-row items-center justify-around"
       style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: '50px',
-        backgroundColor: '#ffffff',
-        borderTop: '1px solid #e5e5e5',
+        height: '58px',
+        backgroundColor: 'rgba(255, 255, 255, 0.82)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        borderTop: '1px solid rgba(60, 60, 67, 0.14)',
         zIndex: 999,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
       {tabs.map((tab) => {
         const isActive = current === tab.key
-        const color = isActive ? '#d9a823' : '#7a736a'
+        const color = isActive ? '#007aff' : '#8e8e93'
         const IconComp = tab.icon
         return (
           <div
             key={tab.key}
             className="flex flex-col items-center justify-center cursor-pointer"
-            style={{ flex: 1, height: '50px' }}
+            style={{ flex: 1, height: '58px', transition: 'transform 160ms ease' }}
             onClick={() => handleTab(tab.path)}
           >
-            <IconComp size={20} color={color} />
+            <IconComp size={21} color={color} strokeWidth={isActive ? 2.5 : 2} />
             <span
               className="block mt-1"
-              style={{ fontSize: '10px', color, fontFamily: "'Noto Sans SC', sans-serif" }}
+              style={{ fontSize: '11px', color, fontWeight: isActive ? 600 : 500 }}
             >
               {tab.label}
             </span>

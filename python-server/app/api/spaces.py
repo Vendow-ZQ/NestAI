@@ -1,19 +1,17 @@
-"""
-空间管理API - 创建和管理空间
-"""
+"""Space management API backed by SQLite."""
 
-from fastapi import APIRouter, HTTPException
+import json
+import uuid
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
-import uuid
+from sqlalchemy.orm import Session
+
+from app.services.memory_service import MemoryService, SpaceModel, get_db
 
 router = APIRouter(prefix="/api/spaces", tags=["spaces"])
-
-
-# 模拟内存存储（实际应该使用数据库）
-spaces_db = {}
 
 
 class CreateSpaceRequest(BaseModel):
@@ -22,64 +20,65 @@ class CreateSpaceRequest(BaseModel):
     name: Optional[str] = None
 
 
-class SpaceResponse(BaseModel):
-    id: str
-    userId: str
-    images: List[str]
-    name: Optional[str]
-    createdAt: str
-
-
-@router.post("/")
-async def create_space(req: CreateSpaceRequest):
-    """
-    创建新空间
-    对应前端：上传图片后创建space记录
-    """
+def serialize_space(space: SpaceModel) -> dict:
     try:
-        space_id = str(uuid.uuid4())
+        images = json.loads(space.images or "[]")
+    except json.JSONDecodeError:
+        images = []
 
-        space_data = {
-            "id": space_id,
-            "userId": req.userId,
-            "images": req.images,
-            "name": req.name or f"空间 {datetime.now().strftime('%m%d')}",
-            "createdAt": datetime.utcnow().isoformat()
-        }
+    return {
+        "id": space.id,
+        "userId": space.user_id,
+        "images": images,
+        "name": space.name or f"Space {space.created_at.strftime('%m%d')}",
+        "createdAt": space.created_at.isoformat(),
+        "updatedAt": space.updated_at.isoformat() if space.updated_at else space.created_at.isoformat(),
+    }
 
-        # 存储到内存（生产环境应该用数据库）
-        spaces_db[space_id] = space_data
+
+@router.post("", include_in_schema=False)
+@router.post("/")
+async def create_space(req: CreateSpaceRequest, db: Session = Depends(get_db)):
+    """Create a persisted space record after image upload."""
+    try:
+        memory_service = MemoryService(db)
+        space = memory_service.create_space(
+            space_id=str(uuid.uuid4()),
+            images=req.images,
+            user_id=req.userId or "dev_user",
+            name=req.name,
+        )
 
         return JSONResponse({
             "success": True,
-            "data": space_data
+            "data": serialize_space(space),
         })
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{space_id}")
-async def get_space(space_id: str):
-    """获取空间详情"""
-    if space_id not in spaces_db:
+async def get_space(space_id: str, db: Session = Depends(get_db)):
+    """Get one persisted space."""
+    memory_service = MemoryService(db)
+    space = memory_service.get_space(space_id)
+    if not space:
         raise HTTPException(status_code=404, detail="Space not found")
 
     return JSONResponse({
         "success": True,
-        "data": spaces_db[space_id]
+        "data": serialize_space(space),
     })
 
 
+@router.get("", include_in_schema=False)
 @router.get("/")
-async def list_spaces(userId: Optional[str] = "dev_user"):
-    """获取用户的所有空间"""
-    user_spaces = [
-        space for space in spaces_db.values()
-        if space["userId"] == userId
-    ]
+async def list_spaces(userId: Optional[str] = "dev_user", db: Session = Depends(get_db)):
+    """List spaces for a user."""
+    memory_service = MemoryService(db)
+    spaces = memory_service.list_spaces(userId or "dev_user")
 
     return JSONResponse({
         "success": True,
-        "data": user_spaces
+        "data": [serialize_space(space) for space in spaces],
     })

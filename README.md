@@ -148,15 +148,16 @@ Memory 是 NestAI 区别于一次性 AI 设计工具的关键。它记录的不�
 
 ```
 项目根目录/
-├── web/              # 前端（Vite + React + TypeScript + Tailwind CSS）
-│   ├── src/          # 页面组件、状态管理、API调用
-│   ├── package.json  # 前端依赖
-│   └── vite.config.ts
-├── web-server/       # 后端（Express + SQL.js）
-│   ├── index.js      # 主入口
-│   ├── package.json  # 后端依赖
-│   └── prompts/      # AI Prompt 文件
-├── package.json      # 根目录脚本（同时启动前后端）
+├── web/               # 前端（Vite + React + TypeScript + Tailwind CSS）
+│   ├── src/           # 页面组件、状态管理、API调用
+│   ├── package.json   # 前端依赖
+│   └── vite.config.ts # 代理 /api 和 /uploads 到 FastAPI
+├── python-server/     # 后端（FastAPI + SQLite + LangChain）
+│   ├── app/           # API、服务、配置、Prompt
+│   ├── requirements.txt
+│   └── .env.example
+├── run.py             # 一键启动前后端
+├── package.json       # 根目录脚本
 └── README.md
 ```
 
@@ -168,8 +169,9 @@ Memory 是 NestAI 区别于一次性 AI 设计工具的关键。它记录的不�
 pnpm dev
 ```
 
-前端运行于 `http://localhost:5173`
-后端运行于 `http://localhost:3000`
+前端运行于 `http://localhost:5000`
+后端运行于 `http://localhost:8000`
+API 文档运行于 `http://localhost:8000/docs`
 
 ### 单独启动
 
@@ -184,10 +186,10 @@ pnpm dev:server
 ### 生产构建
 
 ```bash
-pnpm build        # 构建前端 + 后端
+pnpm build        # 构建前端 + 检查后端
 pnpm build:web    # 仅构建前端
-pnpm build:server # 仅构建后端
-pnpm start        # 启动生产服务器
+pnpm check:server # 仅检查后端 Python 模块
+pnpm start        # 启动 FastAPI 后端
 ```
 
 ## 项目迁移说明

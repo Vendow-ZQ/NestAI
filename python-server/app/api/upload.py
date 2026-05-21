@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/upload", tags=["upload"])
 settings = get_settings()
 
 
+@router.post("", include_in_schema=False)
 @router.post("/")
 async def upload_images(images: List[UploadFile] = File(...)):
     """
@@ -36,8 +37,8 @@ async def upload_images(images: List[UploadFile] = File(...)):
 
         urls = []
         for image in images:
-            # 验证文件类型
-            if not image.content_type.startswith('image/'):
+            # 验证文件类型（容错处理）
+            if image.content_type and not image.content_type.startswith('image/'):
                 raise HTTPException(
                     status_code=400,
                     detail=f"Invalid file type: {image.content_type}"

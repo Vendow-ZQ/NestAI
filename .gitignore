@@ -21,6 +21,26 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local runtime data
+*.db
+python-server/*.db
+python-server/uploads/
+python-server/memory/
+python-server/debug_response_*.txt
+python-server/session_id.txt
+python-server/session_response.json
+api_test/output/
+debug_vision.log
+backup/
+fix/
+resources/
 
 # Editor directories and files
 .idea/
