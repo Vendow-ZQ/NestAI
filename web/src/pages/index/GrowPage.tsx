@@ -220,7 +220,7 @@ export default function GrowPage() {
                 }}
                 type="button"
                 data-feed-role="upload"
-                className="feed-card-future grow-upload-card overflow-hidden text-left"
+                className="feed-card-future grow-upload-card text-left"
                 onClick={() => navigate('/upload', { state: { transition: 'feed-upload' } })}
               >
                 <NobiMascot className="nobi-on-upload-card" label="Nobi crouches on the upload card" />

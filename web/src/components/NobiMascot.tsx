@@ -1,4 +1,4 @@
-import nobiWaiting from '@/assets/nobi-waiting.png'
+import nobiTransparent from '@/assets/nobi-transparent.png'
 
 type NobiMascotProps = {
   className?: string
@@ -8,8 +8,9 @@ type NobiMascotProps = {
 export function NobiMascot({ className = '', label = 'Nobi is waiting here' }: NobiMascotProps) {
   return (
     <div className={`nobi-mascot ${className}`} aria-label={label} role="img">
-      <span className="nobi-tail" aria-hidden="true" />
-      <img src={nobiWaiting} alt="" draggable={false} />
+      <img className="nobi-part nobi-body" src={nobiTransparent} alt="" draggable={false} />
+      <img className="nobi-part nobi-head" src={nobiTransparent} alt="" draggable={false} />
+      <img className="nobi-part nobi-tail" src={nobiTransparent} alt="" draggable={false} />
     </div>
   )
 }

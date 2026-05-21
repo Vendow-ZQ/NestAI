@@ -129,7 +129,7 @@ export default function UploadPage() {
       <div className="px-5 flex-1">
         <button
           type="button"
-          className={`upload-space-card grow-upload-card rounded-[22px] overflow-hidden text-left hover-lift ${
+          className={`upload-space-card grow-upload-card rounded-[22px] text-left hover-lift ${
             uploadedImages.length > 0 ? 'has-preview' : ''
           }`}
           onClick={handleChooseImage}
