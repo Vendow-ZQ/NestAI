@@ -21,6 +21,21 @@ def create_display_summary(space_summary: str) -> str:
     import re
 
     readable_summary = space_summary or ""
+    lowered = readable_summary.lower()
+    refusal_markers = (
+        "i can't help",
+        "i cannot help",
+        "i'm sorry",
+        "unable to assist",
+        "无法协助",
+        "无法处理",
+        "不能协助",
+        "不能处理",
+        "抱歉",
+    )
+    if any(marker in lowered for marker in refusal_markers):
+        return "我看见了你的空间。可见线索暂时不够完整，我们先用几个小问题确认你真正想让它支持的生活状态。"
+
     frontend_label = "\u7ed9\u524d\u7aef\u7684\u4e00\u53e5\u8bdd\u6982\u8ff0"
     one_liner = re.search(rf"##\s*{frontend_label}\s*\n(.+)", readable_summary)
     if one_liner:

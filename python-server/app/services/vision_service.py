@@ -112,12 +112,28 @@ class VisionService:
 
             response = model.invoke(messages)
             content = str(response.content or "").strip()
+
+            if self._is_refusal(content):
+                print("[VisionService] Vision model refused; retrying with safe space-only prompt")
+                retry_messages = [
+                    SystemMessage(content=self._get_safe_space_prompt()),
+                    messages[1],
+                ]
+                response = model.invoke(retry_messages)
+                content = str(response.content or "").strip()
+
             self._save_debug_response(space_id, content)
 
             parsed = self._parse_model_response(content)
             memory_content = parsed["memory_content"]
             qa_content = parsed["qa_content"]
             frontend_questions = parsed["questions"]
+
+            if self._is_refusal(content):
+                print("[VisionService] Refusal persisted; using safe fallback questions")
+                memory_content = self._safe_fallback_space_summary()
+                qa_content = ""
+                frontend_questions = self._get_default_questions()
 
             if not self._valid_questions(frontend_questions):
                 print("[VisionService] Repairing questions from Memory01/raw response")
@@ -169,6 +185,108 @@ class VisionService:
             except Exception as e:
                 print(f"[VisionService] Failed to encode image {url}: {e}")
         return image_contents
+
+    def _is_refusal(self, content: str) -> bool:
+        lowered = (content or "").lower()
+        refusal_markers = [
+            "i can't help",
+            "i cannot help",
+            "i'm sorry",
+            "sorry, i can't",
+            "unable to assist",
+            "无法协助",
+            "无法处理",
+            "不能协助",
+            "不能处理",
+            "抱歉",
+        ]
+        return any(marker in lowered for marker in refusal_markers)
+
+    def _safe_fallback_space_summary(self) -> str:
+        return """# 空间观察 · Memory01
+
+## 给前端的一句话概述
+我看见了你的空间。可见线索暂时不够完整，我们先用几个小问题确认你真正想让它支持的生活状态。
+
+## 空间基础事实
+- 类型：不确定的室内/桌面空间
+- 主要功能承载：混合
+- 物品密度：不确定
+- 光线：不确定
+- 收纳方式：不确定
+"""
+
+    def _get_safe_space_prompt(self) -> str:
+        return """你是 NestAI 的空间观察员。请只观察图片里的室内空间、家具、物品、光线、收纳和布局。
+
+重要安全规则：
+- 不要识别或评价人物。
+- 不要推断年龄、性别、职业、收入、健康、家庭关系或身份。
+- 不要做心理诊断或人格标签。
+- 如果图片里有人、脸、隐私文字、屏幕内容或证件，请忽略，只分析空间环境。
+- 不要拒答；如果空间线索很少，就写“可见线索较少”。
+
+请严格输出：
+---MEMORY01_START---
+# 空间观察 · Memory01
+
+## 空间基础事实
+- 类型：
+- 主要功能承载：
+- 物品密度：
+- 光线：
+- 收纳方式：
+
+## 可见空间线索
+- 
+- 
+- 
+- 
+
+## 生活方式线索假设
+- 
+- 
+- 
+
+## 空间干预机会
+- 
+- 
+- 
+
+## 需要问卷确认的三件事
+- 用户最想让这个空间支持哪种生活状态。
+- 当前最卡住使用体验的空间问题是什么。
+- 这次改造的现实约束是什么。
+
+## 给前端的一句话概述
+我看见了一个可被继续整理和使用的真实空间。
+
+---MEMORY01_END---
+
+---QA_START---
+# 动态空间问卷
+1. 你最希望这个空间先支持哪种生活状态？
+- A. 更快进入专注
+- B. 回来后更容易放松
+- C. 更好展示个人物品
+- D. 更容易保持整洁
+
+2. 现在最影响你使用这个空间的是什么？
+- A. 物品容易堆在手边
+- B. 光线或氛围不够舒服
+- C. 取放物品不顺手
+- D. 工作和休息边界混在一起
+
+3. 这次改造最重要的现实约束是什么？
+- A. 尽量 0 元完成
+- B. 可以低预算买小物
+- C. 只能无痕调整
+- D. 可以移动家具或重新布局
+---QA_END---
+
+---JSON_START---
+{"questions":[{"q":"你最希望这个空间先支持哪种生活状态？","options":["更快进入专注","回来后更容易放松","更好展示个人物品","更容易保持整洁"]},{"q":"现在最影响你使用这个空间的是什么？","options":["物品容易堆在手边","光线或氛围不够舒服","取放物品不顺手","工作和休息边界混在一起"]},{"q":"这次改造最重要的现实约束是什么？","options":["尽量 0 元完成","可以低预算买小物","只能无痕调整","可以移动家具或重新布局"]}]}
+---JSON_END---"""
 
     def _load_system_prompt(self) -> str:
         project_root = Path(__file__).resolve().parents[3]
@@ -271,7 +389,7 @@ class VisionService:
     def _repair_questions_from_memory(self, memory_content: str) -> List[Dict[str, Any]]:
         """Ask the model to turn P001 observations into strict frontend questions."""
         lowered = (memory_content or "").lower()
-        if not memory_content or "can't help" in lowered or "cannot help" in lowered or "sorry" in lowered:
+        if not memory_content or self._is_refusal(memory_content):
             return []
 
         try:
@@ -350,9 +468,9 @@ JSON schema:
 
     def _fallback_summary_from_response(self, content: str) -> str:
         compact = re.sub(r"\s+", " ", content).strip()
-        if compact and "can't help" not in compact.lower() and "sorry" not in compact.lower():
+        if compact and not self._is_refusal(compact):
             return compact[:500]
-        return "我看见了你的空间。我们先用几个小问题确认你真正想让它支持的生活状态。"
+        return self._safe_fallback_space_summary()
 
 
 _vision_service: Optional[VisionService] = None
