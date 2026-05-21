@@ -8,6 +8,7 @@ import { useInterventionStore } from '@/stores/intervention-store'
 import { useMemoryStore } from '@/stores/memory-store'
 import { useShareStore } from '@/stores/share-store'
 import { BilingualTitle } from '@/components/BilingualTitle'
+import { NobiWorking } from '@/components/NobiWorking'
 import { errorMessages } from '@/lib/error-messages'
 import { api, type Level } from '@/lib/api'
 
@@ -190,6 +191,8 @@ export default function GeneratingPage() {
       <div className="mb-8">
         <BilingualTitle en={currentTitle.en} zh={currentTitle.zh} size="lg" />
       </div>
+
+      <NobiWorking className="mb-7" />
 
       {/* 进度条 */}
       <div className="flex items-center justify-center gap-2 mb-10" aria-label="loading">
