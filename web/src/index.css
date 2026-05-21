@@ -321,8 +321,8 @@
   }
 
   .nobi-on-upload-card {
-    top: calc(clamp(104px, 23vw, 126px) * -0.58);
-    right: 14px;
+    top: 118px;
+    right: 26px;
     z-index: 60;
   }
 
