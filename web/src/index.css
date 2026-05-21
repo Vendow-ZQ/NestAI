@@ -309,6 +309,66 @@
     font-weight: 200;
   }
 
+  .nobi-mascot {
+    position: absolute;
+    width: clamp(72px, 18vw, 92px);
+    height: clamp(72px, 18vw, 92px);
+    pointer-events: none;
+    user-select: none;
+    transform-origin: 54% 84%;
+    animation: nobi-body-breathe 4.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    filter: drop-shadow(0 10px 18px rgba(27, 39, 66, 0.14));
+    will-change: transform;
+  }
+
+  .nobi-on-upload-card {
+    top: 12px;
+    right: 16px;
+    z-index: 16;
+  }
+
+  .nobi-mascot img {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform-origin: 52% 72%;
+    animation: nobi-head-tilt 5.6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    will-change: transform;
+  }
+
+  .nobi-tail {
+    position: absolute;
+    z-index: 3;
+    right: -1%;
+    bottom: 22%;
+    width: 28%;
+    height: 28%;
+    border-right: 2px solid rgba(29, 29, 31, 0.16);
+    border-bottom: 2px solid rgba(29, 29, 31, 0.12);
+    border-radius: 50%;
+    transform-origin: 0% 72%;
+    animation: nobi-tail-wag 1.28s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    opacity: 0.34;
+  }
+
+  .grow-upload-card:hover .nobi-mascot,
+  .upload-space-card:hover .nobi-mascot {
+    animation-duration: 3.5s;
+  }
+
+  .grow-upload-card:hover .nobi-mascot img,
+  .upload-space-card:hover .nobi-mascot img {
+    animation-duration: 3.2s;
+  }
+
+  .grow-upload-card:hover .nobi-tail,
+  .upload-space-card:hover .nobi-tail {
+    animation-duration: 0.72s;
+  }
+
   .feed-top-button {
     position: absolute;
     right: 18px;
@@ -799,6 +859,44 @@
     }
   }
 
+  @keyframes nobi-body-breathe {
+    0%, 100% {
+      transform: translateY(0) rotate(-1.2deg) scale(1);
+    }
+    34% {
+      transform: translateY(-2px) rotate(0.8deg) scale(1.018);
+    }
+    62% {
+      transform: translateY(1px) rotate(-0.4deg) scale(0.996);
+    }
+  }
+
+  @keyframes nobi-head-tilt {
+    0%, 100% {
+      transform: rotate(0deg);
+    }
+    28% {
+      transform: rotate(2.2deg);
+    }
+    48% {
+      transform: rotate(-1.4deg);
+    }
+    72% {
+      transform: rotate(1deg);
+    }
+  }
+
+  @keyframes nobi-tail-wag {
+    0%, 100% {
+      transform: rotate(-10deg) translateX(0) scale(0.92);
+      opacity: 0.18;
+    }
+    50% {
+      transform: rotate(18deg) translateX(2px) scale(1);
+      opacity: 0.42;
+    }
+  }
+
   @keyframes upload-page-enter {
     from {
       opacity: 0;
@@ -829,6 +927,9 @@
     .feed-card-enter,
     .feed-section-header,
     .feed-image,
+    .nobi-mascot,
+    .nobi-mascot img,
+    .nobi-tail,
     .grow-page-shell::after,
     .feed-card-future:hover::after {
       animation: none;

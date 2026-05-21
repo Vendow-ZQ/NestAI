@@ -3,6 +3,7 @@ import { ArrowUp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
+import { NobiMascot } from '@/components/NobiMascot'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
 import { Badge } from '@/components/ui/badge'
 import { api, type FeedItemData } from '@/lib/api'
@@ -222,6 +223,7 @@ export default function GrowPage() {
                 className="feed-card-future grow-upload-card overflow-hidden text-left"
                 onClick={() => navigate('/upload', { state: { transition: 'feed-upload' } })}
               >
+                <NobiMascot className="nobi-on-upload-card" label="Nobi crouches on the upload card" />
                 <div className="feed-upload-stage flex items-center justify-center">
                   <span className="feed-upload-plus leading-none">+</span>
                 </div>

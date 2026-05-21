@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
+import { NobiMascot } from '@/components/NobiMascot'
 import { errorMessages } from '@/lib/error-messages'
 import { useSpaceStore } from '@/stores/space-store'
 import { useUserStore } from '@/stores/user-store'
@@ -133,6 +134,7 @@ export default function UploadPage() {
           }`}
           onClick={handleChooseImage}
         >
+          <NobiMascot className="nobi-on-upload-card" label="Nobi waits on the upload card" />
           <div className="feed-upload-stage flex items-center justify-center">
             {uploadedImages.length > 0 ? (
               <img
