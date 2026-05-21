@@ -1,4 +1,4 @@
-# NestAI Agent Handoff Status
+﻿# NestAI Agent Handoff Status
 
 Last updated: 2026-05-19
 
@@ -101,7 +101,7 @@ Current flow:
 2. Backend stores file under `python-server/uploads/YYYYMMDD/...`.
 3. Session is created with image URLs.
 4. `/api/sessions/{session_id}/analyze` calls `VisionService`.
-5. `api_test/Prompt1.md` asks OpenAI vision to output:
+5. `prompts/P001_space_analysis.md` asks OpenAI vision to output:
    - `Memory01`
    - human-readable QA
    - strict JSON questionnaire
@@ -320,7 +320,7 @@ python-server/app/workflows/utils.py
 
 Prompts:
 
-- `api_test/Prompt1.md`: P001 vision + questionnaire prompt.
+- `prompts/P001_space_analysis.md`: P001 vision + questionnaire prompt.
 - `python-server/app/prompts/__init__.py`: P002/P003 prompt builders.
 
 Frontend:
@@ -418,3 +418,4 @@ If another agent picks this up, the best next task is:
 3. Run a full browser flow from upload to letter.
 4. Fix whatever breaks in the real flow.
 5. Then clean remaining garbled UI copy page by page.
+

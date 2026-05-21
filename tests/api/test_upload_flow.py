@@ -20,7 +20,8 @@ def test_upload_flow():
 
     # 1. 测试上传图片
     print("\n[1/4] 测试图片上传...")
-    image_path = Path(__file__).parent / "pic" / "Pic1.jpg"
+    project_dir = Path(__file__).resolve().parents[2]
+    image_path = project_dir / "tests" / "assets" / "images" / "Pic1.jpg"
 
     if not image_path.exists():
         print(f"[ERROR] 图片不存在: {image_path}")

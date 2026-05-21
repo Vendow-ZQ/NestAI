@@ -1,4 +1,4 @@
-"""配置管理 - 参考api_test/test.py的load_configs实现"""
+"""配置管理 - 参考 tests/api/test_llm_config.py 的 load_configs 实现"""
 
 import os
 import sys
@@ -77,7 +77,7 @@ def get_settings() -> Settings:
 def load_llm_configs() -> Dict[str, LLMConfig]:
     """
     从环境变量加载LLM配置
-    参考api_test/test.py的load_configs函数实现
+    参考 tests/api/test_llm_config.py 的 load_configs 函数实现
 
     格式:
         XXX_API_KEY=...

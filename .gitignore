@@ -36,7 +36,12 @@ python-server/memory/
 python-server/debug_response_*.txt
 python-server/session_id.txt
 python-server/session_response.json
-api_test/output/
+api_test/
+tests/output/
+tests/assets/images/*
+!tests/assets/images/Pic1.jpg
+!tests/assets/images/Pic2.jpg
+!tests/assets/images/Pic3.jpg
 debug_vision.log
 backup/
 fix/

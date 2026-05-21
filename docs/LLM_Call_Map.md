@@ -1,147 +1,87 @@
-# NestAI LLM / Prompt 调用地图
+﻿# NestAI LLM / Prompt 璋冪敤鍦板浘
 
-更新时间：2026-05-19
+鏇存柊鏃堕棿锛?026-05-19
 
-## 入口总览
+## 鍏ュ彛鎬昏
 
-| 阶段 | 前端页面 | 前端 API | 后端入口 | 是否调用 LLM / 图像 API | Prompt 位置 |
+| 闃舵 | 鍓嶇椤甸潰 | 鍓嶇 API | 鍚庣鍏ュ彛 | 鏄惁璋冪敤 LLM / 鍥惧儚 API | Prompt 浣嶇疆 |
 | --- | --- | --- | --- | --- | --- |
-| P001 图片理解 + 问卷 | Upload -> Generating(space) -> Chat | `POST /api/sessions/{id}/analyze` | `python-server/app/api/sessions.py` | 是，视觉 LLM | `api_test/Prompt1.md` |
-| P002 空间干预方案 | Chat -> Generating(intervention) -> Result | `POST /api/sessions/{id}/intervention` | `WorkflowService.run_intervention_generation()` | 是，文本 LLM | `python-server/app/prompts/__init__.py:create_p002_prompt()` |
-| P004 图生图提示词翻译 | Result 点击“看看变化” | `POST /api/sessions/{id}/generate-images` | `WorkflowService.run_image_generation()` | 是，多模态 LLM | `api_test/Prompt4.md` |
-| 图生图生成 | Result 点击“看看变化” | 同上 | `image_generation_service.generate_from_original()` | 是，OpenAI Image API | 使用 P004 的输出作为 image edit prompt |
-| P003 回信 | Share/Done -> Generating(letter) -> Letter | `POST /api/sessions/{id}/letter` | `WorkflowService.run_letter_generation()` | 是，文本 LLM | `api_test/Prompt3.md` |
+| P001 鍥剧墖鐞嗚В + 闂嵎 | Upload -> Generating(space) -> Chat | `POST /api/sessions/{id}/analyze` | `python-server/app/api/sessions.py` | 鏄紝瑙嗚 LLM | `prompts/P001_space_analysis.md` |
+| P002 绌洪棿骞查鏂规 | Chat -> Generating(intervention) -> Result | `POST /api/sessions/{id}/intervention` | `WorkflowService.run_intervention_generation()` | 鏄紝鏂囨湰 LLM | `python-server/app/prompts/__init__.py:create_p002_prompt()` |
+| P004 鍥剧敓鍥炬彁绀鸿瘝缈昏瘧 | Result 鐐瑰嚮鈥滅湅鐪嬪彉鍖栤€?| `POST /api/sessions/{id}/generate-images` | `WorkflowService.run_image_generation()` | 鏄紝澶氭ā鎬?LLM | `prompts/P004_image_prompt.md` |
+| 鍥剧敓鍥剧敓鎴?| Result 鐐瑰嚮鈥滅湅鐪嬪彉鍖栤€?| 鍚屼笂 | `image_generation_service.generate_from_original()` | 鏄紝OpenAI Image API | 浣跨敤 P004 鐨勮緭鍑轰綔涓?image edit prompt |
+| P003 鍥炰俊 | Share/Done -> Generating(letter) -> Letter | `POST /api/sessions/{id}/letter` | `WorkflowService.run_letter_generation()` | 鏄紝鏂囨湰 LLM | `prompts/P003_reflection_letter.md` |
 
-## P001：图片理解与动态问卷
+## P001锛氬浘鐗囩悊瑙ｄ笌鍔ㄦ€侀棶鍗?
+璋冪敤閾撅細
 
-调用链：
+1. 鐢ㄦ埛涓婁紶鍥剧墖銆?2. 鍓嶇杩涘叆 `/generating?type=space`銆?3. 鍓嶇璋冪敤 `POST /api/sessions/{session_id}/analyze`銆?4. 鍚庣 `vision_service.analyze_space_image()` 璇诲彇涓婁紶鍥剧墖銆?5. `vision_service` 閫氳繃 `llm_manager.get_model(provider=VISION_LLM_PROVIDER, model_name=VISION_LLM_MODEL)` 璋冪敤瑙嗚妯″瀷銆?
+绯荤粺 Prompt锛?
+- `prompts/P001_space_analysis.md`
 
-1. 用户上传图片。
-2. 前端进入 `/generating?type=space`。
-3. 前端调用 `POST /api/sessions/{session_id}/analyze`。
-4. 后端 `vision_service.analyze_space_image()` 读取上传图片。
-5. `vision_service` 通过 `llm_manager.get_model(provider=VISION_LLM_PROVIDER, model_name=VISION_LLM_MODEL)` 调用视觉模型。
+杈撳叆锛?
+- 涓婁紶鐨勫師濮嬬┖闂村浘鐗囷紱
+- 涓€鍙?human 鎸囦护锛岃姹傝緭鍑?Memory01銆丵A銆丣SON銆?
+杈撳嚭锛?
+- `space_summary`锛氬唴閮?Memory01锛岀敤浜庡悗缁柟妗堢敓鎴愶紱
+- `questions`锛氬墠绔睍绀虹殑 3 閬撳姩鎬侀棶鍗凤紱
+- `qa_markdown`锛氳皟璇?杩囩▼鍐呭锛屼笉搴旇鐩存帴瀹屾暣灞曠ず鍦ㄥ墠绔€?
+## P002锛氱┖闂村共棰勬柟妗?
+璋冪敤閾撅細
 
-系统 Prompt：
-
-- `api_test/Prompt1.md`
-
-输入：
-
-- 上传的原始空间图片；
-- 一句 human 指令，要求输出 Memory01、QA、JSON。
-
-输出：
-
-- `space_summary`：内部 Memory01，用于后续方案生成；
-- `questions`：前端展示的 3 道动态问卷；
-- `qa_markdown`：调试/过程内容，不应该直接完整展示在前端。
-
-## P002：空间干预方案
-
-调用链：
-
-1. 用户在 Chat 页面完成问卷。
-2. 前端调用 `POST /api/sessions/{session_id}/intervention`。
-3. `WorkflowService.run_intervention_generation()` 启动 LangGraph。
-4. Graph 节点 `plan_intervention_node()` 调用文本 LLM。
-
-系统 Prompt：
-
+1. 鐢ㄦ埛鍦?Chat 椤甸潰瀹屾垚闂嵎銆?2. 鍓嶇璋冪敤 `POST /api/sessions/{session_id}/intervention`銆?3. `WorkflowService.run_intervention_generation()` 鍚姩 LangGraph銆?4. Graph 鑺傜偣 `plan_intervention_node()` 璋冪敤鏂囨湰 LLM銆?
+绯荤粺 Prompt锛?
 - `python-server/app/prompts/__init__.py`
-- 函数：`create_p002_prompt()`
+- 鍑芥暟锛歚create_p002_prompt()`
 
-输入：
+杈撳叆锛?
+- P001 鐨?`space_summary`锛?- 闂嵎绛旀锛歚aspiration`銆乣current_state`銆乣constraints`銆?
+杈撳嚭锛?
+- 涓夋。鏂规锛歚free`銆乣low`銆乣advanced`銆?
+## P004锛氫粠琛屽姩鏂囨湰鍒板浘鐢熷浘 Prompt
 
-- P001 的 `space_summary`；
-- 问卷答案：`aspiration`、`current_state`、`constraints`。
+璋冪敤閾撅細
 
-输出：
+1. 鐢ㄦ埛鍦?Result 椤甸潰鐐瑰嚮鈥滅湅鐪嬪彉鍖栤€濄€?2. 鍓嶇璋冪敤 `POST /api/sessions/{session_id}/generate-images`銆?3. `WorkflowService.run_image_generation()` 鍚姩鍥惧儚鐢熸垚 Graph銆?4. Graph 鑺傜偣 `build_image_prompt_node()` 鍏堣鍙栧綋鍓嶉€夋嫨鐨?tier锛屼緥濡?`low`銆?5. 鑺傜偣鎶娾€滅┖闂存敼閫犺鍔ㄦ枃鏈?+ 鏀归€犲墠鍥剧墖鈥濅竴璧峰彂缁欏妯℃€?LLM銆?
+绯荤粺 Prompt锛?
+- `prompts/P004_image_prompt.md`
 
-- 三档方案：`free`、`low`、`advanced`。
-
-## P004：从行动文本到图生图 Prompt
-
-调用链：
-
-1. 用户在 Result 页面点击“看看变化”。
-2. 前端调用 `POST /api/sessions/{session_id}/generate-images`。
-3. `WorkflowService.run_image_generation()` 启动图像生成 Graph。
-4. Graph 节点 `build_image_prompt_node()` 先读取当前选择的 tier，例如 `low`。
-5. 节点把“空间改造行动文本 + 改造前图片”一起发给多模态 LLM。
-
-系统 Prompt：
-
-- `api_test/Prompt4.md`
-
-输入：
-
-- 当前 tier 的行动文本；
-- 改造前图片；
-- 用户问卷/空间摘要的上下文。
-
-输出：
-
+杈撳叆锛?
+- 褰撳墠 tier 鐨勮鍔ㄦ枃鏈紱
+- 鏀归€犲墠鍥剧墖锛?- 鐢ㄦ埛闂嵎/绌洪棿鎽樿鐨勪笂涓嬫枃銆?
+杈撳嚭锛?
 - `render1`
 - `axonometric`
 - `render2`
 - `negative`
 
-这些输出不是最终图片，而是发给图生图模型的 image edit prompt。
+杩欎簺杈撳嚭涓嶆槸鏈€缁堝浘鐗囷紝鑰屾槸鍙戠粰鍥剧敓鍥炬ā鍨嬬殑 image edit prompt銆?
+## 鍥剧敓鍥剧敓鎴?
+璋冪敤閾撅細
 
-## 图生图生成
-
-调用链：
-
-1. `build_image_prompt_node()` 得到 P004 翻译后的 `imagePrompts`。
-2. Graph 节点 `generate_images_node()` 调用 `image_generation_service.generate_from_original()`。
-3. 当前配置使用 OpenAI Image API。
-
-配置：
-
+1. `build_image_prompt_node()` 寰楀埌 P004 缈昏瘧鍚庣殑 `imagePrompts`銆?2. Graph 鑺傜偣 `generate_images_node()` 璋冪敤 `image_generation_service.generate_from_original()`銆?3. 褰撳墠閰嶇疆浣跨敤 OpenAI Image API銆?
+閰嶇疆锛?
 - `IMAGE_PROVIDER=OPENAI`
 - `IMAGE_MODEL=gpt-image-1.5`
 
-输出：
+杈撳嚭锛?
+- 鐢熸垚鍥句繚瀛樺埌 `python-server/uploads/generated/YYYYMMDD/`銆?- 鍓嶇閫氳繃 `/uploads/generated/...` 灞曠ず銆?
+澶辫触璋冭瘯锛?
+- 鍥惧儚鐢熸垚澶辫触浼氬啓鍏?`python-server/uploads/debug/`銆?
+## P003锛氬畬鎴愬悗鐨勫洖淇?
+璋冪敤閾撅細
 
-- 生成图保存到 `python-server/uploads/generated/YYYYMMDD/`。
-- 前端通过 `/uploads/generated/...` 展示。
+1. 鐢ㄦ埛鍦?Next/Result/Share 娴佺▼閲屾彁浜ゅ畬鎴愮姸鎬佸拰鎰熷彈銆?2. 鍓嶇璋冪敤 `POST /api/sessions/{session_id}/letter`銆?3. `WorkflowService.run_letter_generation()` 鍚姩 Letter Graph銆?4. Graph 鑺傜偣 `write_letter_node()` 璋冪敤鏂囨湰 LLM銆?
+绯荤粺 Prompt锛?
+- `prompts/P003_reflection_letter.md`
 
-失败调试：
+杈撳叆锛?
+- 鐢ㄦ埛閫夋嫨鐨?tier锛?- 瀵瑰簲绌洪棿骞查鏂规锛?- 瀹屾垚鎯呭喌锛?- 鐢ㄦ埛鎰熷彈锛?- 瀵硅瘽鎽樿銆?
+杈撳嚭锛?
+- 涓€灏?4-7 娈电殑涓枃鍥炰俊锛屼繚瀛樺埌 session memory銆?
+## 鐜板湪鐨?LangGraph 缁撴瀯
 
-- 图像生成失败会写入 `python-server/uploads/debug/`。
+褰撳墠涓嶆槸鈥滃緢澶氱嫭绔?Agent 浜掔浉鑱婂ぉ鈥濈殑澶?Agent 绯荤粺锛岃€屾槸涓€涓?LangGraph 缂栨帓鐨勫鑺傜偣宸ヤ綔娴侊細
 
-## P003：完成后的回信
-
-调用链：
-
-1. 用户在 Next/Result/Share 流程里提交完成状态和感受。
-2. 前端调用 `POST /api/sessions/{session_id}/letter`。
-3. `WorkflowService.run_letter_generation()` 启动 Letter Graph。
-4. Graph 节点 `write_letter_node()` 调用文本 LLM。
-
-系统 Prompt：
-
-- `api_test/Prompt3.md`
-
-输入：
-
-- 用户选择的 tier；
-- 对应空间干预方案；
-- 完成情况；
-- 用户感受；
-- 对话摘要。
-
-输出：
-
-- 一封 4-7 段的中文回信，保存到 session memory。
-
-## 现在的 LangGraph 结构
-
-当前不是“很多独立 Agent 互相聊天”的多 Agent 系统，而是一个 LangGraph 编排的多节点工作流：
-
-- `intervention_graph`：生成空间干预方案，再准备图片 Prompt；
-- `image_generation_graph`：用 P004 翻译图生图 Prompt，再调用图像生成 API；
-- `letter_graph`：生成回信，再准备记忆更新。
-
-它更像“单协调器 + 多能力节点”的产品工作流。现阶段这样更稳、更轻，不需要过早做成复杂多 Agent。
+- `intervention_graph`锛氱敓鎴愮┖闂村共棰勬柟妗堬紝鍐嶅噯澶囧浘鐗?Prompt锛?- `image_generation_graph`锛氱敤 P004 缈昏瘧鍥剧敓鍥?Prompt锛屽啀璋冪敤鍥惧儚鐢熸垚 API锛?- `letter_graph`锛氱敓鎴愬洖淇★紝鍐嶅噯澶囪蹇嗘洿鏂般€?
+瀹冩洿鍍忊€滃崟鍗忚皟鍣?+ 澶氳兘鍔涜妭鐐光€濈殑浜у搧宸ヤ綔娴併€傜幇闃舵杩欐牱鏇寸ǔ銆佹洿杞伙紝涓嶉渶瑕佽繃鏃╁仛鎴愬鏉傚 Agent銆?

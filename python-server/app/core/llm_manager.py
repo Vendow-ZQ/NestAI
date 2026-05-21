@@ -1,4 +1,4 @@
-"""LLM管理模块 - 参考api_test/test.py实现"""
+"""LLM管理模块 - 参考 tests/api/test_llm_config.py 实现"""
 
 from typing import Optional, Dict, Any, List
 from langchain_core.language_models.chat_models import BaseChatModel

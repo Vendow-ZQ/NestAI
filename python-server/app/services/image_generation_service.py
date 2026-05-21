@@ -47,7 +47,7 @@ class ImageGenerationService:
     def prepare_image_for_openai(self, image_path: Path) -> Path:
         """Normalize phone/MPO/EXIF-heavy uploads into clean RGB PNG files.
 
-        This mirrors the successful api_test/test_generation.py path. OpenAI's
+        This mirrors the successful tests/api/test_generation.py path. OpenAI's
         image edit endpoint can reject MPO containers or images with unusual
         metadata even when the file extension is .jpg.
         """

@@ -19,7 +19,7 @@ LEVEL_DEFAULTS = {
 
 def load_prompt4() -> str:
     project_root = Path(__file__).resolve().parents[3]
-    prompt_path = project_root / "api_test" / "Prompt4.md"
+    prompt_path = project_root / "prompts" / "P004_image_prompt.md"
     if prompt_path.exists():
         return prompt_path.read_text(encoding="utf-8").strip()
 

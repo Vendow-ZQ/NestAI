@@ -6,9 +6,9 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 def load_prompt_file(file_name: str, fallback: str) -> str:
-    """Load an editable system prompt from api_test, with a code fallback."""
+    """Load an editable production prompt, with a code fallback."""
     project_root = Path(__file__).resolve().parents[3]
-    prompt_path = project_root / "api_test" / file_name
+    prompt_path = project_root / "prompts" / file_name
     if prompt_path.exists():
         return prompt_path.read_text(encoding="utf-8")
     return fallback
@@ -21,7 +21,7 @@ def escape_template_braces(text: str) -> str:
 
 def create_p001_prompt():
     system_prompt = load_prompt_file(
-        "Prompt1.md",
+        "P001_space_analysis.md",
         "你是 NestAI 的空间观察员。请根据用户空间图片，输出具体、温柔、只基于可见事实的空间观察，并生成 3 道动态问卷。",
     )
     return ChatPromptTemplate.from_messages(
@@ -40,7 +40,7 @@ def create_p001_prompt():
 
 def create_p002_prompt():
     system_prompt = load_prompt_file(
-        "Prompt2.md",
+        "P002_intervention_plan.md",
         """你是 NestAI 的空间干预方案生成器。你的任务不是装修或导购，而是把用户想靠近的生活状态翻译成可执行的空间改变。
 
 只输出 JSON，不要 Markdown。JSON 必须包含 free、low、advanced 三个键。每个键的值都必须包含：
@@ -90,7 +90,7 @@ free = 0 元调整；low = 低成本软装；advanced = 进阶改造。
 
 def create_p003_prompt():
     system_prompt = load_prompt_file(
-        "Prompt3.md",
+        "P003_reflection_letter.md",
         "你是 NestAI 的 Nobi。写一封温柔、具体、不评判的中文信，回应用户完成或尝试完成空间改变后的感受。",
     )
     return ChatPromptTemplate.from_messages(

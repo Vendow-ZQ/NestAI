@@ -1,214 +1,123 @@
-# NestAI · 栖巢
+# NestAI
 
-> **看见你的 Nest，理解你的 lifestyle，然后给出你的 Next。**
+NestAI 是一个空间生活方式 Agent：用户上传真实空间图片，系统先理解空间与生活方式，再生成动态问卷、空间干预方案、图生图改造效果、行动收藏、反馈信件与长期记忆。
 
-NestAI 是一个帮助泛年轻租住人群与宿舍人群**生长出自己生活方式**的空间 Agent。
+## 当前结构
 
-它通过理解用户的真实空间、当前与向往的 lifestyle、外部灵感与个人约束，生成可视化、可执行、可反馈的空间干预方案，推动用户把想过的生活一步步外化到真实物理世界中。
+```text
+NestAI/
+  web/                         # React + Vite 前端
+    src/
+      pages/                   # Grow / Upload / Chat / Result / Next / Share / Letter / Me
+      stores/                  # 前端状态
+      lib/                     # API、工具、错误文案
 
----
+  python-server/               # FastAPI 后端
+    app/
+      api/                     # REST API 路由
+      core/                    # 配置与 LLM Manager
+      services/                # 视觉、工作流、图像生成、Memory 服务
+      workflows/               # LangGraph 节点与图
+      prompts/                 # Prompt builder，不直接存放可编辑 Prompt 文本
 
-## 产品定位
+  prompts/                     # 可编辑生产 Prompt
+    P001_space_analysis.md     # 图片理解 + Memory01 + 动态问卷
+    P002_intervention_plan.md  # 问卷 + Memory -> 三档空间干预方案
+    P003_reflection_letter.md  # 完成/反馈后生成信件
+    P004_image_prompt.md       # 行动文本 + 原图 -> 图生图 Prompt
+    P005_bauhaus_image_edit.md # 独立图生图测试 Prompt
 
-**NestAI 不是帮你装修空间，而是帮你把想过的生活，转译成下一步可执行的空间改变。**
+  tests/
+    api/                       # API / LLM 手动测试脚本
+    assets/images/             # 标准测试图片 Pic1-Pic3
+    fixtures/                  # 测试输入样例
 
-NestAI 不生成"一张漂亮图"就结束。它做的是：
-
-1. **看见** —— 理解用户真实拥有的空间
-2. **理解** —— 用户现在的生活方式和向往的生活方式
-3. **判断** —— 当前空间与用户想过的生活之间哪里不匹配
-4. **生成** —— 可视化、可执行、由轻到重的空间干预方案
-5. **推动** —— 让用户从一个很小的动作开始，在真实物理空间中改变一点点
-6. **记录** —— 通过拍照与感受反馈，记录这次变化
-7. **记忆** —— 把变化沉淀为 Memory，并生成下一步 Next
-8. **连接** —— 让用户看到相似的人如何生长，从而获得新的灵感
-
-**NestAI 不是：** 普通 AI 室内设计生成器、效果图工具、家居导购、风格测试、装修报告生成器、或 To-do List。
-
-**NestAI 的重点是：** 通过虚拟世界中的理解、模拟和预览，推动用户回到物理世界中行动。
-
----
-
-## 为谁而生
-
-NestAI 面向**泛年轻租住人群与宿舍人群**：
-
-- 大学生 / 研究生宿舍用户
-- 留学生宿舍或合租用户
-- 初入职场租房者
-- 城市青年长租公寓用户
-
-他们的共同点不是"没有房子"，而是：**他们正在使用一个有限、受约束、未必长期属于自己的空间，但仍然希望把生活认真地放进去。**
-
-第一版 Demo 切口：清华大学深圳国际研究生院二期宿舍 · 研究生居住场景。
-
----
-
-## 核心用户旅程
-
-```
-┌─────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  Grow   │ →  │   上传空间   │ →  │ Lifestyle   │ →  │   生成中    │
-│  首页   │    │  拍照/多图   │    │    Chat     │    │  空间识别   │
-└─────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                                                          ↓
-┌─────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  回到   │ ←  │  一封信 +   │ ←  │  新变化     │ ←  │  P3 方案页  │
-│  Grow   │    │   下一封    │    │   分享反馈   │    │ 三档可切换  │
-│  Feed   │    │             │    │             │    │ 今晚试试看  │
-└─────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                                                          ↓
-                                                   ┌─────────────┐
-                                                   │    Next     │
-                                                   │  行动收藏夹  │
-                                                   └─────────────┘
+  docs/                        # 架构、LLM 调用图、项目同步文档
 ```
 
----
+旧的 `api_test/` 已废弃，不再作为后端 Prompt 或测试素材来源。
 
-## 三档方案：从轻到重
+## 启动
 
-| 档位 | 说明 |
-|------|------|
-| **0 元调整** | 不需要购买。移动、清理、收纳、重新摆放、改变使用规则。 |
-| **低成本软装** | 灯、布、收纳、植物、海报、小家具、床品等低成本物件改善空间。**（默认展示）** |
-| **进阶改造** | 更完整的局部布置方案，可能包含效果图、购物清单、组合物件和更强的风格表达。 |
+先准备后端环境变量：
 
-默认选中**低成本软装**——它兼具可执行性和视觉变化，距离用户最近。
-
----
-
-## 三 Tab 架构
-
-| Tab | 定位 |
-|-----|------|
-| **Grow** | 开屏默认页，主功能入口。先让用户开始自己的生长，再让用户看见别人如何生长。 |
-| **Next** | 行动收藏夹。用户"今晚试试看"的干预动作集合。不是任务清单，不制造压力。 |
-| **Me** | 用户自己的内容：我的空间、我的信件、我的 Living Memory、历史干预、设置。 |
-
----
-
-## 产品哲学
-
-### 土壤、养料、花盆与生长
-
-- **外部灵感 / 平台模板 / 设计案例** = 养料
-- **用户行为、性格、身体感受、经济条件、空间硬装** = 土壤
-- **真实空间约束** = 花盆大小
-- **设计知识、空间心理学、行为科学** = 培育系统
-- **最终输出** = 可被看见、可被执行、可被持续维护的 lifestyle
-
-> **NestAI 不是把别人的模板搬进你的房间，而是让你的生活方式从你的真实空间里长出来。**
-
-### 外部灵感不是反派
-
-小红书、Pinterest、Instagram 不是反派，而是系统的养料。真正的问题是：平台上的灵感不会自动 match 用户真实的人、真实的空间和真实的约束。
-
-**用户缺的不是灵感，而是从外部灵感到个人空间的转译系统。**
-
-### Lifestyle = Habit + Interest + Preference + Body Feeling + Constraint + Aspiration
-
-NestAI 不把 lifestyle 简化成风格标签，也不假设每个人都有成熟 Routine。
-
-> **Routine 不是 lifestyle 的起点，而是 lifestyle 被空间支持之后逐渐长出来的结果。**
-
----
-
-## 品牌小形象：Nobi / 豆鼻
-
-大鼻子狗是 NestAI 的空间嗅探员。它"闻得到空间里的生活痕迹"，陪伴用户完成空间干预闭环。
-
-狗的天然语义是陪伴、观察、等你回来、记得你的习惯、不审判你。大鼻子强化了它的功能隐喻。
-
-Nobi 不应成为惩罚机制。不奄奄一息，不制造愧疚。它只是等你回来，在新空间里打盹，偶尔叼着小纸条提醒"今晚要不要试一下？"
-
----
-
-## Memory 系统
-
-Memory 是 NestAI 区别于一次性 AI 设计工具的关键。它记录的不是孤立物品或粗暴标签，而是：
-
-> **用户现在如何生活、向往如何生活、空间如何被改变、改变是否真的发生了效果。**
-
-后台用 Markdown 文件持续累积：
-
-- `USER_LIFESTYLE.md` —— habit、interest、aspiration、审美偏好
-- `SPACE_PROFILE.md` —— 空间类型、物理对象、光照、动线
-- `INTERVENTION_HISTORY.md` —— 干预时间、类型、执行反馈
-- `CONSTRAINTS.md` —— 逐步显影的空间、经济、身体限制
-- `LIVING_MEMORY.md` —— 用户如何通过空间行动逐渐改变生活
-
-前台只呈现：**一封温柔的信**。不展示标签、不展示评分、不展示系统内部推断。
-
----
-
-## 技术架构
-
-本项目采用前后端分离的纯 Web 架构：
-
-```
-项目根目录/
-├── web/               # 前端（Vite + React + TypeScript + Tailwind CSS）
-│   ├── src/           # 页面组件、状态管理、API调用
-│   ├── package.json   # 前端依赖
-│   └── vite.config.ts # 代理 /api 和 /uploads 到 FastAPI
-├── python-server/     # 后端（FastAPI + SQLite + LangChain）
-│   ├── app/           # API、服务、配置、Prompt
-│   ├── requirements.txt
-│   └── .env.example
-├── run.py             # 一键启动前后端
-├── package.json       # 根目录脚本
-└── README.md
+```bash
+cp python-server/.env.example python-server/.env
 ```
 
-## 快速启动
+至少需要：
 
-### 开发模式（同时启动前后端）
+```env
+OPENAI_API_KEY=your_key
+DEFAULT_LLM_PROVIDER=OPENAI
+VISION_LLM_PROVIDER=OPENAI
+IMAGE_PROVIDER=OPENAI
+IMAGE_MODEL=gpt-image-1.5
+```
+
+启动前后端：
 
 ```bash
 pnpm dev
 ```
 
-前端运行于 `http://localhost:5000`
-后端运行于 `http://localhost:8000`
-API 文档运行于 `http://localhost:8000/docs`
+默认地址：
 
-### 单独启动
+- 前端：`http://localhost:5000`
+- 后端：`http://localhost:8000`
+- API 文档：`http://localhost:8000/docs`
+
+也可以分开启动：
 
 ```bash
-# 仅启动前端
 pnpm dev:web
-
-# 仅启动后端
 pnpm dev:server
 ```
 
-### 生产构建
+## 核心流程
+
+1. Upload：上传空间图片。
+2. P001：视觉 LLM 根据图片生成 `Memory01`、一句话空间概览和动态问卷。
+3. Chat：用户回答问卷。
+4. P002：文本 LLM 根据图片理解、问卷答案、压缩长期记忆生成三档干预方案。
+5. Result：用户选择 tier，点击“看看变化”。
+6. P004：多模态 LLM 把行动文本和原图翻译成图生图 Prompt。
+7. Image API：使用原图 + P004 输出生成改造后图片。
+8. Next / Share / Letter / Me：收藏行动、记录完成反馈、生成回信并沉淀长期记忆。
+
+## 测试
+
+前端构建：
 
 ```bash
-pnpm build        # 构建前端 + 检查后端
-pnpm build:web    # 仅构建前端
-pnpm check:server # 仅检查后端 Python 模块
-pnpm start        # 启动 FastAPI 后端
+pnpm --dir web build
 ```
 
-## 项目迁移说明
+后端语法检查：
 
-✅ **已完成从 Taro 小程序到纯 Web App 的迁移**  
-- 保留页面：Grow首页、Next行动页、Chat对话页、Result方案页  
-- 保留功能：三档干预方案、信件生成、Memory系统  
-- 新增：更简洁的架构、更快的开发体验、跨平台浏览器支持
+```bash
+python -m py_compile python-server/app/main.py
+```
 
-## 相关文档
+图生图链路干跑：
 
-| 文档 | 内容 |
-|------|------|
-| [NestAI Product Definition v0.5](NestAI_Product_Definition_v0.5.md) | 完整产品定义：用户旅程、页面规格、AI 工作流、Memory 设计、品牌定义 |
-| [TECH_STACK.md](TECH_STACK.md) | 技术栈详情（注意：已更新为Web架构） |
-| [MIGRATION_SOP.md](MIGRATION_SOP.md) | 迁移过程文档 |
+```bash
+python tests/api/test_generation.py --dry-run
+```
 
----
+真实调用图生图：
 
-**协作者**：Vendow × 文欢 × ChatGPT · 扣子编程 Coze CLI (Design Studio Ⅱ 2026 Spring)
+```bash
+python tests/api/test_generation.py
+```
 
-**License**: MIT
+## Prompt Engineering
+
+优先编辑根目录 `prompts/` 下的 P001-P005 文件。后端运行时会读取这些 Markdown 文件；`python-server/app/prompts/__init__.py` 只负责把 Prompt 装配进 LangChain 模板，不再承载主要 Prompt 文案。
+
+每次改 Prompt 后，建议至少跑：
+
+```bash
+python tests/api/test_generation.py --dry-run
+pnpm --dir web build
+```

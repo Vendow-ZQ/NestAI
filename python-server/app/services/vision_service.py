@@ -172,7 +172,7 @@ class VisionService:
 
     def _load_system_prompt(self) -> str:
         project_root = Path(__file__).resolve().parents[3]
-        prompt_path = project_root / "api_test" / "Prompt1.md"
+        prompt_path = project_root / "prompts" / "P001_space_analysis.md"
         if prompt_path.exists():
             with open(prompt_path, "r", encoding="utf-8") as f:
                 return f.read()
