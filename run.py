@@ -9,6 +9,8 @@ import sys
 import os
 import shutil
 import time
+import urllib.request
+import webbrowser
 from pathlib import Path
 from threading import Thread
 
@@ -124,6 +126,25 @@ def stream_output(process, service_name, color):
         if line:
             log(service_name, line.strip(), color)
 
+def wait_for_url(url, timeout_seconds=30):
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=2) as response:
+                if response.status < 500:
+                    return True
+        except Exception:
+            time.sleep(0.5)
+    return False
+
+def open_frontend_when_ready():
+    url = "http://localhost:5000"
+    if wait_for_url(url, timeout_seconds=30):
+        log("System", f"Opening {url}", Colors.YELLOW)
+        webbrowser.open(url)
+    else:
+        log("System", f"Frontend did not respond within 30s. Open manually: {url}", Colors.RED)
+
 def main():
     print(f"{Colors.YELLOW}NestAI Launcher{Colors.END}")
     print("=" * 50)
@@ -159,6 +180,10 @@ def main():
             t.daemon = True
             t.start()
             threads.append(t)
+
+        opener = Thread(target=open_frontend_when_ready)
+        opener.daemon = True
+        opener.start()
 
         while True:
             time.sleep(1)
