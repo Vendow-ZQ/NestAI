@@ -5,13 +5,13 @@
   "description": "NestAI Web Application (Vite + React + FastAPI)",
   "scripts": {
     "dev": "python run.py",
-    "dev:web": "pnpm --dir web dev",
-    "dev:server": "cd python-server && python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0",
-    "build": "pnpm build:web && pnpm check:server",
-    "build:web": "pnpm --dir web build",
-    "check:server": "cd python-server && python -m compileall app",
-    "preview": "pnpm --dir web preview",
-    "start": "cd python-server && python -m uvicorn app.main:app --port 8000 --host 0.0.0.0",
+    "dev:frontend": "pnpm --dir frontend dev",
+    "dev:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0",
+    "build": "pnpm build:frontend && pnpm check:backend",
+    "build:frontend": "pnpm --dir frontend build",
+    "check:backend": "python scripts/check_backend_syntax.py backend/app",
+    "preview": "pnpm --dir frontend preview",
+    "start": "cd backend && python -m uvicorn app.main:app --port 8000 --host 0.0.0.0",
     "preinstall": "npx only-allow pnpm"
   },
   "engines": {

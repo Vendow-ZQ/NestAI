@@ -1,8 +1,8 @@
 {
   "framework": "vite",
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm --dir web build",
-  "outputDirectory": "web/dist",
+  "buildCommand": "pnpm --dir frontend build",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     {
       "source": "/((?!assets/.*|.*\\..*).*)",

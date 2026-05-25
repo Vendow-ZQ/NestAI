@@ -1,9 +1,9 @@
-# Deployment: Vercel + Render + Supabase
+﻿# Deployment: Vercel + Render + Supabase
 
 This project deploys as three pieces:
 
-- Vercel: React/Vite frontend from `web/`
-- Render: FastAPI backend from `python-server/`
+- Vercel: React/Vite frontend from `frontend/`
+- Render: FastAPI backend from `backend/`
 - Supabase: Postgres database and Storage bucket
 
 ## 1. Supabase
@@ -32,7 +32,7 @@ Use the Supabase pooler connection string for Render. Keep `SUPABASE_SERVICE_ROL
 Use the root `render.yaml` blueprint, or create a Web Service manually:
 
 ```text
-Root directory: python-server
+Root directory: backend
 Build command: pip install -r requirements.txt
 Start command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 Health check path: /health
@@ -74,7 +74,7 @@ https://<your-render-service>.onrender.com/health
 Import the GitHub repo into Vercel. The root `vercel.json` builds the frontend with:
 
 ```text
-pnpm --dir web build
+pnpm --dir frontend build
 ```
 
 Set this Vercel env var:
@@ -93,8 +93,9 @@ Local development still works without Supabase:
 pnpm dev
 ```
 
-By default the backend uses local SQLite and local `uploads/`. To test a cloud-like frontend locally, create `web/.env`:
+By default the backend uses local SQLite and local `uploads/`. To test a cloud-like frontend locally, create `frontend/.env`:
 
 ```text
 VITE_API_BASE_URL=http://localhost:8000
 ```
+

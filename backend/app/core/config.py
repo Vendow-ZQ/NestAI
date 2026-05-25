@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # 使用绝对路径加载.env文件（确保无论从哪里启动都能找到）
-BASE_DIR = Path(__file__).parent.parent.parent  # python-server目录
+BASE_DIR = Path(__file__).parent.parent.parent  # backend directory
 ENV_PATH = BASE_DIR / ".env"
 
 print(f"[Config] Looking for .env at: {ENV_PATH}")

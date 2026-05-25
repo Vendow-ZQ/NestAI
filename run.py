@@ -44,7 +44,7 @@ def has_backend_dependencies(python_cmd):
     try:
         completed = subprocess.run(
             [python_cmd, "-c", probe],
-            cwd="python-server",
+            cwd="backend",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -60,7 +60,7 @@ def resolve_backend_python():
     candidates = [
         os.environ.get("NESTAI_PYTHON"),
         Path(".venv") / "Scripts" / "python.exe",
-        Path("python-server") / ".venv" / "Scripts" / "python.exe",
+        Path("backend") / ".venv" / "Scripts" / "python.exe",
         Path("E:/Software/Anaconda/python.exe"),
         sys.executable,
         shutil.which("python"),
@@ -80,7 +80,7 @@ def resolve_backend_python():
 
     hint = (
         "No Python with backend dependencies was found. "
-        "Install them with: python -m pip install -r python-server/requirements.txt "
+        "Install them with: python -m pip install -r backend/requirements.txt "
         "or set NESTAI_PYTHON to the correct python.exe."
     )
     if failures:
@@ -88,11 +88,11 @@ def resolve_backend_python():
     raise RuntimeError(hint)
 
 def start_backend():
-    log("Backend", "Starting FastAPI (python-server)...", Colors.GREEN)
+    log("Backend", "Starting FastAPI (backend)...", Colors.GREEN)
     backend_python = resolve_backend_python()
     return subprocess.Popen(
         [backend_python, "-m", "uvicorn", "app.main:app", "--reload", "--port", "8000", "--host", "0.0.0.0"],
-        cwd="python-server",
+        cwd="backend",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -102,7 +102,7 @@ def start_backend():
     )
 
 def start_frontend():
-    log("Frontend", "Starting Vite (web)...", Colors.BLUE)
+    log("Frontend", "Starting Vite (frontend)...", Colors.BLUE)
     pnpm_cmd = shutil.which("pnpm") or shutil.which("pnpm.cmd")
     if not pnpm_cmd and os.name == "nt":
         appdata = os.environ.get("APPDATA")
@@ -112,7 +112,7 @@ def start_frontend():
     if not pnpm_cmd:
         raise RuntimeError("pnpm not found in PATH")
     return subprocess.Popen(
-        [pnpm_cmd, "--dir", "web", "dev"],
+        [pnpm_cmd, "--dir", "frontend", "dev"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -149,12 +149,12 @@ def main():
     print(f"{Colors.YELLOW}NestAI Launcher{Colors.END}")
     print("=" * 50)
 
-    if not Path("python-server").exists():
-        log("Error", "python-server not found", Colors.RED)
+    if not Path("backend").exists():
+        log("Error", "backend not found", Colors.RED)
         sys.exit(1)
 
-    if not Path("web").exists():
-        log("Error", "web not found", Colors.RED)
+    if not Path("frontend").exists():
+        log("Error", "frontend not found", Colors.RED)
         sys.exit(1)
 
     processes = []

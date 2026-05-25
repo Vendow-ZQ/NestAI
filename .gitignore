@@ -29,13 +29,15 @@ __pycache__/
 .pytest_cache/
 
 # Local runtime data
+data/
+web/
 *.db
-python-server/*.db
-python-server/uploads/
-python-server/memory/
-python-server/debug_response_*.txt
-python-server/session_id.txt
-python-server/session_response.json
+backend/*.db
+backend/uploads/
+backend/memory/
+backend/debug_response_*.txt
+backend/session_id.txt
+backend/session_response.json
 api_test/
 tests/output/
 tests/assets/images/*

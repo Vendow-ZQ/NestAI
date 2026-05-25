@@ -1,29 +1,22 @@
-# NestAI Architecture SOP
+﻿# NestAI Architecture SOP
 
-## 1. 当前定位
+## 1. 褰撳墠瀹氫綅
 
-NestAI 当前是一个多阶段 AI 工作流产品，不是成熟意义上的多 Agent 系统。
+NestAI 褰撳墠鏄竴涓闃舵 AI 宸ヤ綔娴佷骇鍝侊紝涓嶆槸鎴愮啛鎰忎箟涓婄殑澶?Agent 绯荤粺銆?
+鐜板湪宸茬粡鍏峰锛?
+- 鍥剧墖涓婁紶
+- 绌洪棿瑙嗚鍒嗘瀽
+- Memory01 / 浜烘牸娲炲療 / 鍔ㄦ€侀棶鍗风敓鎴?- 闂嵎鍥炵瓟鏀堕泦
+- 绌洪棿骞查鏂规鐢熸垚
+- 鍒嗕韩椤靛浘鐗囦笌鎰熷彈杈撳叆
+- 鍛婂埆淇＄敓鎴?
+浠嶆湭瀹屽叏鎵撻€氾細
 
-现在已经具备：
-
-- 图片上传
-- 空间视觉分析
-- Memory01 / 人格洞察 / 动态问卷生成
-- 问卷回答收集
-- 空间干预方案生成
-- 分享页图片与感受输入
-- 告别信生成
-
-仍未完全打通：
-
-- 真实图生图改造图
-- Grow / Feed / Next / Me 的真实数据源
-- 空间数据持久化
-- 长期记忆的系统化更新
-- LangGraph 状态机的完整接管
-
-目标不是做一组自由对话的 Agent，而是做一个产品级 AI Workflow：
-
+- 鐪熷疄鍥剧敓鍥炬敼閫犲浘
+- Grow / Feed / Next / Me 鐨勭湡瀹炴暟鎹簮
+- 绌洪棿鏁版嵁鎸佷箙鍖?- 闀挎湡璁板繂鐨勭郴缁熷寲鏇存柊
+- LangGraph 鐘舵€佹満鐨勫畬鏁存帴绠?
+鐩爣涓嶆槸鍋氫竴缁勮嚜鐢卞璇濈殑 Agent锛岃€屾槸鍋氫竴涓骇鍝佺骇 AI Workflow锛?
 ```text
 Frontend
   -> FastAPI
@@ -33,8 +26,7 @@ Frontend
   -> Memory / DB / Storage
 ```
 
-## 2. 推荐技术架构
-
+## 2. 鎺ㄨ崘鎶€鏈灦鏋?
 ### Frontend
 
 - React
@@ -52,31 +44,27 @@ Frontend
 - Local file storage
 - Simple background jobs
 
-### MVP 原则
+### MVP 鍘熷垯
 
-- 尽量本地优先
-- 尽量少服务
-- 尽量少账号
-- 尽量少部署复杂度
-- 先把真实产品链路跑通，再考虑迁移云服务
-
-### MVP 最小技术栈
+- 灏介噺鏈湴浼樺厛
+- 灏介噺灏戞湇鍔?- 灏介噺灏戣处鍙?- 灏介噺灏戦儴缃插鏉傚害
+- 鍏堟妸鐪熷疄浜у搧閾捐矾璺戦€氾紝鍐嶈€冭檻杩佺Щ浜戞湇鍔?
+### MVP 鏈€灏忔妧鏈爤
 
 - Frontend: React + Vite + TypeScript + Tailwind
 - Backend: FastAPI
 - Database: SQLite
-- File Storage: 本地 `uploads/`
-- Workflow: LangGraph, 只用于主 AI 链路
+- File Storage: 鏈湴 `uploads/`
+- Workflow: LangGraph, 鍙敤浜庝富 AI 閾捐矾
 - Background Jobs: FastAPI `BackgroundTasks`
-- LLM / Vision / Image Generation: 一个统一 Provider 配置
+- LLM / Vision / Image Generation: 涓€涓粺涓€ Provider 閰嶇疆
 
-如果后续需要上线给更多用户使用，再考虑迁移到 Supabase 或其他云服务。
-
-## 3. 数据存储分层
+濡傛灉鍚庣画闇€瑕佷笂绾跨粰鏇村鐢ㄦ埛浣跨敤锛屽啀鑰冭檻杩佺Щ鍒?Supabase 鎴栧叾浠栦簯鏈嶅姟銆?
+## 3. 鏁版嵁瀛樺偍鍒嗗眰
 
 ### SQLite
 
-用于结构化业务数据：
+鐢ㄤ簬缁撴瀯鍖栦笟鍔℃暟鎹細
 
 - `users`
 - `spaces`
@@ -93,36 +81,27 @@ Frontend
 - `long_term_memories`
 - `workflow_runs`
 
-MVP 阶段直接使用 SQLite 即可。它足够支撑早期 demo、小规模测试和本地开发。
-
-未来如果出现这些情况，再迁移 Postgres：
-
-- 多用户并发明显增加
-- 需要线上持久部署
-- 需要复杂查询和权限隔离
-- 需要 pgvector 做长期记忆检索
-
+MVP 闃舵鐩存帴浣跨敤 SQLite 鍗冲彲銆傚畠瓒冲鏀拺鏃╂湡 demo銆佸皬瑙勬ā娴嬭瘯鍜屾湰鍦板紑鍙戙€?
+鏈潵濡傛灉鍑虹幇杩欎簺鎯呭喌锛屽啀杩佺Щ Postgres锛?
+- 澶氱敤鎴峰苟鍙戞槑鏄惧鍔?- 闇€瑕佺嚎涓婃寔涔呴儴缃?- 闇€瑕佸鏉傛煡璇㈠拰鏉冮檺闅旂
+- 闇€瑕?pgvector 鍋氶暱鏈熻蹇嗘绱?
 ### Local File Storage
 
-用于存放大文件：
+鐢ㄤ簬瀛樻斁澶ф枃浠讹細
 
-- 用户上传的原始空间图
-- AI 生成的空间改造图
-- 用户分享的 after 图
-- Feed 卡片封面图
-
-MVP 阶段直接存到本地：
-
+- 鐢ㄦ埛涓婁紶鐨勫師濮嬬┖闂村浘
+- AI 鐢熸垚鐨勭┖闂存敼閫犲浘
+- 鐢ㄦ埛鍒嗕韩鐨?after 鍥?- Feed 鍗＄墖灏侀潰鍥?
+MVP 闃舵鐩存帴瀛樺埌鏈湴锛?
 ```text
-python-server/
+backend/
   uploads/
     originals/
     generated/
     feedback/
 ```
 
-数据库只保存图片路径和元数据：
-
+鏁版嵁搴撳彧淇濆瓨鍥剧墖璺緞鍜屽厓鏁版嵁锛?
 ```json
 {
   "session_id": "...",
@@ -133,126 +112,96 @@ python-server/
 }
 ```
 
-未来需要公网访问、多人使用或部署到无状态服务器时，再迁移到 Supabase Storage / Cloudflare R2。
-
+鏈潵闇€瑕佸叕缃戣闂€佸浜轰娇鐢ㄦ垨閮ㄧ讲鍒版棤鐘舵€佹湇鍔″櫒鏃讹紝鍐嶈縼绉诲埌 Supabase Storage / Cloudflare R2銆?
 ### Memory
 
-短期记忆：
+鐭湡璁板繂锛?
+- 缁戝畾 `session_id`
+- 淇濆瓨鏈疆绌洪棿鍒嗘瀽銆侀棶鍗枫€佹柟妗堛€佸弽棣堛€佷俊浠?
+闀挎湡璁板繂锛?
+- 缁戝畾 `user_id`
+- 淇濆瓨瀹＄編鍋忓ソ銆侀绠楀亸濂姐€佽鍔ㄤ範鎯€佺┖闂村巻鍙?
+## 4. Agent 鍒掑垎
 
-- 绑定 `session_id`
-- 保存本轮空间分析、问卷、方案、反馈、信件
-
-长期记忆：
-
-- 绑定 `user_id`
-- 保存审美偏好、预算偏好、行动习惯、空间历史
-
-## 4. Agent 划分
-
-NestAI 应该采用“多个专业 Agent 节点 + 一个工作流图”的结构。
-
+NestAI 搴旇閲囩敤鈥滃涓笓涓?Agent 鑺傜偣 + 涓€涓伐浣滄祦鍥锯€濈殑缁撴瀯銆?
 ### SpaceReaderAgent
 
-输入：
+杈撳叆锛?
+- 鐢ㄦ埛涓婁紶鍥剧墖
 
-- 用户上传图片
-
-输出：
-
+杈撳嚭锛?
 - Memory01
-- 空间人格洞察
-- 用户可读的一句话空间概述
-- 动态问卷
-
+- 绌洪棿浜烘牸娲炲療
+- 鐢ㄦ埛鍙鐨勪竴鍙ヨ瘽绌洪棿姒傝堪
+- 鍔ㄦ€侀棶鍗?
 ### QuestionnaireAgent
 
-输入：
-
+杈撳叆锛?
 - Memory01
-- 用户回答
+- 鐢ㄦ埛鍥炵瓟
 
-输出：
-
-- 结构化问卷结果
-- 用户目标
-- 当前阻碍
-- 预算与空间约束
-
+杈撳嚭锛?
+- 缁撴瀯鍖栭棶鍗风粨鏋?- 鐢ㄦ埛鐩爣
+- 褰撳墠闃荤
+- 棰勭畻涓庣┖闂寸害鏉?
 ### InterventionPlannerAgent
 
-输入：
-
+杈撳叆锛?
 - Memory01
-- 问卷结果
-- 长期记忆
+- 闂嵎缁撴灉
+- 闀挎湡璁板繂
 
-输出：
-
-- 0 元方案
-- 低成本方案
-- 进阶方案
-- 每个方案的行动步骤
-- 每个方案的改造逻辑
+杈撳嚭锛?
+- 0 鍏冩柟妗?- 浣庢垚鏈柟妗?- 杩涢樁鏂规
+- 姣忎釜鏂规鐨勮鍔ㄦ楠?- 姣忎釜鏂规鐨勬敼閫犻€昏緫
 
 ### ImagePromptAgent
 
-输入：
+杈撳叆锛?
+- 鍘熷浘鎻忚堪
+- 浜烘牸娲炲療
+- 闂嵎缁撴灉
+- 骞查鏂规
 
-- 原图描述
-- 人格洞察
-- 问卷结果
-- 干预方案
-
-输出：
-
-- 图生图 prompt
-- 轴测图 prompt
-- 局部细节 prompt
+杈撳嚭锛?
+- 鍥剧敓鍥?prompt
+- 杞存祴鍥?prompt
+- 灞€閮ㄧ粏鑺?prompt
 - negative prompt
 
 ### ImageGenerationTool
 
-输入：
-
-- 原图
+杈撳叆锛?
+- 鍘熷浘
 - image prompt
 
-输出：
-
+杈撳嚭锛?
 - generated image URLs
 - generation status
 - provider metadata
 
 ### LetterWriterAgent
 
-输入：
-
-- 干预方案
-- 用户 after 图片
-- 用户感受
-- 未完成步骤
-
-输出：
-
-- 告别信
-- 下一步温和行动建议
-
+杈撳叆锛?
+- 骞查鏂规
+- 鐢ㄦ埛 after 鍥剧墖
+- 鐢ㄦ埛鎰熷彈
+- 鏈畬鎴愭楠?
+杈撳嚭锛?
+- 鍛婂埆淇?- 涓嬩竴姝ユ俯鍜岃鍔ㄥ缓璁?
 ### MemoryCuratorAgent
 
-输入：
+杈撳叆锛?
+- 鏈疆瀹屾暣 session
 
-- 本轮完整 session
-
-输出：
-
-- 长期记忆更新
-- 用户偏好更新
+杈撳嚭锛?
+- 闀挎湡璁板繂鏇存柊
+- 鐢ㄦ埛鍋忓ソ鏇存柊
 - next actions
-- 可选 feed draft
+- 鍙€?feed draft
 
-## 5. LangGraph 工作流
-
-目标工作流：
+## 5. LangGraph 宸ヤ綔娴?
+鐩爣宸ヤ綔娴侊細
 
 ```text
 START
@@ -271,51 +220,39 @@ START
   -> END
 ```
 
-需要支持两个暂停点：
+闇€瑕佹敮鎸佷袱涓殏鍋滅偣锛?
+- 绛夊緟鐢ㄦ埛鍥炵瓟闂嵎
+- 绛夊緟鐢ㄦ埛涓婁紶鏀归€犵粨鏋滀笌鎰熷彈
 
-- 等待用户回答问卷
-- 等待用户上传改造结果与感受
-
-每个节点都必须写入 `workflow_runs`，便于恢复、调试和审计。
-
-## 6. Planning / Tool Calling / Memory 使用边界
+姣忎釜鑺傜偣閮藉繀椤诲啓鍏?`workflow_runs`锛屼究浜庢仮澶嶃€佽皟璇曞拰瀹¤銆?
+## 6. Planning / Tool Calling / Memory 浣跨敤杈圭晫
 
 ### Planning
 
-用于：
-
-- 生成空间干预方案
-- 拆分 0 元、低成本、进阶方案
-- 生成 Next Actions
-- 判断预算、墙面、共用空间等限制
+鐢ㄤ簬锛?
+- 鐢熸垚绌洪棿骞查鏂规
+- 鎷嗗垎 0 鍏冦€佷綆鎴愭湰銆佽繘闃舵柟妗?- 鐢熸垚 Next Actions
+- 鍒ゆ柇棰勭畻銆佸闈€佸叡鐢ㄧ┖闂寸瓑闄愬埗
 
 ### Tool Calling
 
-用于：
-
-- 调用视觉模型
-- 调用图生图模型
-- 上传图片到对象存储
-- 读取历史记忆
-- 保存生成图片
-- 查询用户历史 session
-- 生成 Feed 卡片
+鐢ㄤ簬锛?
+- 璋冪敤瑙嗚妯″瀷
+- 璋冪敤鍥剧敓鍥炬ā鍨?- 涓婁紶鍥剧墖鍒板璞″瓨鍌?- 璇诲彇鍘嗗彶璁板繂
+- 淇濆瓨鐢熸垚鍥剧墖
+- 鏌ヨ鐢ㄦ埛鍘嗗彶 session
+- 鐢熸垚 Feed 鍗＄墖
 
 ### Memory
 
-用于：
+鐢ㄤ簬锛?
+- P001 鍚庡啓鍏ョ┖闂磋瀵?- P002 鍓嶈鍙?Memory01 涓庨棶鍗风粨鏋?- 鍥剧敓鍥惧墠璇诲彇浜烘牸娲炲療涓庢敼閫犵洰鏍?- P003 鍓嶈鍙栨柟妗堜笌鍙嶉
+- session 缁撴潫鍚庢洿鏂伴暱鏈熻蹇?- Grow / Next 椤甸潰鐢熸垚涓€у寲鍐呭
 
-- P001 后写入空间观察
-- P002 前读取 Memory01 与问卷结果
-- 图生图前读取人格洞察与改造目标
-- P003 前读取方案与反馈
-- session 结束后更新长期记忆
-- Grow / Next 页面生成个性化内容
-
-## 7. 推荐文件结构
+## 7. 鎺ㄨ崘鏂囦欢缁撴瀯
 
 ```text
-python-server/
+backend/
   app/
     main.py
 
@@ -387,7 +324,7 @@ python-server/
       memory_repo.py
       feed_repo.py
 
-web/
+frontend/
   src/
     pages/
     components/
@@ -404,75 +341,54 @@ web/
     stores/
 ```
 
-## 8. 实施顺序
+## 8. 瀹炴柦椤哄簭
 
-### Phase 1: 数据真实化
+### Phase 1: 鏁版嵁鐪熷疄鍖?
+鐩爣锛氭牳蹇冮〉闈笉鍐嶄緷璧?mock銆?
+浠诲姟锛?
+- 鎶?`spaces.py` 浠庡唴瀛樺瓨鍌ㄨ縼绉诲埌 SQLite
+- 澧炲姞 Feed / Actions API
+- Result 椤甸潰鍙鐪熷疄 `intervention_plan`
+- Letter 椤甸潰灞曠ず鐪熷疄 before / after 鍥剧墖
+- Grow / Next / Me 浠庣湡瀹?session 娲剧敓鍐呭
 
-目标：核心页面不再依赖 mock。
+### Phase 2: 鍥剧敓鍥鹃棴鐜?
+鐩爣锛氱┖闂村共棰勬柟妗堝彲浠ョ敓鎴愮湡瀹炶瑙夌粨鏋溿€?
+浠诲姟锛?
+- P002 杈撳嚭澧炲姞 `image_prompts`
+- 鏂板 `ImagePromptAgent`
+- 鏂板 `image_generation_service.py`
+- 鏂板 `generated_images` 琛?- Result 椤甸潰灞曠ず鐪熷疄鐢熸垚鍥?- 鍥惧儚鐢熸垚鏀逛负寮傛浠诲姟
 
-任务：
+### Phase 3: LangGraph 姝ｅ紡鍖?
+鐩爣锛氫富娴佺▼鍙樻垚鍙殏鍋溿€佸彲鎭㈠銆佸彲杩借釜鐨勭姸鎬佹満銆?
+浠诲姟锛?
+- 瀹氫箟缁熶竴 `NestAIState`
+- 姣忎釜 Agent 鍙樻垚 LangGraph node
+- 姣忎釜鑺傜偣杈撳嚭鍐欏叆 `workflow_runs`
+- 鏀寔鐢ㄦ埛杈撳叆鏆傚仠鐐?- 鏀寔鍥惧儚鐢熸垚寮傛鎭㈠
+- 鏀寔澶辫触閲嶈瘯涓?fallback
 
-- 把 `spaces.py` 从内存存储迁移到 SQLite
-- 增加 Feed / Actions API
-- Result 页面只读真实 `intervention_plan`
-- Letter 页面展示真实 before / after 图片
-- Grow / Next / Me 从真实 session 派生内容
+### Phase 4: 闀挎湡璁板繂涓?Grow
 
-### Phase 2: 图生图闭环
-
-目标：空间干预方案可以生成真实视觉结果。
-
-任务：
-
-- P002 输出增加 `image_prompts`
-- 新增 `ImagePromptAgent`
-- 新增 `image_generation_service.py`
-- 新增 `generated_images` 表
-- Result 页面展示真实生成图
-- 图像生成改为异步任务
-
-### Phase 3: LangGraph 正式化
-
-目标：主流程变成可暂停、可恢复、可追踪的状态机。
-
-任务：
-
-- 定义统一 `NestAIState`
-- 每个 Agent 变成 LangGraph node
-- 每个节点输出写入 `workflow_runs`
-- 支持用户输入暂停点
-- 支持图像生成异步恢复
-- 支持失败重试与 fallback
-
-### Phase 4: 长期记忆与 Grow
-
-目标：用户越用越准，Grow 页面有真实内容。
-
-任务：
-
-- session 结束后生成 memory summary
-- 更新长期审美偏好、预算偏好、行动习惯
-- 基于长期记忆生成 Next Actions
-- 用户授权后生成 Feed post
-- Grow 页面区分个人成长记录与公共案例
-
-## 9. 近期优先级
-
-当前最应该先做：
-
+鐩爣锛氱敤鎴疯秺鐢ㄨ秺鍑嗭紝Grow 椤甸潰鏈夌湡瀹炲唴瀹广€?
+浠诲姟锛?
+- session 缁撴潫鍚庣敓鎴?memory summary
+- 鏇存柊闀挎湡瀹＄編鍋忓ソ銆侀绠楀亸濂姐€佽鍔ㄤ範鎯?- 鍩轰簬闀挎湡璁板繂鐢熸垚 Next Actions
+- 鐢ㄦ埛鎺堟潈鍚庣敓鎴?Feed post
+- Grow 椤甸潰鍖哄垎涓汉鎴愰暱璁板綍涓庡叕鍏辨渚?
+## 9. 杩戞湡浼樺厛绾?
+褰撳墠鏈€搴旇鍏堝仛锛?
 ```text
 SQLite + Local uploads
-  -> 去掉核心 Mock
-  -> 增加 image prompt schema
-  -> 接入图生图
-  -> LangGraph 正式化
-  -> Grow / Feed / Memory 进化
+  -> 鍘绘帀鏍稿績 Mock
+  -> 澧炲姞 image prompt schema
+  -> 鎺ュ叆鍥剧敓鍥?  -> LangGraph 姝ｅ紡鍖?  -> Grow / Feed / Memory 杩涘寲
 ```
 
-判断标准：
+鍒ゆ柇鏍囧噯锛?
+- 鐢ㄦ埛涓婁紶鐨勫浘鐗囧繀椤绘垚涓哄悗缁墍鏈夎緭鍑虹殑鐪熷疄杈撳叆
+- 闂嵎缁撴灉蹇呴』褰卞搷骞查鏂规
+- 骞查鏂规蹇呴』褰卞搷鍥剧敓鍥?prompt
+- 鐢ㄦ埛鍙嶉蹇呴』褰卞搷淇′欢鍜岄暱鏈熻蹇?- Grow / Next / Me 涓嶈兘鍐嶅彧鏄潤鎬?mock
 
-- 用户上传的图片必须成为后续所有输出的真实输入
-- 问卷结果必须影响干预方案
-- 干预方案必须影响图生图 prompt
-- 用户反馈必须影响信件和长期记忆
-- Grow / Next / Me 不能再只是静态 mock

@@ -1,4 +1,4 @@
-"""Manual P002 intervention-plan test.
+﻿"""Manual P002 intervention-plan test.
 
 This script sends a small fixture-style input to OpenAI with
 prompts/P002_intervention_plan.md. It is useful when tuning P002 outside the
@@ -22,12 +22,11 @@ OUTPUT_DIR = PROJECT_DIR / "tests" / "output" / "intervention"
 
 
 SAMPLE_MEMORY01 = """
-我看见一个物品较满但很有个人痕迹的桌面空间：有学习/工作用品、装饰小物、暖色细节和偏木色的家具。空间已经有温度，但桌面中央的可用空白和收纳边界还不够清晰。
-""".strip()
+鎴戠湅瑙佷竴涓墿鍝佽緝婊′絾寰堟湁涓汉鐥曡抗鐨勬闈㈢┖闂达細鏈夊涔?宸ヤ綔鐢ㄥ搧銆佽楗板皬鐗┿€佹殩鑹茬粏鑺傚拰鍋忔湪鑹茬殑瀹跺叿銆傜┖闂村凡缁忔湁娓╁害锛屼絾妗岄潰涓ぎ鐨勫彲鐢ㄧ┖鐧藉拰鏀剁撼杈圭晫杩樹笉澶熸竻鏅般€?""".strip()
 
 
 def load_env() -> None:
-    for env_path in (PROJECT_DIR / "python-server" / ".env", PROJECT_DIR / ".env"):
+    for env_path in (PROJECT_DIR / "backend" / ".env", PROJECT_DIR / ".env"):
         if env_path.exists():
             load_dotenv(env_path, override=False)
 
@@ -36,16 +35,13 @@ def load_fixture() -> str:
     if FIXTURE_PATH.exists():
         return FIXTURE_PATH.read_text(encoding="utf-8").strip()
     return """
-aspiration: 更容易进入专注，也保留温馨感。
-current_state: 桌面物品容易越堆越多。
-constraints: 低预算、不要打孔、希望当天能开始。
-""".strip()
+aspiration: 鏇村鏄撹繘鍏ヤ笓娉紝涔熶繚鐣欐俯棣ㄦ劅銆?current_state: 妗岄潰鐗╁搧瀹规槗瓒婂爢瓒婂銆?constraints: 浣庨绠椼€佷笉瑕佹墦瀛斻€佸笇鏈涘綋澶╄兘寮€濮嬨€?""".strip()
 
 
 def call_intervention(prompt: str, fixture: str, model: str) -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError("OPENAI_API_KEY is not set. Add it to python-server/.env or .env.")
+        raise ValueError("OPENAI_API_KEY is not set. Add it to backend/.env or .env.")
 
     client = OpenAI(api_key=api_key, timeout=180.0, max_retries=2)
     response = client.chat.completions.create(
@@ -55,7 +51,7 @@ def call_intervention(prompt: str, fixture: str, model: str) -> str:
             {
                 "role": "user",
                 "content": (
-                    "请基于下面输入生成 free/low/advanced 三档 JSON 方案。\n\n"
+                    "璇峰熀浜庝笅闈㈣緭鍏ョ敓鎴?free/low/advanced 涓夋。 JSON 鏂规銆俓n\n"
                     f"Memory01:\n{SAMPLE_MEMORY01}\n\n"
                     f"Questionnaire answers:\n{fixture}\n"
                 ),
@@ -101,3 +97,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

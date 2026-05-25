@@ -1,4 +1,4 @@
-"""Manual P001 vision test.
+﻿"""Manual P001 vision test.
 
 Reads prompts/P001_space_analysis.md and tests/assets/images/Pic*.jpg, then
 calls OpenAI vision directly. This is a diagnostic script, not a pytest test.
@@ -22,7 +22,7 @@ OUTPUT_DIR = PROJECT_DIR / "tests" / "output" / "vision"
 
 
 def load_env() -> None:
-    for env_path in (PROJECT_DIR / "python-server" / ".env", PROJECT_DIR / ".env"):
+    for env_path in (PROJECT_DIR / "backend" / ".env", PROJECT_DIR / ".env"):
         if env_path.exists():
             load_dotenv(env_path, override=False)
 
@@ -38,7 +38,7 @@ def load_images(limit: int) -> list[dict[str, str]]:
 def call_vision(images: list[dict[str, str]], prompt: str, model: str) -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError("OPENAI_API_KEY is not set. Add it to python-server/.env or .env.")
+        raise ValueError("OPENAI_API_KEY is not set. Add it to backend/.env or .env.")
 
     content: list[dict] = [
         {
@@ -108,3 +108,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

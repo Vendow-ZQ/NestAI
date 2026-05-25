@@ -1,4 +1,4 @@
-"""Run Prompt5 + Pic2 through OpenAI GPT Image 1.5.
+﻿"""Run Prompt5 + Pic2 through OpenAI GPT Image 1.5.
 
 This script reads:
 - prompts/P005_bauhaus_image_edit.md
@@ -51,7 +51,7 @@ PIC_CANDIDATES = (
 def load_env() -> None:
     """Load env files without printing secrets."""
     for env_path in (
-        PROJECT_DIR / "python-server" / ".env",
+        PROJECT_DIR / "backend" / ".env",
         PROJECT_DIR / ".env",
     ):
         if env_path.exists():
@@ -128,7 +128,7 @@ def call_image_edit(
 ) -> Path:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError("OPENAI_API_KEY is not set. Add it to python-server/.env or .env.")
+        raise ValueError("OPENAI_API_KEY is not set. Add it to backend/.env or .env.")
 
     client = OpenAI(api_key=api_key, timeout=180.0, max_retries=2)
 
@@ -196,3 +196,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

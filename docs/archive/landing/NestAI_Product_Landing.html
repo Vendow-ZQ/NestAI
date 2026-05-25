@@ -1,0 +1,3343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NestAI 栖巢 - 空间生活方式 Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --paper: #ffffff;
+            --paper-deep: #f5f5f7;
+            --ink: #1d1d1f;
+            --ink-soft: #3a3a3c;
+            --ink-mute: #6e6e73;
+            --ink-faint: #d2d2d7;
+            --bean: #007aff;
+            --bean-soft: #e5f1ff;
+            --bean-pressed: #0066d6;
+            --green: #34c759;
+            --glass-bg: rgba(255,255,255,0.72);
+            --glass-blur: 22px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+                         'Noto Sans SC', 'Inter', sans-serif;
+            background: var(--paper-deep);
+            color: var(--ink);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* ── Language Switching System ── */
+        /* 
+         * 使用双span系统：.zh 和 .en
+         * 所有可翻译文本都必须包裹在 .zh 或 .en 中
+         * 中文模式：显示 .zh，隐藏 .en
+         * 英文模式：显示 .en，隐藏 .zh
+         */
+
+        /* Default: Chinese mode - hide English spans */
+        .en { display: none !important; }
+        .zh { display: inline !important; }
+
+        /* English mode - show English, hide Chinese */
+        body.lang-en .en { display: inline !important; }
+        body.lang-en .zh { display: none !important; }
+
+        /* Ensure block-level elements display correctly */
+        body.lang-en h1 .en, body.lang-en h2 .en, body.lang-en h3 .en, body.lang-en h4 .en, 
+        body.lang-en h5 .en, body.lang-en h6 .en, body.lang-en p .en, body.lang-en li .en { 
+            display: inline !important; 
+        }
+
+        /* Section headers - English mode sizing */
+        body.lang-en h1 .en { font-size: 1em !important; display: block !important; }
+        body.lang-en h2 .en { font-size: 1em !important; }
+        body.lang-en h3 .en { font-size: 1em !important; }
+        body.lang-en .caption .en { font-size: 12px !important; }
+        body.lang-en .hero-badge .en { font-size: 13px !important; }
+
+        /* Language Toggle Button */
+        .lang-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(0,0,0,0.04);
+            border: none;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink-soft);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 16px;
+        }
+        .lang-toggle:hover {
+            background: rgba(0,0,0,0.08);
+            color: var(--bean);
+        }
+        .lang-toggle svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.7;
+        }
+        .lang-toggle .lang-current {
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+        .caption {
+            font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--ink-mute);
+        }
+
+        /* ── Nobi Mascot (using uploaded images) ── */
+        .nobi-mascot {
+            position: absolute;
+            width: clamp(80px, 12vw, 120px);
+            height: auto;
+            pointer-events: none;
+            user-select: none;
+            z-index: 10;
+        }
+        .nobi-mascot img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 8px 16px rgba(27, 39, 66, 0.12));
+        }
+        .nobi-head-anim {
+            animation: nobi-bounce 3s ease-in-out infinite;
+        }
+        @keyframes nobi-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        /* ── Navigation ── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(245,245,247,0.82);
+            backdrop-filter: blur(24px) saturate(180%);
+            border-bottom: 0.5px solid rgba(60,60,67,0.12);
+        }
+        nav .container {
+            display: flex; justify-content: space-between; align-items: center; height: 56px;
+        }
+        .logo {
+            font-size: 20px; font-weight: 600; color: var(--ink);
+            text-decoration: none; display: flex; align-items: baseline; gap: 6px;
+        }
+        .logo span { font-size: 13px; font-weight: 400; color: var(--ink-mute); }
+        .nav-links { display: flex; gap: 32px; }
+        .nav-links a {
+            font-size: 14px; color: var(--ink-soft); text-decoration: none;
+            transition: color 0.16s ease;
+        }
+        .nav-links a:hover { color: var(--bean); }
+
+        /* ── Navigation Dropdown ── */
+        .nav-item {
+            position: relative;
+        }
+        .nav-item > a {
+            font-size: 14px; color: var(--ink-soft); text-decoration: none;
+            transition: color 0.16s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .nav-item > a:hover { color: var(--bean); }
+        .nav-item > a svg {
+            width: 12px; height: 12px;
+            transition: transform 0.2s ease;
+        }
+        .nav-item:hover > a svg {
+            transform: rotate(180deg);
+        }
+        .nav-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 140px;
+            background: var(--paper);
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+            border: 1px solid var(--paper-deep);
+            padding: 8px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+            z-index: 200;
+        }
+        .nav-item:hover .nav-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .nav-dropdown a {
+            display: block;
+            padding: 10px 16px;
+            font-size: 13px;
+            color: var(--ink-soft);
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .nav-dropdown a:hover {
+            background: var(--bean-soft);
+            color: var(--bean);
+        }
+
+        /* ── Hero ── */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding-top: 56px; position: relative;
+            background: linear-gradient(180deg, var(--bean-soft) 0%, var(--paper-deep) 50%, var(--paper-deep) 100%);
+            overflow: hidden;
+        }
+        .hero-content {
+            text-align: center; max-width: 800px; padding: 40px 24px;
+            position: relative; z-index: 1;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; background: var(--glass-bg);
+            backdrop-filter: blur(18px) saturate(1.25);
+            border: 0.5px solid rgba(255,255,255,0.68);
+            border-radius: 100px; font-size: 13px; color: var(--ink-mute);
+            margin-bottom: 32px;
+        }
+        .hero-badge::before {
+            content: ''; width: 6px; height: 6px; background: var(--green);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: clamp(36px, 6vw, 56px); font-weight: 600;
+            letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 16px;
+        }
+        /* .en display controlled by language switching system */
+        .hero h1 .highlight {
+            color: var(--bean);
+            font-style: normal;
+        }
+        .hero .subtitle {
+            font-size: 17px; color: var(--ink-mute); max-width: 520px;
+            margin: 0 auto 32px; line-height: 1.6;
+        }
+        /* .en display controlled by language switching system */
+        .hero-cta { display: flex; gap: 12px; justify-content: center; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 14px 28px; border-radius: 999px; font-size: 15px;
+            font-weight: 600; text-decoration: none; border: none;
+            cursor: pointer; transition: all 0.16s ease;
+        }
+        .btn-primary {
+            background: var(--bean); color: white;
+            box-shadow: 0 10px 24px rgba(0,122,255,0.22);
+        }
+        .btn-primary:hover { background: var(--bean-pressed); transform: translateY(-1px); }
+
+        /* Nobi in Hero */
+        .hero .nobi-mascot {
+            position: absolute;
+            right: 8%;
+            bottom: 12%;
+        }
+        @media (max-width: 768px) {
+            .hero .nobi-mascot {
+                right: 2%;
+                bottom: 8%;
+                width: 60px;
+            }
+        }
+
+        /* ── Section Headers ── */
+        section { padding: 100px 0; }
+        .section-header { text-align: center; margin-bottom: 56px; }
+        .section-header .caption { margin-bottom: 12px; }
+        .section-header h2 {
+            font-size: clamp(28px, 4vw, 40px); font-weight: 600;
+            letter-spacing: -0.01em; margin-bottom: 12px;
+        }
+        /* .en display controlled by language switching system */
+        .section-header p {
+            font-size: 16px; color: var(--ink-mute); max-width: 560px; margin: 0 auto;
+        }
+        /* .en display controlled by language switching system */
+
+        /* ── Horizontal Scroll Feed ── */
+        .feed-scroll {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding: 20px 24px 32px;
+        }
+        .feed-scroll::-webkit-scrollbar { display: none; }
+        .feed-card {
+            flex: 0 0 auto;
+            scroll-snap-align: center;
+            background: var(--paper);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .feed-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        }
+
+        /* 3:4 Aspect Ratio Cards */
+        .feed-card-3x4 {
+            width: clamp(200px, 28vw, 280px);
+        }
+        .feed-card-3x4 .feed-card-img {
+            aspect-ratio: 3/4;
+        }
+        .feed-card-img {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .feed-card-img svg { opacity: 0.12; }
+        .feed-card-img .img-label {
+            position: absolute; bottom: 10px; left: 10px;
+            padding: 4px 8px; background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px); border-radius: 6px;
+            font-size: 10px; color: white; font-weight: 500;
+        }
+        .feed-card-info { padding: 16px; }
+        .feed-card-info h3 {
+            font-size: 15px; font-weight: 600; margin-bottom: 4px;
+        }
+        /* .en display controlled by language switching system */
+        .feed-card-info p {
+            font-size: 12px; color: var(--ink-mute); line-height: 1.5;
+        }
+        /* .en display controlled by language switching system */
+
+        /* ── Pain Points Section ── */
+        .painpoints { background: var(--paper); }
+        .painpoints-subsection { margin-bottom: 48px; }
+        .painpoints-subsection:last-child { margin-bottom: 0; }
+        .subsection-title {
+            font-size: 18px; font-weight: 600; margin-bottom: 20px;
+            padding-left: 24px;
+        }
+        /* .en display controlled by language switching system */
+
+        /* ── User Journey (Infinite Carousel) ── */
+        .journey { background: var(--paper-deep); }
+        .journey-carousel {
+            position: relative;
+            height: 520px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            perspective: 1200px;
+            overflow: visible;
+            padding-top: 20px;
+            cursor: grab;
+            user-select: none;
+        }
+        .journey-track {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            transform-style: preserve-3d;
+        }
+        .journey-card-phone {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 260px;
+            margin-left: -130px;
+            margin-top: 0;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .journey-card-phone .phone-frame {
+            background: var(--paper);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Active (center) card */
+        .journey-card-phone.active {
+            z-index: 10;
+            transform: translateX(0) scale(1);
+            opacity: 1;
+        }
+        .journey-card-phone.active .phone-frame {
+            box-shadow: 0 35px 100px rgba(0,122,255,0.25);
+            border-color: rgba(0,122,255,0.2);
+        }
+        /* Side cards (frosted glass effect) */
+        .journey-card-phone.side-left,
+        .journey-card-phone.side-right {
+            opacity: 0.55;
+            filter: blur(1.5px);
+        }
+        .journey-card-phone.side-left .phone-frame,
+        .journey-card-phone.side-right .phone-frame {
+            backdrop-filter: blur(10px) saturate(1.2);
+            background: rgba(255,255,255,0.85);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+        }
+        .journey-card-phone.side-left {
+            transform: translateX(-200px) scale(0.88) rotateY(8deg);
+            z-index: 5;
+        }
+        .journey-card-phone.side-right {
+            transform: translateX(200px) scale(0.88) rotateY(-8deg);
+            z-index: 5;
+        }
+        /* Hidden cards */
+        .journey-card-phone.hidden {
+            opacity: 0;
+            transform: translateX(0) scale(0.7);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .journey-card-phone .phone-screen {
+            aspect-ratio: 9/16;
+            background: linear-gradient(180deg, var(--bean-soft), var(--paper-deep));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 16px;
+        }
+        .journey-card-phone .phone-screen svg { opacity: 0.15; }
+        .journey-card-phone .phone-screen .img-label {
+            position: absolute; bottom: 10px; left: 10px;
+            padding: 3px 6px; background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(6px); border-radius: 4px;
+            font-size: 8px; color: white;
+        }
+        .journey-card-phone .phone-step {
+            position: absolute; top: 10px; right: 10px;
+            padding: 3px 8px; background: var(--bean);
+            border-radius: 20px; font-size: 9px; font-weight: 600;
+            color: white;
+        }
+        .journey-card-phone .phone-info {
+            display: none;
+        }
+        .journey-card-phone .phone-info h4 {
+            font-size: 13px; font-weight: 600; margin-bottom: 2px;
+        }
+        /* .en display controlled by language switching system */
+        .journey-card-phone .phone-info p {
+            font-size: 10px; color: var(--ink-mute); line-height: 1.4;
+        }
+        /* Journey description below carousel */
+        .journey-desc {
+            text-align: center;
+            margin-top: 40px;
+            padding: 0 24px;
+            transition: opacity 0.3s ease;
+            position: relative;
+            z-index: 20;
+        }
+        .journey-desc h3 {
+            font-size: clamp(18px, 2.5vw, 24px);
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--ink);
+        }
+        /* .en display controlled by language switching system */
+        .journey-desc p {
+            font-size: 14px;
+            color: var(--ink-soft);
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        /* .en display controlled by language switching system */
+        .journey-nav-btn {
+            position: absolute;
+            width: 48px; height: 48px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 0.5px solid rgba(255,255,255,0.68);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 20;
+            top: 50%;
+            margin-top: -24px;
+        }
+        .journey-nav-btn:hover {
+            background: var(--bean);
+            color: white;
+            transform: scale(1.1);
+        }
+        .journey-nav-btn.prev { left: 5%; }
+        .journey-nav-btn.next { right: 5%; }
+        .journey-dots {
+            display: flex; justify-content: center; gap: 8px; margin-top: 24px;
+        }
+        .journey-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--ink-faint); border: none; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .journey-dot.active {
+            background: var(--bean); width: 24px; border-radius: 4px;
+        }
+
+        /* ── Dimensions (Modal) ── */
+        .dimensions { background: var(--paper); }
+        .dim-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .dim-card {
+            background: var(--paper-deep); border-radius: 22px;
+            padding: 32px 28px; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+            transition: all 0.18s ease;
+            border: 1px solid transparent;
+        }
+        .dim-card:hover { 
+            border-color: rgba(0,122,255,0.15); 
+            transform: translateY(-2px);
+        }
+        .dim-card-header { 
+            display: flex; justify-content: space-between; align-items: flex-start; 
+        }
+        .dim-num {
+            font-size: 36px; font-weight: 300; color: var(--ink-faint);
+            line-height: 1; margin-bottom: 12px;
+        }
+        .dim-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+        /* .en display controlled by language switching system */
+        .dim-card > p {
+            font-size: 13px; color: var(--ink-mute); line-height: 1.55;
+        }
+        .dim-expand-icon {
+            width: 20px; height: 20px; color: var(--ink-faint);
+            transition: transform 0.2s ease; flex-shrink: 0;
+        }
+        .dim-card:hover .dim-expand-icon { color: var(--bean); }
+
+        /* Modal */
+        .dim-modal-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(12px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .dim-modal-overlay.open {
+            opacity: 1; pointer-events: auto;
+        }
+        .dim-modal {
+            background: var(--paper);
+            border-radius: 24px;
+            width: min(960px, 96vw);
+            height: min(720px, 90vh);
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 28px 80px rgba(0,0,0,0.2);
+            transform: scale(0.9) translateY(20px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .dim-modal-overlay.open .dim-modal {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .dim-modal-img-header {
+            width: 100%; aspect-ratio: 4/3;
+            max-height: 40%;
+            background: linear-gradient(135deg, var(--bean-soft), #f0e8ff);
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .dim-modal-img-header svg { opacity: 0.1; }
+        .dim-modal-img-header .img-label {
+            position: absolute; bottom: 16px; left: 16px;
+            padding: 6px 12px; background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px); border-radius: 8px;
+            font-size: 12px; color: white; font-weight: 500;
+        }
+        .dim-modal-body {
+            padding: 24px 32px 32px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .dim-modal-body .caption { margin-bottom: 6px; }
+        .dim-modal-body h2 {
+            font-size: 22px; font-weight: 600; margin-bottom: 12px;
+        }
+        /* .en display controlled by language switching system */
+        .dim-modal-body p {
+            font-size: 14px; color: var(--ink-soft); line-height: 1.7;
+            margin-bottom: 12px;
+        }
+        .dim-modal-body h4 {
+            font-size: 15px; font-weight: 600; margin: 20px 0 8px;
+        }
+        .dim-modal-body ul { list-style: none; padding: 0; }
+        .dim-modal-body li {
+            font-size: 13px; color: var(--ink-soft);
+            padding: 6px 0 6px 18px;
+            position: relative; line-height: 1.55;
+        }
+        .dim-modal-body li::before {
+            content: ''; position: absolute; left: 0; top: 14px;
+            width: 5px; height: 5px; background: var(--bean);
+            border-radius: 50%;
+        }
+        .dim-modal-close {
+            position: absolute; top: 16px; right: 16px;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(8px);
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--ink); z-index: 10;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .dim-modal-images {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-top: 24px;
+        }
+        .dim-modal-img {
+            border-radius: 12px; overflow: hidden;
+            aspect-ratio: 4/3; position: relative;
+        }
+        .dim-modal-img .img-label {
+            position: absolute; bottom: 8px; left: 8px;
+            padding: 4px 8px; background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px); border-radius: 4px;
+            font-size: 10px; color: white;
+        }
+
+        /* ── Roadmap (Glass Carousel) ── */
+        .roadmap { background: var(--paper-deep); overflow: hidden; }
+        .roadmap-slider {
+            position: relative;
+            padding: 20px 0;
+        }
+        .roadmap-track {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding: 20px 24px 40px;
+            cursor: grab;
+        }
+        .roadmap-track::-webkit-scrollbar { display: none; }
+        .roadmap-track:active { cursor: grabbing; }
+        .roadmap-card {
+            flex: 0 0 300px;
+            scroll-snap-align: center;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
+            border: 0.5px solid rgba(255,255,255,0.68);
+            border-radius: 24px;
+            padding: 32px 28px;
+            box-shadow: 0 18px 52px rgba(27,39,66,0.08), inset 0 1px 0 rgba(255,255,255,0.72);
+            transition: all 0.3s ease;
+            animation: card-enter 0.5s ease-out both;
+        }
+        @keyframes card-enter {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .roadmap-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 24px 60px rgba(27,39,66,0.12), inset 0 1px 0 rgba(255,255,255,0.72);
+        }
+        .roadmap-card.current {
+            background: rgba(0,122,255,0.08);
+            border-color: rgba(0,122,255,0.3);
+        }
+        .roadmap-ver {
+            font-size: 12px; font-weight: 600; color: var(--ink-mute);
+            margin-bottom: 8px;
+        }
+        .roadmap-card.current .roadmap-ver { color: var(--bean); }
+        .roadmap-card h3 {
+            font-size: 22px; font-weight: 600; margin-bottom: 6px;
+        }
+        /* .en display controlled by language switching system */
+        .roadmap-time { font-size: 13px; color: var(--ink-mute); margin-bottom: 20px; }
+        .roadmap-card ul { list-style: none; }
+        .roadmap-card li {
+            font-size: 13px; color: var(--ink-soft);
+            padding: 6px 0; padding-left: 14px; position: relative;
+        }
+        .roadmap-card li::before {
+            content: ''; position: absolute; left: 0; top: 13px;
+            width: 4px; height: 4px; background: var(--ink-faint);
+            border-radius: 50%;
+        }
+        .roadmap-card.current li::before { background: var(--bean); }
+
+        /* ── Philosophy ── */
+        .philosophy {
+            background: var(--paper); text-align: center;
+        }
+        .philosophy-quote {
+            font-size: clamp(22px, 3vw, 32px); font-weight: 500;
+            line-height: 1.6; max-width: 720px; margin: 0 auto 24px;
+            color: var(--ink);
+        }
+        /* .en display controlled by language switching system */
+        .philosophy-author { font-size: 15px; color: var(--ink-mute); }
+
+        /* ── Footer ── */
+        /* ═══════════════════════════════════════════
+           APPLE-STYLE MOTION SYSTEM
+           ═══════════════════════════════════════════ */
+
+        /* ── Scroll-triggered entrance ── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal-delay-1 { transition-delay: 0.08s; }
+        .reveal-delay-2 { transition-delay: 0.16s; }
+        .reveal-delay-3 { transition-delay: 0.24s; }
+        .reveal-delay-4 { transition-delay: 0.32s; }
+        .reveal-delay-5 { transition-delay: 0.40s; }
+        .reveal-delay-6 { transition-delay: 0.48s; }
+
+        /* ── Section header stagger ── */
+        .section-header .caption.reveal { transition-delay: 0s; }
+        .section-header h2.reveal { transition-delay: 0.06s; }
+        .section-header p.reveal { transition-delay: 0.12s; }
+
+        /* ── Enhanced card hover (Apple depth) ── */
+        .feed-card {
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        border-color 0.3s ease;
+        }
+        .feed-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+        }
+
+        .dim-card {
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        border-color 0.3s ease;
+        }
+        .dim-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.05);
+            border-color: rgba(0,122,255,0.2);
+        }
+
+        .prompt-card {
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        border-color 0.3s ease;
+        }
+        .prompt-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .workflow-step {
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .workflow-step:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+        }
+
+        .ds-card {
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .ds-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 36px rgba(0,0,0,0.08);
+        }
+
+        /* ── Button interactions ── */
+        .btn-primary {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 14px 32px rgba(0,122,255,0.28);
+        }
+        .btn-primary:active {
+            transform: translateY(0) scale(0.97);
+            box-shadow: 0 4px 12px rgba(0,122,255,0.2);
+            transition-duration: 0.1s;
+        }
+
+        .journey-nav-btn {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .journey-nav-btn:hover {
+            transform: scale(1.12);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .journey-nav-btn:active {
+            transform: scale(0.92);
+            transition-duration: 0.1s;
+        }
+
+        .journey-dot {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .journey-dot:active {
+            transform: scale(0.8);
+        }
+
+        /* ── Nav scroll enhancement ── */
+        nav {
+            transition: background 0.4s ease,
+                        box-shadow 0.4s ease,
+                        border-color 0.4s ease;
+        }
+        nav.scrolled {
+            background: rgba(245,245,247,0.92);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
+        }
+
+        /* ── Hero entrance ── */
+        .hero-badge {
+            animation: hero-fade-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
+        }
+        .hero h1 {
+            animation: hero-fade-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.35s both;
+        }
+        .hero .subtitle {
+            animation: hero-fade-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s both;
+        }
+        .hero-cta {
+            animation: hero-fade-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.65s both;
+        }
+        .hero .nobi-mascot {
+            animation: nobi-bounce 3s ease-in-out infinite,
+                       hero-fade-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.8s both;
+        }
+        @keyframes hero-fade-in {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Roadmap card stagger entrance ── */
+        .roadmap-card {
+            animation: card-enter 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+        }
+
+        /* ── Modal enhanced ── */
+        .dim-modal {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .prompt-modal {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .dim-modal-overlay,
+        .prompt-modal-overlay {
+            transition: opacity 0.35s ease;
+        }
+
+        /* ── Subtle link underline animation ── */
+        .nav-links a,
+        .nav-item > a {
+            position: relative;
+        }
+        .nav-dropdown a {
+            position: relative;
+        }
+        .nav-dropdown a::after {
+            content: '';
+            position: absolute;
+            bottom: 6px; left: 16px; right: 16px;
+            height: 1.5px;
+            background: var(--bean);
+            border-radius: 1px;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .nav-dropdown a:hover::after {
+            transform: scaleX(1);
+        }
+
+        /* ── Feed scroll momentum feel ── */
+        .feed-scroll {
+            scroll-behavior: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* ═══════════════════════════════════════════
+           NEW SECTIONS: Engineering Showcase
+           ═══════════════════════════════════════════ */
+
+        /* ── AI Workflow Diagram ── */
+        .workflow { background: var(--paper); }
+        .workflow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 48px;
+            padding: 32px;
+            background: var(--paper-deep);
+            border-radius: 24px;
+        }
+        .workflow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 24px 20px;
+            background: var(--paper);
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            min-width: 140px;
+            transition: all 0.2s ease;
+        }
+        .workflow-step:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+        }
+        .workflow-step.start { border: 2px solid var(--bean); }
+        .workflow-step.ai { border: 2px solid var(--bean); }
+        .workflow-step.end { border: 2px solid var(--bean); }
+        .workflow-step-icon {
+            width: 48px; height: 48px;
+            background: var(--bean-soft);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--bean);
+        }
+        .workflow-step.start .workflow-step-icon { background: var(--bean-soft); color: var(--bean); }
+        .workflow-step.end .workflow-step-icon { background: var(--bean-soft); color: var(--bean); }
+        .workflow-step h4 {
+            font-size: 13px; font-weight: 600;
+            text-align: center;
+        }
+        /* .en display controlled by language switching system */
+        .workflow-step p {
+            font-size: 11px; color: var(--ink-mute);
+            text-align: center; line-height: 1.4;
+        }
+        .workflow-arrow {
+            color: var(--ink-faint);
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .workflow-fallback {
+            margin-top: 40px;
+            padding: 24px 32px;
+            background: var(--bean-soft);
+            border-radius: 16px;
+            border: 1px solid rgba(0,122,255,0.2);
+        }
+        .workflow-fallback h4 {
+            font-size: 14px; font-weight: 600; margin-bottom: 12px;
+            color: var(--bean);
+        }
+        .workflow-fallback ul {
+            display: flex; flex-wrap: wrap; gap: 16px; list-style: none;
+        }
+        .workflow-fallback li {
+            font-size: 12px; color: var(--ink-soft);
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 8px;
+        }
+
+        /* ── Prompt Engineering ── */
+        .prompts { background: var(--paper-deep); }
+        .prompt-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 48px;
+        }
+        .prompt-card {
+            background: var(--paper);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            transition: all 0.2s ease;
+        }
+        .prompt-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+        }
+        .prompt-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 16px;
+        }
+        .prompt-badge {
+            padding: 4px 10px;
+            background: var(--bean-soft);
+            color: var(--bean);
+            border-radius: 20px;
+            font-size: 11px; font-weight: 600;
+        }
+        .prompt-name {
+            font-size: 15px; font-weight: 600;
+        }
+        /* .en display controlled by language switching system */
+        .prompt-desc {
+            font-size: 13px; color: var(--ink-soft);
+            line-height: 1.6; margin-bottom: 16px;
+        }
+        .prompt-tags {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .prompt-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px; font-weight: 500;
+            background: var(--bean-soft);
+            color: var(--bean);
+        }
+
+        /* ── Prompt Detail Modal ── */
+        .prompt-modal-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(12px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .prompt-modal-overlay.open {
+            opacity: 1; pointer-events: auto;
+        }
+        .prompt-modal {
+            background: var(--paper);
+            border-radius: 24px;
+            width: min(800px, 94vw);
+            height: min(600px, 88vh);
+            max-height: 88vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 28px 80px rgba(0,0,0,0.2);
+            transform: scale(0.9) translateY(20px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .prompt-modal-overlay.open .prompt-modal {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .prompt-modal-header {
+            padding: 28px 32px 20px;
+            border-bottom: 1px solid var(--paper-deep);
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .prompt-modal-header h2 {
+            font-size: 20px; font-weight: 600;
+        }
+        /* .en display controlled by language switching system */
+        .prompt-modal-header .prompt-badge {
+            margin-bottom: 8px;
+        }
+        .prompt-modal-close {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--paper-deep);
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--ink); flex-shrink: 0;
+        }
+        .prompt-modal-body {
+            padding: 24px 32px 32px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .prompt-modal-body h4 {
+            font-size: 15px; font-weight: 600; margin: 20px 0 8px;
+            color: var(--ink);
+        }
+        .prompt-modal-body h4:first-child { margin-top: 0; }
+        .prompt-modal-body p {
+            font-size: 14px; color: var(--ink-soft); line-height: 1.7;
+            margin-bottom: 12px;
+        }
+        .prompt-modal-body ul { list-style: none; padding: 0; }
+        .prompt-modal-body li {
+            font-size: 13px; color: var(--ink-soft);
+            padding: 6px 0 6px 18px;
+            position: relative; line-height: 1.55;
+        }
+        .prompt-modal-body li::before {
+            content: ''; position: absolute; left: 0; top: 14px;
+            width: 5px; height: 5px; background: var(--bean);
+            border-radius: 50%;
+        }
+        .prompt-modal-body li.ban-item::before { background: var(--ink-mute); }
+        .prompt-modal-body .knowledge-block {
+            padding: 16px 20px;
+            background: var(--paper-deep);
+            border-radius: 12px;
+            margin: 12px 0;
+        }
+        .prompt-modal-body .knowledge-block h5 {
+            font-size: 12px; font-weight: 600; color: var(--bean);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: 8px;
+        }
+        .prompt-modal-body .knowledge-block p {
+            font-size: 13px; margin-bottom: 0;
+        }
+        .prompt-card { cursor: pointer; }
+
+        /* ── Tech Architecture ── */
+        .architecture { background: var(--paper); }
+        .arch-diagram {
+            margin-top: 48px;
+            padding: 40px;
+            background: var(--paper-deep);
+            border-radius: 24px;
+        }
+        .arch-layers {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .arch-layer {
+            display: flex;
+            align-items: stretch;
+            gap: 16px;
+        }
+        .arch-label {
+            width: 120px;
+            padding: 16px 12px;
+            background: var(--bean);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .arch-label h4 { font-size: 13px; font-weight: 600; }
+        /* .en display controlled by language switching system */
+        .arch-label.frontend { background: var(--bean); }
+        .arch-label.backend { background: var(--bean); }
+        .arch-label.ai { background: var(--bean); }
+        .arch-label.data { background: var(--bean); }
+        .arch-items {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--paper);
+            border-radius: 12px;
+        }
+        .arch-item {
+            padding: 8px 14px;
+            background: var(--paper-deep);
+            border-radius: 8px;
+            font-size: 12px; font-weight: 500;
+            color: var(--ink-soft);
+        }
+        .arch-item.emphasis {
+            background: var(--bean-soft);
+            color: var(--bean);
+        }
+
+        /* ── Design System ── */
+        .design-system { background: var(--paper-deep); }
+        .ds-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-top: 48px;
+        }
+        .ds-card {
+            background: var(--paper);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        }
+        .ds-card h3 {
+            font-size: 16px; font-weight: 600; margin-bottom: 16px;
+        }
+        /* .en display controlled by language switching system */
+        .color-palette {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .color-swatch {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            position: relative;
+        }
+        .color-swatch::after {
+            content: attr(data-name);
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            color: var(--ink-mute);
+            white-space: nowrap;
+        }
+        .ds-list {
+            list-style: none;
+        }
+        .ds-list li {
+            font-size: 13px;
+            color: var(--ink-soft);
+            padding: 8px 0;
+            border-bottom: 1px solid var(--paper-deep);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .ds-list li:last-child { border-bottom: none; }
+        .ds-list .icon {
+            color: var(--bean);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .ds-list .icon.ban { color: var(--ink-mute); }
+        .ds-list .icon.check { color: var(--bean); }
+
+        /* ── Responsive for new sections ── */
+        @media (max-width: 768px) {
+            .workflow-diagram { padding: 20px; gap: 8px; }
+            .workflow-step { min-width: 100px; padding: 16px 12px; }
+            .workflow-arrow { display: none; }
+            .prompt-grid { grid-template-columns: 1fr; }
+            .ds-grid { grid-template-columns: 1fr; }
+            .arch-label { width: 80px; }
+            .arch-label h4 { font-size: 11px; }
+        }
+
+        footer {
+            background: var(--ink); color: white; padding: 64px 0;
+        }
+        footer .container {
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .footer-brand .logo { color: white; margin-bottom: 12px; }
+        .footer-brand .logo span { color: rgba(255,255,255,0.5); }
+        .footer-brand p { font-size: 13px; color: rgba(255,255,255,0.5); max-width: 280px; }
+        /* .en display controlled by language switching system */
+        .footer-info { text-align: right; }
+        .footer-info p { font-size: 13px; color: rgba(255,255,255,0.4); }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .dim-grid { grid-template-columns: repeat(2, 1fr); }
+            .journey-carousel { height: 480px; }
+            .journey-track { height: 360px; }
+            .journey-card-phone.side-left {
+                transform: translateX(-160px) scale(0.88) rotateY(8deg);
+            }
+            .journey-card-phone.side-right {
+                transform: translateX(160px) scale(0.88) rotateY(-8deg);
+            }
+        }
+        @media (max-width: 768px) {
+            section { padding: 72px 0; }
+            .nav-links { display: none; }
+            .dim-grid { grid-template-columns: 1fr; }
+            .feed-card-3x4 { width: clamp(160px, 50vw, 220px); }
+            .journey-carousel { height: 440px; }
+            .journey-track { height: 320px; }
+            .journey-card-phone {
+                width: 200px;
+                margin-left: -100px;
+            }
+            .journey-card-phone.side-left {
+                transform: translateX(-120px) scale(0.85) rotateY(8deg);
+                opacity: 0.5;
+            }
+            .journey-card-phone.side-right {
+                transform: translateX(120px) scale(0.85) rotateY(-8deg);
+                opacity: 0.5;
+            }
+            .journey-nav-btn.prev { left: 3%; }
+            .journey-nav-btn.next { right: 3%; }
+            .journey-desc { margin-top: 32px; }
+            .journey-desc h3 { font-size: 16px; }
+            .journey-desc p { font-size: 12px; }
+            footer .container { flex-direction: column; gap: 32px; }
+            .footer-info { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+    <div class="container">
+        <a href="#" class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;"><span class="zh">栖巢</span><span class="en">NestAI</span></a>
+        <div class="nav-links">
+            <div class="nav-item">
+                <a href="#painpoints">
+                    <span class="zh">需求发掘</span><span class="en">Discovery</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </a>
+                <div class="nav-dropdown">
+                    <a href="#painpoints"><span class="zh">用户痛点</span><span class="en">Pain Points</span></a>
+                    <a href="#competitors"><span class="zh">竞品分析</span><span class="en">Competitors</span></a>
+                </div>
+            </div>
+            <a href="#journey"><span class="zh">用户旅程</span><span class="en">Journey</span></a>
+            <div class="nav-item">
+                <a href="#dimensions">
+                    <span class="zh">背景知识</span><span class="en">Knowledge</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </a>
+                <div class="nav-dropdown">
+                    <a href="#dimensions"><span class="zh">六维体系</span><span class="en">Six Dimensions</span></a>
+                    <a href="#prompts"><span class="zh">Prompt 工程</span><span class="en">Prompts</span></a>
+                </div>
+            </div>
+            <div class="nav-item">
+                <a href="#architecture">
+                    <span class="zh">技术细节</span><span class="en">Tech</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </a>
+                <div class="nav-dropdown">
+                    <a href="#architecture"><span class="zh">技术架构</span><span class="en">Architecture</span></a>
+                    <a href="#workflow">Agent Pipeline<span class="en">Pipeline</span></a>
+                    <a href="#design-system"><span class="zh">UI 设计</span><span class="en">UI Design</span></a>
+                </div>
+            </div>
+            <a href="#roadmap"><span class="zh">未来计划</span><span class="en">Roadmap</span></a>
+            <button class="lang-toggle" onclick="toggleLanguage()" aria-label="切换语言">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span class="lang-current" id="lang-current">中文</span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-badge"><span class="zh">空间生活方式 Agent</span><span class="en">Spatial Lifestyle Agent</span></div>
+            <h1>
+                <span class="zh">看见你的空间，培养你的生活</span>
+                <span class="en">See your <span class="highlight">Nest</span>, Grow your <span class="highlight">Next</span></span>
+            </h1>
+            <p class="subtitle">
+                <span class="zh">NestAI 不是帮你装修空间，而是帮你把想过的生活，转译成下一步可执行的空间改变。</span>
+                <span class="en">NestAI doesn't decorate your space—it translates the life you want into actionable spatial changes.</span>
+            </p>
+            <div class="hero-cta">
+                <a href="#journey" class="btn btn-primary"><span class="zh">开始使用</span><span class="en">Get Started</span></a>
+            </div>
+        </div>
+    </div>
+    <!-- Nobi Mascot -->
+    <div class="nobi-mascot nobi-head-anim">
+        <img src="assets/images/Nobi.png" alt="Nobi">
+    </div>
+</section>
+
+<!-- Pain Points & Competitors -->
+<section class="painpoints" id="painpoints">
+    <div class="container">
+        <div class="section-header">
+            <p class="caption"><span class="zh">需求发掘</span><span class="en">Discovery</span></p>
+            <h2>
+                <span class="zh">用户痛点与竞品分析</span>
+                <span class="en">Pain Points & Competitor Analysis</span>
+            </h2>
+            <p>
+                <span class="zh">年轻租住者面临的真实困境，以及现有解决方案的不足。</span>
+                <span class="en">Real challenges faced by young renters and limitations of existing solutions.</span>
+            </p>
+        </div>
+
+        <!-- User Pain Points -->
+        <div class="painpoints-subsection">
+            <h3 class="subsection-title"><span class="zh">用户痛点</span><span class="en">User Pain Points</span></h3>
+            <div class="feed-scroll">
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #e3f2fd;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span class="img-label">assets/images/painpoints/pain1-renter.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3>
+                            <span class="zh">租住者的改造需求</span>
+                            <span class="en">Renter's Space Needs</span>
+                        </h3>
+                        <p>
+                            <span class="zh">无论是短期居住还是长期租住，年轻用户都有改造身边空间的强烈需求。</span>
+                            <span class="en">Young renters have strong needs to transform their living spaces.</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #fff3e0;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span class="img-label">assets/images/painpoints/pain2-constraints.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3>
+                            <span class="zh">空间限制被忽视</span>
+                            <span class="en">Space Constraints Ignored</span>
+                        </h3>
+                        <p>
+                            <span class="zh">不能打孔、不能换床、租期限制——这些真实约束在现有方案中被完全忽略。</span>
+                            <span class="en">No drilling, lease limits—real constraints ignored by existing solutions.</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #ffebee;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+                        <span class="img-label">assets/images/painpoints/pain1-gap.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3>
+                            <span class="zh">模板与生活脱节</span>
+                            <span class="en">Templates Don't Match Reality</span>
+                        </h3>
+                        <p>
+                            <span class="zh">小红书、Pinterest 上的灵感图往往来自精心设计的样板间，与用户的真实空间差距甚远。</span>
+                            <span class="en">Inspiration from Xiaohongshu often comes from staged showrooms.</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #f3e5f5;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span class="img-label">assets/images/painpoints/pain3-personal.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3>
+                            <span class="zh">缺乏个性化转译</span>
+                            <span class="en">Lack of Personal Translation</span>
+                        </h3>
+                        <p>
+                            <span class="zh">统一模板无法满足需求，需要根据用户个性与生活方式进行精确的室内改动输出。</span>
+                            <span class="en">Uniform templates fail; need precise output based on lifestyle.</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #e8f5e9;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M2 12h20"/></svg>
+                        <span class="img-label">assets/images/painpoints/pain3-static.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3>
+                            <span class="zh">专业知识门槛高</span>
+                            <span class="en">Professional Knowledge Barrier</span>
+                        </h3>
+                        <p>
+                            <span class="zh">需要结合空间限制、经济预算以及真实生活习惯，普通用户缺乏专业设计知识。</span>
+                            <span class="en">Combining constraints, budget, and habits requires expertise.</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Competitor Analysis -->
+        <div class="painpoints-subsection" id="competitors">
+            <h3 class="subsection-title"><span class="zh">竞品分析</span><span class="en">Competitor Analysis</span></h3>
+            <div class="feed-scroll">
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #fce4ec;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                        <span class="img-label">assets/images/competitors/xiaohongshu.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3><span class="zh">小红书 / Pinterest</span><span class="en">Xiaohongshu / Pinterest</span></h3>
+                        <p><span class="zh">灵感丰富但缺乏个性化转译，用户难以落地</span><span class="en">Rich inspiration but lacks personalization</span></p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #e8f5e9;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                        <span class="img-label">assets/images/competitors/haohaozhu.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3><span class="zh">好好住 / 一兜糖</span><span class="en">Haohaozhu / Yidoutang</span></h3>
+                        <p><span class="zh">面向有房业主，不适合租住人群的临时性改造</span><span class="en">For homeowners, not renters</span></p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #fff3e0;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        <span class="img-label">assets/images/competitors/tubatu.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3><span class="zh">土巴兔 / 齐家网</span><span class="en">Tubatu / Jia.com</span></h3>
+                        <p><span class="zh">一站式装修服务平台，主打全房装修，门槛高周期长</span><span class="en">Full renovation, high barrier</span></p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #e3f2fd;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <span class="img-label">assets/images/competitors/ai-tools.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3><span class="zh">AI 装修工具</span><span class="en">AI Design Tools</span></h3>
+                        <p><span class="zh">生成效果图但忽视真实约束，缺乏行动指导</span><span class="en">Ignores real constraints</span></p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #f3e5f5;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        <span class="img-label">assets/images/competitors/houzz.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3>Houzz<span class="en">Houzz</span></h3>
+                        <p><span class="zh">海外家居设计平台，灵感丰富但本地化不足，缺乏个性化转译</span><span class="en">Lacks localization</span></p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #e0f7fa;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+                        <span class="img-label">assets/images/competitors/planner5d.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3>Planner 5D / Roomstyler<span class="en">Planner 5D / Roomstyler</span></h3>
+                        <p><span class="zh">3D设计工具功能强大，但学习成本高，不适合快速轻量改造</span><span class="en">High learning curve</span></p>
+                    </div>
+                </div>
+                <div class="feed-card feed-card-3x4">
+                    <div class="feed-card-img" style="background: #fce4ec;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M15 8h2M15 12h2M15 16h2M8 15l2 2 4-4"/></svg>
+                        <span class="img-label">assets/images/competitors/homestyler.png</span>
+                    </div>
+                    <div class="feed-card-info">
+                        <h3><span class="zh">Homestyler / 住小帮</span><span class="en">Homestyler / Zhuxiaobang</span></h3>
+                        <p><span class="zh">提供装修方案和案例，但缺乏针对租住场景的轻量解决方案</span><span class="en">Not for rental scenarios</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- User Journey (Infinite Carousel) -->
+<section class="journey" id="journey">
+    <div class="container">
+        <div class="section-header">
+            <p class="caption"><span class="zh">用户旅程</span><span class="en">User Journey</span></p>
+            <h2>
+                <span class="zh">从看见空间到生活方式生长</span>
+                <span class="en">From Seeing Space to Growing Lifestyle</span>
+            </h2>
+            <p>
+                <span class="zh">六个阶段，持续循环。不是一次性工具，而是一个生长的系统。</span>
+                <span class="en">Six stages, continuous cycle. Not a one-time tool, but a growing system.</span>
+            </p>
+        </div>
+
+        <div class="journey-carousel">
+            <button class="journey-nav-btn prev" onclick="slideJourney(-1)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+
+            <div class="journey-track" id="journey-track">
+                <!-- Cards will be positioned by JS -->
+                <div class="journey-card-phone" data-index="0">
+                    <div class="phone-frame">
+                        <div class="phone-screen" style="background: linear-gradient(180deg, var(--bean-soft), var(--paper-deep));">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                            <span class="img-label">assets/images/journey/step0-home.png</span>
+                        </div>
+                    </div>
+                    <div class="phone-info">
+                        <h4>
+                            <span class="zh">打开 NestAI</span>
+                            <span class="en">Open NestAI</span>
+                        </h4>
+                        <p><span class="zh">Grow / Next / Me 三大 Tab</span><span class="en">Three main tabs</span></p>
+                    </div>
+                    <span class="phone-step"><span class="zh">首页</span><span class="en">Home</span></span>
+                </div>
+
+                <div class="journey-card-phone" data-index="1">
+                    <div class="phone-frame">
+                        <div class="phone-screen" style="background: #e3f2fd;">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                            <span class="img-label">assets/images/journey/step1-upload.png</span>
+                        </div>
+                    </div>
+                    <div class="phone-info">
+                        <h4>
+                            <span class="zh">上传真实空间</span>
+                            <span class="en">Upload Your Space</span>
+                        </h4>
+                        <p><span class="zh">拍照或上传房间</span><span class="en">Take or upload photos</span></p>
+                    </div>
+                    <span class="phone-step">Step 1</span>
+                </div>
+
+                <div class="journey-card-phone" data-index="2">
+                    <div class="phone-frame">
+                        <div class="phone-screen" style="background: #f3e5f5;">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                            <span class="img-label">assets/images/journey/step2-chat.png</span>
+                        </div>
+                    </div>
+                    <div class="phone-info">
+                        <h4>
+                            Lifestyle Chat
+                            <span class="en">Lifestyle Conversation</span>
+                        </h4>
+                        <p><span class="zh">AI 动态问卷</span><span class="en">AI dynamic survey</span></p>
+                    </div>
+                    <span class="phone-step">Step 2</span>
+                </div>
+
+                <div class="journey-card-phone" data-index="3">
+                    <div class="phone-frame">
+                        <div class="phone-screen" style="background: #fff3e0;">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            <span class="img-label">assets/images/journey/step3-result.png</span>
+                        </div>
+                    </div>
+                    <div class="phone-info">
+                        <h4>
+                            <span class="zh">三档干预方案</span>
+                            <span class="en">Three Intervention Plans</span>
+                        </h4>
+                        <p><span class="zh">0元 / 低成本 / 进阶改造</span><span class="en">Free / Low-cost / Advanced</span></p>
+                    </div>
+                    <span class="phone-step">Step 3</span>
+                </div>
+
+                <div class="journey-card-phone" data-index="4">
+                    <div class="phone-frame">
+                        <div class="phone-screen" style="background: #e8f5e9;">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+                            <span class="img-label">assets/images/journey/step4-next.png</span>
+                        </div>
+                    </div>
+                    <div class="phone-info">
+                        <h4>
+                            <span class="zh">今晚试试看</span>
+                            <span class="en">Try Tonight</span>
+                        </h4>
+                        <p><span class="zh">收藏到 Next 行动夹</span><span class="en">Save to Next folder</span></p>
+                    </div>
+                    <span class="phone-step">Step 4</span>
+                </div>
+
+                <div class="journey-card-phone" data-index="5">
+                    <div class="phone-frame">
+                        <div class="phone-screen" style="background: #e0f7fa;">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            <span class="img-label">assets/images/journey/step5-feedback.png</span>
+                        </div>
+                    </div>
+                    <div class="phone-info">
+                        <h4>
+                            <span class="zh">拍照反馈</span>
+                            <span class="en">Photo Feedback</span>
+                        </h4>
+                        <p><span class="zh">执行后拍照记录改变</span><span class="en">Document changes with photos</span></p>
+                    </div>
+                    <span class="phone-step">Step 5</span>
+                </div>
+
+                <div class="journey-card-phone" data-index="6">
+                    <div class="phone-frame">
+                        <div class="phone-screen" style="background: #fce4ec;">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <span class="img-label">assets/images/journey/step6-memory.png</span>
+                        </div>
+                    </div>
+                    <div class="phone-info">
+                        <h4>
+                            <span class="zh">记忆与生长</span>
+                            <span class="en">Memory & Growth</span>
+                        </h4>
+                        <p><span class="zh">一封信 + Living Memory</span><span class="en">Letter & Living Memory</span></p>
+                    </div>
+                    <span class="phone-step">Step 6</span>
+                </div>
+            </div>
+
+            <button class="journey-nav-btn next" onclick="slideJourney(1)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        </div>
+
+        <div class="journey-dots" id="journey-dots"></div>
+
+            <!-- Step description below carousel -->
+            <div class="journey-desc" id="journey-desc">
+                <h3 id="journey-desc-title">
+                    <span class="zh">打开 NestAI</span>
+                    <span class="en">Open NestAI</span>
+                </h3>
+                <p id="journey-desc-text">
+                    <span class="zh">Grow / Next / Me 三大 Tab 引导用户进入空间生活方式生长之旅。</span>
+                    <span class="en">Three tabs guide users into the journey of spatial lifestyle growth.</span>
+                </p>
+            </div>
+        </div>
+</section>
+
+<!-- Technical Architecture -->
+<section class="architecture" id="architecture">
+
+<!-- Prompt Detail Modal -->
+<div class="prompt-modal-overlay" id="prompt-modal-overlay" onclick="closePromptModal(event)">
+    <div class="prompt-modal" onclick="event.stopPropagation()">
+        <div class="prompt-modal-header">
+            <div>
+                <span class="prompt-badge" id="pm-badge"></span>
+                <h2 id="pm-title"></h2>
+            </div>
+            <button class="prompt-modal-close" onclick="closePromptModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="prompt-modal-body" id="pm-body"></div>
+    </div>
+</div>
+    <div class="container">
+        <div class="section-header">
+            <p class="caption"><span class="zh">技术架构</span><span class="en">Architecture</span></p>
+            <h2>
+                <span class="zh">全栈技术选型与架构设计</span>
+                <span class="en">Full-Stack Tech Stack & Architecture</span>
+            </h2>
+            <p>
+                <span class="zh">从前端到 AI 层，从状态管理到数据库，每一层都有深思熟虑的技术选择。</span>
+                <span class="en">Deliberate tech choices at every layer, from frontend to AI layer, state management to database.</span>
+            </p>
+        </div>
+
+        <div class="arch-diagram">
+            <div class="arch-layers">
+                <div class="arch-layer">
+                    <div class="arch-label frontend">
+                        <h4><span class="zh">前端</span></h4>
+                        <span class="en">Frontend</span>
+                    </div>
+                    <div class="arch-items">
+                        <span class="arch-item emphasis">React 18 + TypeScript</span>
+                        <span class="arch-item"><span class="zh">Vite 5 构建</span><span class="en">Vite 5 Build</span></span>
+                        <span class="arch-item">Tailwind CSS</span>
+                        <span class="arch-item"><span class="zh">Zustand 状态管理</span><span class="en">Zustand State</span></span>
+                        <span class="arch-item">React Router</span>
+                    </div>
+                </div>
+
+                <div class="arch-layer">
+                    <div class="arch-label backend">
+                        <h4><span class="zh">后端</span></h4>
+                        <span class="en">Backend</span>
+                    </div>
+                    <div class="arch-items">
+                        <span class="arch-item emphasis">FastAPI + Uvicorn</span>
+                        <span class="arch-item"><span class="zh">LangChain 编排</span><span class="en">LangChain Orchestration</span></span>
+                        <span class="arch-item"><span class="zh">LangGraph 状态机</span><span class="en">LangGraph State Machine</span></span>
+                        <span class="arch-item">SQLAlchemy ORM</span>
+                        <span class="arch-item"><span class="zh">Alembic 迁移</span><span class="en">Alembic Migration</span></span>
+                    </div>
+                </div>
+
+                <div class="arch-layer">
+                    <div class="arch-label ai">
+                        <h4><span class="zh">AI 层</span></h4>
+                        <span class="en">AI Layer</span>
+                    </div>
+                    <div class="arch-items">
+                        <span class="arch-item emphasis">GPT-4o (Vision)</span>
+                        <span class="arch-item emphasis">gpt-image-1.5</span>
+                        <span class="arch-item">OpenAI SDK</span>
+                        <span class="arch-item">Anthropic Claude</span>
+                        <span class="arch-item"><span class="zh">Multi-Provider 支持</span><span class="en">Multi-Provider</span></span>
+                    </div>
+                </div>
+
+                <div class="arch-layer">
+                    <div class="arch-label data">
+                        <h4><span class="zh">数据层</span></h4>
+                        <span class="en">Data Layer</span>
+                    </div>
+                    <div class="arch-items">
+                        <span class="arch-item emphasis">Supabase Postgres</span>
+                        <span class="arch-item">Supabase Storage</span>
+                        <span class="arch-item">Local SQLite (Dev)</span>
+                        <span class="arch-item"><span class="zh">Markdown 记忆存储</span><span class="en">Markdown Memory</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Prompt Engineering -->
+<section class="prompts" id="prompts">
+    <div class="container">
+        <div class="section-header">
+            <p class="caption"><span class="zh">Prompt 工程</span><span class="en">Prompt Engineering</span></p>
+            <h2>
+                <span class="zh">融合多学科知识的 Prompt 设计</span>
+                <span class="en">Multi-Domain Knowledge Fusion in Prompts</span>
+            </h2>
+            <p>
+                <span class="zh">4 个精心设计的 Prompt，融合空间设计、空间心理学、行为经济学、文化研究。不是简单的 AI 调用，而是领域知识的系统化编码。</span>
+                <span class="en">4 carefully crafted prompts fusing spatial design, environmental psychology, behavioral economics, and cultural studies.</span>
+            </p>
+        </div>
+
+        <div class="prompt-grid">
+            <div class="prompt-card" onclick="openPromptModal(0)">
+                <div class="prompt-header">
+                    <span class="prompt-badge">P001</span>
+                    <span class="prompt-name"><span class="zh">空间分析</span><span class="en">Space Analysis</span></span>
+                </div>
+                <p class="prompt-desc"><span class="zh">Vision LLM 理解空间结构、物件布局、氛围特征。输出生活方式线索假设，供后续问卷验证。</span><span class="en">Vision LLM analyzes spatial structure and atmosphere.</span></p>
+                <div class="prompt-tags">
+                    <span class="prompt-tag"><span class="zh">空间类型学</span><span class="en">Spatial Typology</span></span>
+                    <span class="prompt-tag"><span class="zh">人体尺度</span><span class="en">Human Scale</span></span>
+                    <span class="prompt-tag"><span class="zh">身体感受</span><span class="en">Body Feeling</span></span>
+                    <span class="prompt-tag"><span class="zh">安全约束</span><span class="en">Safety</span></span>
+                </div>
+            </div>
+
+            <div class="prompt-card" onclick="openPromptModal(1)">
+                <div class="prompt-header">
+                    <span class="prompt-badge">P002</span>
+                    <span class="prompt-name"><span class="zh">干预规划</span><span class="en">Intervention Plan</span></span>
+                </div>
+                <p class="prompt-desc"><span class="zh">基于生活方式对话生成三档干预方案。"三层一体故事"确保各档共享核心意图。</span><span class="en">Generates three-tier intervention plans based on lifestyle chat.</span></p>
+                <div class="prompt-tags">
+                    <span class="prompt-tag"><span class="zh">动线设计</span><span class="en">Circulation</span></span>
+                    <span class="prompt-tag"><span class="zh">习惯形成</span><span class="en">Habit Formation</span></span>
+                    <span class="prompt-tag"><span class="zh">摩擦成本</span><span class="en">Friction Cost</span></span>
+                    <span class="prompt-tag"><span class="zh">风格方向</span><span class="en">Style Direction</span></span>
+                </div>
+            </div>
+
+            <div class="prompt-card" onclick="openPromptModal(2)">
+                <div class="prompt-header">
+                    <span class="prompt-badge">P003</span>
+                    <span class="prompt-name"><span class="zh">反思信件</span><span class="en">Reflection Letter</span></span>
+                </div>
+                <p class="prompt-desc"><span class="zh">生成温柔的一封信总结变化，给出下一个 Next。不设 KPI，不制造焦虑。</span><span class="en">Generates a gentle letter summarizing changes and suggesting next steps.</span></p>
+                <div class="prompt-tags">
+                    <span class="prompt-tag"><span class="zh">非评判语言</span><span class="en">Non-judgmental</span></span>
+                    <span class="prompt-tag"><span class="zh">叙事设计</span><span class="en">Narrative Design</span></span>
+                    <span class="prompt-tag"><span class="zh">隐私保护</span><span class="en">Privacy</span></span>
+                </div>
+            </div>
+
+            <div class="prompt-card" onclick="openPromptModal(3)">
+                <div class="prompt-header">
+                    <span class="prompt-badge">P004</span>
+                    <span class="prompt-name"><span class="zh">图生图 Prompt</span><span class="en">Image Prompt</span></span>
+                </div>
+                <p class="prompt-desc"><span class="zh">将方案转译为 ControlNet 指令。6 种风格方向，详细材质与灯光规格。</span><span class="en">Translates plans into ControlNet instructions with 6 style directions.</span></p>
+                <div class="prompt-tags">
+                    <span class="prompt-tag"><span class="zh">材质纹理</span><span class="en">Material Texture</span></span>
+                    <span class="prompt-tag"><span class="zh">照明设计</span><span class="en">Lighting Design</span></span>
+                    <span class="prompt-tag"><span class="zh">包豪斯/孟菲斯/新中式</span><span class="en">Bauhaus/Memphis/Neo-Chinese</span></span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Six Dimensions -->
+<section class="dimensions" id="dimensions">
+    <div class="container">
+        <div class="section-header">
+            <p class="caption"><span class="zh">背景知识</span><span class="en">Knowledge</span></p>
+            <h2>
+                <span class="zh">系统性思考框架</span>
+                <span class="en">Six-Dimensional Framework</span>
+            </h2>
+            <p>
+                <span class="zh">点击每个维度查看详细分析</span>
+                <span class="en">Click each dimension for detailed analysis</span>
+            </p>
+        </div>
+
+        <div class="dim-grid">
+            <div class="dim-card" onclick="openDimension(0)">
+                <div class="dim-card-header">
+                    <div>
+                        <div class="dim-num">01</div>
+                        <h3>
+                            <span class="zh">社会 / 用户</span>
+                            <span class="en">Society / User</span>
+                        </h3>
+                    </div>
+                    <svg class="dim-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <p><span class="zh">泛年轻租住人群与宿舍人群</span><span class="en">Young renters & dorm residents</span></p>
+            </div>
+            <div class="dim-card" onclick="openDimension(1)">
+                <div class="dim-card-header">
+                    <div>
+                        <div class="dim-num">02</div>
+                        <h3>
+                            <span class="zh">时间 / 历史</span>
+                            <span class="en">Time / History</span>
+                        </h3>
+                    </div>
+                    <svg class="dim-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <p><span class="zh">从一次性装修到持续生长</span><span class="en">From one-time renovation to continuous growth</span></p>
+            </div>
+            <div class="dim-card" onclick="openDimension(2)">
+                <div class="dim-card-header">
+                    <div>
+                        <div class="dim-num">03</div>
+                        <h3>
+                            <span class="zh">经济 / 技术</span>
+                            <span class="en">Economy / Tech</span>
+                        </h3>
+                    </div>
+                    <svg class="dim-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <p><span class="zh">低成本可逆的空间干预</span><span class="en">Low-cost reversible interventions</span></p>
+            </div>
+            <div class="dim-card" onclick="openDimension(3)">
+                <div class="dim-card-header">
+                    <div>
+                        <div class="dim-num">04</div>
+                        <h3>
+                            <span class="zh">空间 / 限制</span>
+                            <span class="en">Space / Constraint</span>
+                        </h3>
+                    </div>
+                    <svg class="dim-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <p><span class="zh">真实约束是创造力的来源</span><span class="en">Constraints are the source of creativity</span></p>
+            </div>
+            <div class="dim-card" onclick="openDimension(4)">
+                <div class="dim-card-header">
+                    <div>
+                        <div class="dim-num">05</div>
+                        <h3>
+                            <span class="zh">文化 / 哲学</span>
+                            <span class="en">Culture / Philosophy</span>
+                        </h3>
+                    </div>
+                    <svg class="dim-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <p><span class="zh">生活方式从空间里长出来</span><span class="en">Lifestyle grows from space</span></p>
+            </div>
+            <div class="dim-card" onclick="openDimension(5)">
+                <div class="dim-card-header">
+                    <div>
+                        <div class="dim-num">06</div>
+                        <h3>
+                            <span class="zh">治理 / 政策</span>
+                            <span class="en">Governance / Policy</span>
+                        </h3>
+                    </div>
+                    <svg class="dim-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <p><span class="zh">数据主权与可解释 AI</span><span class="en">Data sovereignty & explainable AI</span></p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Dimension Modal -->
+<div class="dim-modal-overlay" id="dim-modal-overlay" onclick="closeDimension(event)">
+    <div class="dim-modal" onclick="event.stopPropagation()">
+        <button class="dim-modal-close" onclick="closeDimension()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="dim-modal-img-header" id="modal-img-header" style="background: linear-gradient(135deg, var(--bean-soft), #f0e8ff);">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/></svg>
+            <span class="img-label" id="modal-img-label">assets/images/dimensions/dim01.png</span>
+        </div>
+        <div class="dim-modal-body">
+            <p class="caption" id="modal-caption"></p>
+            <h2 id="modal-title"></h2>
+            <div id="modal-content"></div>
+            <div class="dim-modal-images" id="modal-images"></div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Workflow Diagram -->
+<section class="workflow" id="workflow">
+    <div class="container">
+        <div class="section-header">
+            <p class="caption">Agent Pipeline</p>
+            <h2>
+                <span class="zh">LangGraph 状态机驱动的智能编排</span>
+                <span class="en">LangGraph State Machine Orchestration</span>
+            </h2>
+            <p>
+                <span class="zh">每个用户旅程背后，是严谨的 AI 工作流编排。状态机确保每一步都可靠、可回退、有优雅降级。</span>
+                <span class="en">Behind every user journey is rigorous AI workflow orchestration. State machine ensures reliability, rollback, and graceful degradation.</span>
+            </p>
+        </div>
+
+        <div class="workflow-diagram">
+            <div class="workflow-step start">
+                <div class="workflow-step-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </div>
+                <h4><span class="zh">上传空间</span><span class="en">Upload</span></h4>
+                <p>Vision LLM<br><span class="zh">空间分析</span><span class="en">Space Analysis</span></p>
+            </div>
+            <span class="workflow-arrow">→</span>
+            <div class="workflow-step ai">
+                <div class="workflow-step-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                </div>
+                <h4><span class="zh">生活方式对话</span><span class="en">Lifestyle Chat</span></h4>
+                <p><span class="zh">动态问卷</span><br><span class="zh">推测验证</span><span class="en">Speculation Verification</span></p>
+            </div>
+            <span class="workflow-arrow">→</span>
+            <div class="workflow-step ai">
+                <div class="workflow-step-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <h4><span class="zh">三档方案</span><span class="en">3 Plans</span></h4>
+                <p><span class="zh">干预规划</span><br><span class="zh">语义锚定</span><span class="en">Semantic Anchoring</span></p>
+            </div>
+            <span class="workflow-arrow">→</span>
+            <div class="workflow-step ai">
+                <div class="workflow-step-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </div>
+                <h4><span class="zh">效果图生成</span><span class="en">Preview</span></h4>
+                <p>ControlNet<br>Architectural Fidelity</p>
+            </div>
+            <span class="workflow-arrow">→</span>
+            <div class="workflow-step end">
+                <div class="workflow-step-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </div>
+                <h4><span class="zh">一封信</span><span class="en">Letter</span></h4>
+                <p><span class="zh">记忆更新</span><br><span class="zh">循环生长</span><span class="en">Cyclic Growth</span></p>
+            </div>
+        </div>
+
+        <div class="workflow-fallback">
+            <h4><span class="zh">优雅降级机制</span><span class="en">Graceful Degradation</span></h4>
+            <ul>
+                <li><span class="zh">Vision LLM 拒绝</span> → <span class="zh">安全重试 Prompt</span><span class="en">Vision LLM refusal → Safe retry</span></li>
+                <li><span class="zh">方案生成失败</span> → <span class="zh">上下文降级方案</span><span class="en">Plan failure → Fallback plan</span></li>
+                <li><span class="zh">信件生成失败</span> → <span class="zh">预写温暖信件</span><span class="en">Letter failure → Pre-written letter</span></li>
+                <li><span class="zh">无 API Key</span> → <span class="zh">产品仍可运行</span><span class="en">No API Key → Product still works</span></li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- Design System -->
+<section class="design-system" id="design-system">
+    <div class="container">
+        <div class="section-header">
+            <p class="caption"><span class="zh">UI 设计</span><span class="en">UI Design</span></p>
+            <h2>
+                <span class="zh">从极简界面到严谨的设计规范</span>
+                <span class="en">From Minimal UI to Rigorous Design Guidelines</span>
+            </h2>
+            <p>
+                <span class="zh">"极简"不是简陋，而是克制。每一处留白、每一个圆角、每一种字重，都有其存在的理由。</span>
+                <span class="en">"Minimal" isn't simple—it's restrained. Every whitespace, every radius, every weight has its reason.</span>
+            </p>
+        </div>
+
+        <div class="ds-grid">
+            <div class="ds-card">
+                <h3><span class="zh">色彩系统</span><span class="en">Color System</span></h3>
+                <div class="color-palette">
+                    <div class="color-swatch" style="background: #1a1814;" data-name="Ink"></div>
+                    <div class="color-swatch" style="background: #3a3530;" data-name="Secondary"></div>
+                    <div class="color-swatch" style="background: #999999;" data-name="Muted"></div>
+                    <div class="color-swatch" style="background: #e5e5e5;" data-name="Divider"></div>
+                    <div class="color-swatch" style="background: #f5f5f7;" data-name="Card"></div>
+                    <div class="color-swatch" style="background: #ffffff;" data-name="Paper"></div>
+                    <div class="color-swatch" style="background: #d9a823;" data-name="Bean"></div>
+                    <div class="color-swatch" style="background: #f0d77a;" data-name="Light Bean"></div>
+                    <div class="color-swatch" style="background: #6b8e4e;" data-name="Success"></div>
+                </div>
+            </div>
+
+            <div class="ds-card">
+                <h3><span class="zh">设计原则</span><span class="en">Design Principles</span></h3>
+                <ul class="ds-list">
+                    <li>
+                        <svg class="icon check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span class="zh">使用 Noto Sans SC，中英统一字体</span><span class="en">Noto Sans SC for both languages</span>
+                    </li>
+                    <li>
+                        <svg class="icon check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span class="zh">4px 基础间距系统（4/8/12/16/24/32）</span><span class="en">4px base spacing system</span>
+                    </li>
+                    <li>
+                        <svg class="icon check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span class="zh">卡片圆角 8px，按钮胶囊形</span><span class="en">8px card radius, pill buttons</span>
+                    </li>
+                    <li>
+                        <svg class="icon check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span class="zh">页面边距 20px，一行最多 60 字</span><span class="en">20px padding, max 60 chars/line</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="ds-card">
+                <h3><span class="zh">禁止使用</span><span class="en">Prohibited</span></h3>
+                <ul class="ds-list">
+                    <li>
+                        <svg class="icon ban" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span class="zh">"高级感""质感"等样板间语言</span><span class="en">"Premium" "texture" showroom language</span>
+                    </li>
+                    <li>
+                        <svg class="icon ban" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span class="zh">Blur shadow / 内阴影 / 新拟态</span><span class="en">Blur shadow / Inner shadow / Neumorphism</span>
+                    </li>
+                    <li>
+                        <svg class="icon ban" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span class="zh">旋转、弹性弹跳、视差动画</span><span class="en">Rotation, bounce, parallax animations</span>
+                    </li>
+                    <li>
+                        <svg class="icon ban" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span class="zh">MBTI / OCEAN 等人格标签</span><span class="en">MBTI / OCEAN personality labels</span>
+                    </li>
+                    <li>
+                        <svg class="icon ban" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span class="zh">焦虑营销 / KPI / 截止日期</span><span class="en">Anxiety marketing / KPIs / Deadlines</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="ds-card">
+                <h3><span class="zh">AI 生图约束</span><span class="en">Image Gen Constraints</span></h3>
+                <ul class="ds-list">
+                    <li>
+                        <svg class="icon ban" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span class="zh">不改变墙面颜色 / 地板材质</span><span class="en">No wall color / floor changes</span>
+                    </li>
+                    <li>
+                        <svg class="icon ban" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span class="zh">不改变窗户位置 / 光线方向</span><span class="en">No window / light direction changes</span>
+                    </li>
+                    <li>
+                        <svg class="icon ban" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span class="zh">不脱离原环境做氛围渲染</span><span class="en">No unrealistic atmosphere rendering</span>
+                    </li>
+                    <li>
+                        <svg class="icon check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span class="zh">只展示干预动作（添加/调整/优化）</span><span class="en">Show only interventions (add/adjust/optimize)</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Roadmap -->
+<section class="roadmap" id="roadmap">
+    <div class="container">
+        <div class="section-header">
+            <p class="caption"><span class="zh">未来计划</span><span class="en">Roadmap</span></p>
+            <h2>
+                <span class="zh">从 V1 到世界模型</span>
+                <span class="en">From V1 to World Model</span>
+            </h2>
+            <p>
+                <span class="zh">左右滑动探索发展路径</span>
+                <span class="en">Swipe to explore the roadmap</span>
+            </p>
+        </div>
+
+        <div class="roadmap-slider">
+            <div class="roadmap-track" id="roadmap-track">
+                <div class="roadmap-card current" style="animation-delay: 0s;">
+                    <div class="roadmap-ver"><span class="zh">V1.0 · 当前版本</span><span class="en">V1.0 · Current</span></div>
+                    <h3>
+                        <span class="zh">图片生成</span>
+                        <span class="en">Image Generation</span>
+                    </h3>
+                    <div class="roadmap-time">2026 Spring</div>
+                    <ul>
+                        <li><span class="zh">上传空间照片</span><span class="en">Upload space photos</span></li>
+                        <li><span class="zh">动态生活方式问卷</span><span class="en">Dynamic lifestyle survey</span></li>
+                        <li><span class="zh">三档干预方案</span><span class="en">Three-tier intervention plans</span></li>
+                        <li><span class="zh">ControlNet 效果图</span><span class="en">ControlNet renderings</span></li>
+                        <li><span class="zh">行动收藏与拍照反馈</span><span class="en">Action collection & feedback</span></li>
+                        <li><span class="zh">一封信 + Living Memory</span><span class="en">Letter + Living Memory</span></li>
+                    </ul>
+                </div>
+                <div class="roadmap-card" style="animation-delay: 0.1s;">
+                    <div class="roadmap-ver"><span class="zh">V2.0 · 近期</span><span class="en">V2.0 · Near-term</span></div>
+                    <h3>
+                        <span class="zh">三维建模</span>
+                        <span class="en">3D Modeling</span>
+                    </h3>
+                    <div class="roadmap-time">2026 — 2027</div>
+                    <ul>
+                        <li><span class="zh">单图生 3D 轴测图</span><span class="en">Single image to 3D axonometric</span></li>
+                        <li><span class="zh">空间三维重建</span><span class="en">Spatial 3D reconstruction</span></li>
+                        <li><span class="zh">虚拟漫游预览</span><span class="en">Virtual walkthrough preview</span></li>
+                        <li><span class="zh">家具尺寸精确匹配</span><span class="en">Precise furniture sizing</span></li>
+                        <li><span class="zh">AR 叠加预览</span><span class="en">AR overlay preview</span></li>
+                    </ul>
+                </div>
+                <div class="roadmap-card" style="animation-delay: 0.2s;">
+                    <div class="roadmap-ver"><span class="zh">V3.0 · 中期</span><span class="en">V3.0 · Mid-term</span></div>
+                    <h3>
+                        <span class="zh">空间智能</span>
+                        <span class="en">Spatial Intelligence</span>
+                    </h3>
+                    <div class="roadmap-time">2027 — 2028</div>
+                    <ul>
+                        <li><span class="zh">多模态空间理解</span><span class="en">Multimodal spatial understanding</span></li>
+                        <li><span class="zh">实时视频分析</span><span class="en">Real-time video analysis</span></li>
+                        <li><span class="zh">预测性干预建议</span><span class="en">Predictive intervention suggestions</span></li>
+                        <li><span class="zh">社群知识图谱</span><span class="en">Community knowledge graph</span></li>
+                        <li><span class="zh">个性化生活方式引擎</span><span class="en">Personalized lifestyle engine</span></li>
+                    </ul>
+                </div>
+                <div class="roadmap-card" style="animation-delay: 0.3s;">
+                    <div class="roadmap-ver"><span class="zh">终极愿景</span><span class="en">Ultimate Vision</span></div>
+                    <h3>
+                        <span class="zh">世界模型</span>
+                        <span class="en">World Model</span>
+                    </h3>
+                    <div class="roadmap-time"><span class="zh">未来</span><span class="en">Future</span></div>
+                    <ul>
+                        <li><span class="zh">物理世界理解</span><span class="en">Physical world understanding</span></li>
+                        <li><span class="zh">因果推理能力</span><span class="en">Causal reasoning capability</span></li>
+                        <li><span class="zh">空间行为预测</span><span class="en">Spatial behavior prediction</span></li>
+                        <li><span class="zh">通用空间 Agent</span><span class="en">General spatial agent</span></li>
+                        <li><span class="zh">人机共生环境</span><span class="en">Human-AI symbiotic environment</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Philosophy -->
+<section class="philosophy" id="philosophy">
+    <div class="container">
+        <p class="caption" style="margin-bottom: 24px;"><span class="zh">产品哲学</span><span class="en">Philosophy</span></p>
+        <blockquote class="philosophy-quote">
+            <span class="zh">NestAI 不是把别人的模板搬进你的房间，<br>
+            而是让你的生活方式从你的真实空间里长出来。</span>
+            <span class="en">
+                NestAI doesn't copy templates into your room—<br>
+                it lets your lifestyle grow from your real space.
+            </span>
+        </blockquote>
+        <p class="philosophy-author"><span class="zh">— NestAI 团队 · 比奇堡</span><span class="en">— NestAI Team · Bikini Bottom</span></p>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="footer-brand">
+            <a href="#" class="logo"><span class="zh">栖巢</span> <span>NestAI</span></a>
+            <p>
+                <span class="zh">看见你的 Nest，理解你的 lifestyle，然后给出你的 Next。</span>
+                <span class="en">See your Nest, understand your lifestyle, then give you your Next.</span>
+            </p>
+        </div>
+        <div class="footer-info">
+            <p>Design Studio II</p>
+            <p><span class="zh">清华大学深圳国际研究生院</span><span class="en">Tsinghua SIGS</span></p>
+            <p>2026 Spring</p>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // ── Dimension Modal Data ──
+    const dimensionData = [
+        {
+            caption: '<span class="zh">维度 01</span><span class="en">Dimension 01</span>',
+            title: '<span class="zh">社会 / 用户</span><span class="en">Society / User</span>',
+            imgColor: 'linear-gradient(135deg, #e3f2fd, #bbdefb)',
+            imgLabel: 'assets/images/dimensions/dim01.png',
+            content: {
+                zh: `
+                    <p>NestAI 面向泛年轻租住人群与宿舍人群。他们的共同点不是"没有房子"，而是"正在使用有限、受约束、未必长期属于自己的空间，但仍然希望把生活认真地放进去"。</p>
+                    <h4>目标用户画像</h4>
+                    <ul>
+                        <li>大学生 / 研究生宿舍用户——空间极小，规则极多，但渴望个性化</li>
+                        <li>留学生宿舍或合租用户——跨文化居住，需要快速建立归属感</li>
+                        <li>初入职场租房者——第一次独立居住，预算有限但期待高</li>
+                        <li>城市青年长租公寓用户——空间标准化，缺乏个性表达出口</li>
+                    </ul>
+                    <h4>生活方式不是标签</h4>
+                    <p>NestAI 不使用 MBTI、OCEAN 等人格标签来定义用户。生活方式被定义为：<strong>Lifestyle = Habit + Interest + Preference + Body Feeling + Constraint + Aspiration + Routine</strong>。Routine 不是生活方式的起点，而是生活方式被空间支撑后自然形成的结果。</p>
+                    <h4>Nobi：非评判性陪伴</h4>
+                    <p>Nobi 是一只"空间嗅探犬"，能嗅出空间里的生活痕迹。语义联想：陪伴、观察、等你回家、记住你的习惯、不评判。Nobi 永远不被用作惩罚机制——没有内疚感、没有角色死亡、没有压力。</p>
+                `,
+                en: `
+                    <p>NestAI targets young renters and dorm residents. What they share is not "not having a house," but "using limited, constrained spaces that may not belong to them long-term, yet still wanting to put their life into it seriously."</p>
+                    <h4>Target User Personas</h4>
+                    <ul>
+                        <li>College/Graduate Dorm Users — Minimal space, many rules, but craving personalization</li>
+                        <li>International Students/Co-renters — Cross-cultural living, need to quickly establish belonging</li>
+                        <li>First-time Renters — First independent living, limited budget but high expectations</li>
+                        <li>Young Urban Apartment Dwellers — Standardized spaces lacking personal expression outlets</li>
+                    </ul>
+                    <h4>Lifestyle ≠ Labels</h4>
+                    <p>NestAI doesn't use MBTI, OCEAN, or other personality labels. Lifestyle is defined as: <strong>Lifestyle = Habit + Interest + Preference + Body Feeling + Constraint + Aspiration + Routine</strong>. Routine isn't the starting point—it's the natural result of lifestyle being supported by space.</p>
+                    <h4>Nobi: Non-judgmental Companion</h4>
+                    <p>Nobi is a "space sniffer dog" that can detect life traces in spaces. Semantic associations: companionship, observation, waiting for you to come home, remembering your habits, non-judgment. Nobi is never used as a punishment mechanism—no guilt, no character death, no pressure.</p>
+                `
+            },
+            images: [
+                { bg: '#e3f2fd', label: 'assets/images/dimensions/dim01-users.png' },
+                { bg: '#bbdefb', label: 'assets/images/dimensions/dim01-persona.png' }
+            ]
+        },
+        {
+            caption: '<span class="zh">维度 02</span><span class="en">Dimension 02</span>',
+            title: '<span class="zh">时间 / 历史</span><span class="en">Time / History</span>',
+            imgColor: 'linear-gradient(135deg, #f3e5f5, #e1bee7)',
+            imgLabel: 'assets/images/dimensions/dim02.png',
+            content: {
+                zh: `
+                    <p>NestAI 的核心机制是 <strong>Lifestyle Growth System</strong>——生活方式生长系统。它不是一次性匹配，也不是一次性生成方案，而是帮助用户通过一次次空间干预，把自己的 lifestyle 一步步外化到物理空间中。</p>
+                    <h4>生长系统四要素</h4>
+                    <ul>
+                        <li><strong>Life-Space Fit</strong>：判断期望生活方式与当前空间的匹配/错位</li>
+                        <li><strong>Next Best Spatial Action</strong>：确定最值得执行的下一步空间行动</li>
+                        <li><strong>Spatial Intervention Plan</strong>：生成可执行的干预方案</li>
+                        <li><strong>Living Memory</strong>：记录干预、选择、反馈和变化，持续更新用户的空间性格</li>
+                    </ul>
+                    <h4>时间维度的设计</h4>
+                    <ul>
+                        <li><strong>Living Memory</strong>：记录用户如何通过空间行动逐渐改变生活，以 Markdown 叙事形式存储</li>
+                        <li><strong>Intervention History</strong>：每次干预的时间、类型、效果，跨会话累积</li>
+                        <li><strong>一封信</strong>：温柔总结每次变化的生活线索，聚焦 1-3 个最有意义的改变</li>
+                        <li><strong>长期记忆注入</strong>：用户的 lifestyle profile 和偏好会在后续会话中被注入 Prompt（最多 2200 字符）</li>
+                    </ul>
+                    <h4>循环而非终点</h4>
+                    <p>Grow → Upload → Chat → Result → Next → Feedback → Letter → Grow。每一次循环都在上一次的基础上生长，不是重复，而是演化。</p>
+                `,
+                en: `
+                    <p>NestAI's core mechanism is the <strong>Lifestyle Growth System</strong>. It's not one-time matching or one-time plan generation, but helping users externalize their lifestyle into physical space through repeated spatial interventions.</p>
+                    <h4>Four Pillars of Growth</h4>
+                    <ul>
+                        <li><strong>Life-Space Fit</strong>: Assess match/mismatch between desired lifestyle and current space</li>
+                        <li><strong>Next Best Spatial Action</strong>: Determine the most valuable next spatial action</li>
+                        <li><strong>Spatial Intervention Plan</strong>: Generate executable intervention plans</li>
+                        <li><strong>Living Memory</strong>: Record interventions, choices, feedback, and changes, continuously updating user's spatial character</li>
+                    </ul>
+                    <h4>Temporal Design</h4>
+                    <ul>
+                        <li><strong>Living Memory</strong>: Records how users gradually change their lives through spatial actions, stored as Markdown narratives</li>
+                        <li><strong>Intervention History</strong>: Time, type, and effect of each intervention, accumulated across sessions</li>
+                        <li><strong>A Letter</strong>: Gently summarizes life clues from each change, focusing on 1-3 most meaningful transformations</li>
+                        <li><strong>Long-term Memory Injection</strong>: User's lifestyle profile and preferences are injected into subsequent session Prompts (up to 2200 chars)</li>
+                    </ul>
+                    <h4>Cycle, Not Endpoint</h4>
+                    <p>Grow → Upload → Chat → Result → Next → Feedback → Letter → Grow. Each cycle builds on the previous one—not repetition, but evolution.</p>
+                `
+            },
+            images: [
+                { bg: '#f3e5f5', label: 'assets/images/dimensions/dim02-timeline.png' },
+                { bg: '#e1bee7', label: 'assets/images/dimensions/dim02-memory.png' }
+            ]
+        },
+        {
+            caption: '<span class="zh">维度 03</span><span class="en">Dimension 03</span>',
+            title: '<span class="zh">经济 / 技术</span><span class="en">Economy / Technology</span>',
+            imgColor: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+            imgLabel: 'assets/images/dimensions/dim03.png',
+            content: {
+                zh: `
+                    <p>NestAI 的技术栈围绕"低成本、可撤回、可移动"的原则构建。产品理念是：<strong>通过虚拟世界的理解、模拟和预览，把用户推回物理世界的行动</strong>。</p>
+                    <h4>前端技术栈</h4>
+                    <ul>
+                        <li><strong>React 18 + TypeScript</strong>：类型安全的组件化开发</li>
+                        <li><strong>Vite 5</strong>：极速构建与热更新</li>
+                        <li><strong>Tailwind CSS</strong>：原子化样式系统，与产品设计指南一致</li>
+                        <li><strong>Zustand</strong>：轻量级状态管理（干预方案、生活方式、记忆、反馈等）</li>
+                    </ul>
+                    <h4>后端技术栈</h4>
+                    <ul>
+                        <li><strong>FastAPI + LangChain</strong>：AI 工作流编排，支持 OpenAI 和 Anthropic 双供应商</li>
+                        <li><strong>LangGraph</strong>：状态机驱动的多步 AI 工作流（分析→规划→生图→写信）</li>
+                        <li><strong>Vision LLM (GPT-4o)</strong>：空间图片理解、物件识别、氛围读取</li>
+                        <li><strong>Image Generation (gpt-image-1.5)</strong>：基于 ControlNet 的改造效果图生成</li>
+                        <li><strong>Supabase</strong>：生产级 Postgres 数据库 + 对象存储</li>
+                    </ul>
+                    <h4>经济模型</h4>
+                    <p>三档干预方案对应不同预算：<strong>0 元</strong>（移动、清理、重组）、<strong>100 元以内</strong>（小物件、软装）、<strong>100-300 元</strong>（进阶改造）。第一步的摩擦成本必须接近零——"坐下 + 打开灯 = 开始工作"。</p>
+                `,
+                en: `
+                    <p>NestAI's tech stack is built around "low-cost, reversible, movable" principles. The product philosophy: <strong>Through virtual world understanding, simulation, and preview, push users back to physical world action</strong>.</p>
+                    <h4>Frontend Stack</h4>
+                    <ul>
+                        <li><strong>React 18 + TypeScript</strong>: Type-safe component-based development</li>
+                        <li><strong>Vite 5</strong>: Ultra-fast build and hot reload</li>
+                        <li><strong>Tailwind CSS</strong>: Atomic style system, consistent with product design guidelines</li>
+                        <li><strong>Zustand</strong>: Lightweight state management (intervention plans, lifestyle, memory, feedback, etc.)</li>
+                    </ul>
+                    <h4>Backend Stack</h4>
+                    <ul>
+                        <li><strong>FastAPI + LangChain</strong>: AI workflow orchestration, supporting dual OpenAI and Anthropic providers</li>
+                        <li><strong>LangGraph</strong>: State machine-driven multi-step AI workflow (Analysis→Planning→Image Gen→Letter)</li>
+                        <li><strong>Vision LLM (GPT-4o)</strong>: Spatial image understanding, object recognition, atmosphere reading</li>
+                        <li><strong>Image Generation (gpt-image-1.5)</strong>: ControlNet-based renovation effect image generation</li>
+                        <li><strong>Supabase</strong>: Production-grade Postgres database + object storage</li>
+                    </ul>
+                    <h4>Economic Model</h4>
+                    <p>Three-tier intervention plans correspond to different budgets: <strong>0 RMB</strong> (move, clean, reorganize), <strong>Under 100 RMB</strong> (small items, soft decoration), <strong>100-300 RMB</strong> (advanced renovation). The first step's friction cost must approach zero—"sit down + turn on light = start working."</p>
+                `
+            },
+            images: [
+                { bg: '#e8f5e9', label: 'assets/images/dimensions/dim03-architecture.png' },
+                { bg: '#c8e6c9', label: 'assets/images/dimensions/dim03-techstack.png' }
+            ]
+        },
+        {
+            caption: '<span class="zh">维度 04</span><span class="en">Dimension 04</span>',
+            title: '<span class="zh">空间 / 限制</span><span class="en">Space / Constraint</span>',
+            imgColor: 'linear-gradient(135deg, #fff3e0, #ffe0b2)',
+            imgLabel: 'assets/images/dimensions/dim04.png',
+            content: {
+                zh: `
+                    <p>真实空间约束是 NestAI 的核心设计输入，而非需要绕过的障碍。NestAI 的核心理念：<strong>约束是创造力的来源</strong>。</p>
+                    <h4>AI 生图硬约束</h4>
+                    <ul>
+                        <li>不改变墙面颜色、不改变地板材质</li>
+                        <li>不改变窗户位置、不改变光线方向</li>
+                        <li>不改变空间比例、不脱离原环境做氛围渲染</li>
+                        <li>只展示干预动作（添加物件、调整摆放、局部优化）</li>
+                    </ul>
+                    <h4>四层信息确定性模型</h4>
+                    <ul>
+                        <li><strong>FACT（事实）</strong>：图片中可见的、可信度最高</li>
+                        <li><strong>INFERENCE（推断）</strong>：一层推理、中等可信度</li>
+                        <li><strong>SPECULATION（推测）</strong>：两层推理、低可信度</li>
+                        <li><strong>INTERVENTION CANDIDATES（干预候选）</strong>：待验证的行动建议</li>
+                    </ul>
+                    <h4>约束类型</h4>
+                    <ul>
+                        <li><strong>硬装约束</strong>：不能打孔、不能换床、不能拆墙</li>
+                        <li><strong>经济约束</strong>：0 元 / 100 元 / 300 元档位</li>
+                        <li><strong>规则约束</strong>：宿舍规定、租期限制、物业要求</li>
+                        <li><strong>时间约束</strong>：只能做 5 分钟动作、今晚可完成</li>
+                        <li><strong>身体感受</strong>：冷、热、亮度、噪音、杂乱、压迫感、放松感</li>
+                    </ul>
+                    <h4>推测验证机制</h4>
+                    <p>用户的问卷回答会被用来验证、否认或保持模糊 AI 的生活方式假设——形成真正的对话，而非单向分析。</p>
+                `,
+                en: `
+                    <p>Real spatial constraints are NestAI's core design input, not obstacles to bypass. NestAI's core philosophy: <strong>Constraints are the source of creativity</strong>.</p>
+                    <h4>Image Generation Hard Constraints</h4>
+                    <ul>
+                        <li>No wall color changes, no floor material changes</li>
+                        <li>No window position changes, no light direction changes</li>
+                        <li>No spatial proportion changes, no idealized atmosphere rendering脱离原环境</li>
+                        <li>Only show intervention actions (add objects, adjust placement, local optimization)</li>
+                    </ul>
+                    <h4>Four-Layer Certainty Model</h4>
+                    <ul>
+                        <li><strong>FACT</strong>: Visible in image, highest credibility</li>
+                        <li><strong>INFERENCE</strong>: One-level reasoning, medium credibility</li>
+                        <li><strong>SPECULATION</strong>: Two-level reasoning, low credibility</li>
+                        <li><strong>INTERVENTION CANDIDATES</strong>: Action suggestions pending validation</li>
+                    </ul>
+                    <h4>Constraint Types</h4>
+                    <ul>
+                        <li><strong>Hard Constraints</strong>: No drilling, no bed changes, no wall demolition</li>
+                        <li><strong>Economic Constraints</strong>: 0 / 100 / 300 RMB tiers</li>
+                        <li><strong>Rule Constraints</strong>: Dorm rules, lease limits, property requirements</li>
+                        <li><strong>Time Constraints</strong>: 5-minute actions only, completable tonight</li>
+                        <li><strong>Bodily Feelings</strong>: Cold, hot, brightness, noise, clutter, oppression, relaxation</li>
+                    </ul>
+                    <h4>Speculation Verification</h4>
+                    <p>User survey responses are used to validate, deny, or keep ambiguous AI's lifestyle assumptions—forming true dialogue, not one-way analysis.</p>
+                `
+            },
+            images: [
+                { bg: '#fff3e0', label: 'assets/images/dimensions/dim04-constraints.png' },
+                { bg: '#ffe0b2', label: 'assets/images/dimensions/dim04-before-after.png' }
+            ]
+        },
+        {
+            caption: '<span class="zh">维度 05</span><span class="en">Dimension 05</span>',
+            title: '<span class="zh">文化 / 哲学</span><span class="en">Culture / Philosophy</span>',
+            imgColor: 'linear-gradient(135deg, #fce4ec, #f8bbd0)',
+            imgLabel: 'assets/images/dimensions/dim05.png',
+            content: {
+                zh: `
+                    <p>NestAI 的底层隐喻是<strong>"土壤、养料、花盆与生长"</strong>。外部灵感不是敌人，而是"养料"。真正的问题是平台模板不会自动匹配用户的真实人、真实空间和真实约束。</p>
+                    <h4>生长隐喻</h4>
+                    <ul>
+                        <li><strong>土壤</strong>：用户行为、性格、身体感受、经济条件、空间现状</li>
+                        <li><strong>养料</strong>：外部灵感（Pinterest、小红书、Instagram）</li>
+                        <li><strong>花盆</strong>：真实空间约束的大小——花盆决定了生长的边界</li>
+                        <li><strong>培育系统</strong>：设计知识、空间心理学、行为科学</li>
+                        <li><strong>输出</strong>：一个可见的、可执行的、可维护的生活方式</li>
+                    </ul>
+                    <h4>"三层一体故事"</h4>
+                    <p>三档干预方案不是三个独立选项，而是<strong>共享同一个核心干预意图</strong>，仅在投入深度上不同。0 元方案是故事的开头，300 元方案是故事的完整表达。这确保了无论预算多少，用户都在同一个叙事中前进。</p>
+                    <h4>Prompt 中的知识融合</h4>
+                    <ul>
+                        <li><strong>空间设计知识</strong>：空间类型学、人体尺度、动线设计、照明设计（3000K 暖光）、材质与纹理</li>
+                        <li><strong>心理学知识</strong>：空间心理学、环境行为学、习惯形成（"坐下 + 打开灯 = 开始工作"）、身体感受意识</li>
+                        <li><strong>经济学知识</strong>：真实成本估算、预算约束感知、摩擦成本设计（第一步 < 2 分钟）</li>
+                        <li><strong>文化知识</strong>：六种风格方向——包豪斯、孟菲斯、新中式、工业风、奶油风、自然绿植</li>
+                    </ul>
+                    <h4>设计禁语</h4>
+                    <p>禁止使用"高级感""质感"等样板间语言。不推荐品牌名以避免商业感。对话式称呼（"你""我注意到你说……"），而非报告式输出。</p>
+                `,
+                en: `
+                    <p>NestAI's underlying metaphor is <strong>"soil, nutrients, pot, and growth."</strong> External inspiration isn't the enemy—it's "nutrients." The real problem is that platform templates don't automatically match users' real people, real spaces, and real constraints.</p>
+                    <h4>Growth Metaphor</h4>
+                    <ul>
+                        <li><strong>Soil</strong>: User behavior, personality, bodily feelings, economic conditions, spatial status</li>
+                        <li><strong>Nutrients</strong>: External inspiration (Pinterest, Xiaohongshu, Instagram)</li>
+                        <li><strong>Pot</strong>: The size of real spatial constraints—the pot determines growth boundaries</li>
+                        <li><strong>Cultivation System</strong>: Design knowledge, spatial psychology, behavioral science</li>
+                        <li><strong>Output</strong>: A visible, executable, maintainable lifestyle</li>
+                    </ul>
+                    <h4>"Three Levels as One Story"</h4>
+                    <p>The three-tier intervention plans aren't three independent options, but <strong>share the same core intervention intent</strong>, differing only in depth of investment. The 0 RMB plan is the story's beginning; the 300 RMB plan is its complete expression. This ensures users advance in the same narrative regardless of budget.</p>
+                    <h4>Knowledge Fusion in Prompts</h4>
+                    <ul>
+                        <li><strong>Spatial Design Knowledge</strong>: Spatial typology, human scale, circulation design, lighting design (3000K warm light), materials and textures</li>
+                        <li><strong>Psychology Knowledge</strong>: Spatial psychology, environmental behavior, habit formation ("sit down + turn on light = start working"), bodily awareness</li>
+                        <li><strong>Economics Knowledge</strong>: Real cost estimation, budget constraint perception, friction cost design (first step < 2 minutes)</li>
+                        <li><strong>Cultural Knowledge</strong>: Six style directions—Bauhaus, Memphis, Neo-Chinese, Industrial, Cream, Natural Greenery</li>
+                    </ul>
+                    <h4>Design Language Prohibitions</h4>
+                    <p>Prohibited: "premium feel," "texture," and other showroom language. No brand recommendations to avoid commercial feel. Conversational address ("you," "I noticed you said...") rather than report-style output.</p>
+                `
+            },
+            images: [
+                { bg: '#fce4ec', label: 'assets/images/dimensions/dim05-metaphor.png' },
+                { bg: '#f8bbd0', label: 'assets/images/dimensions/dim05-growth.png' }
+            ]
+        },
+        {
+            caption: '<span class="zh">维度 06</span><span class="en">Dimension 06</span>',
+            title: '<span class="zh">治理 / 政策</span><span class="en">Governance / Policy</span>',
+            imgColor: 'linear-gradient(135deg, #e0f2f1, #b2dfdb)',
+            imgLabel: 'assets/images/dimensions/dim06.png',
+            content: {
+                zh: `
+                    <p>NestAI 的记忆系统分为前台与后台。<strong>前台</strong>用户看到一封温柔的信；<strong>后台</strong>系统维护结构化的生活方式档案。不展示粗暴标签、不展示 OCEAN 分数、不展示系统内部推断。</p>
+                    <h4>双层记忆系统</h4>
+                    <ul>
+                        <li><strong>短期记忆</strong>（单次会话）：空间分析、对话回答、干预方案、反馈、信件内容</li>
+                        <li><strong>长期记忆</strong>（跨会话累积）：lifestyle profile、偏好、干预历史，以 Markdown + 文件形式存储</li>
+                        <li>长期记忆会被压缩并注入后续会话的 Prompt 中（最多 2200 字符）</li>
+                    </ul>
+                    <h4>治理原则</h4>
+                    <ul>
+                        <li><strong>数据主权</strong>：用户完全控制自己的空间数据与生活方式记忆</li>
+                        <li><strong>隐私保护</strong>：敏感信息不暴露给前端，Vision LLM 禁止识别人物</li>
+                        <li><strong>可解释 AI</strong>：诊断语言温柔、观察式——"这个空间看起来像……""可能需要……""我想确认一下……"</li>
+                        <li><strong>安全优先</strong>：P001 明确禁止心理健康诊断、人格标签、敏感推断</li>
+                    </ul>
+                    <h4>优雅降级</h4>
+                    <ul>
+                        <li>Vision LLM 拒绝时：使用安全降级 Prompt（P001_retry_safe_space）重试</li>
+                        <li>方案生成失败时：返回上下文相关的降级方案</li>
+                        <li>信件生成失败时：返回预写的温暖信件</li>
+                        <li>即使没有 API Key，产品也能正常工作</li>
+                    </ul>
+                    <h4>非评判性设计</h4>
+                    <p>承认"不完整完成"也是有效进展。不设 KPI、不设截止日期、不制造内疚感。CTA 是"今晚试试看"而非"添加到计划"。</p>
+                `,
+                en: `
+                    <p>NestAI's memory system has front-stage and back-stage components. <strong>Front-stage</strong>: Users see a gentle letter. <strong>Back-stage</strong>: System maintains structured lifestyle profiles. No crude labels, no OCEAN scores, no system internal inferences displayed.</p>
+                    <h4>Dual-Layer Memory System</h4>
+                    <ul>
+                        <li><strong>Short-term Memory</strong> (single session): Spatial analysis, dialogue responses, intervention plans, feedback, letter content</li>
+                        <li><strong>Long-term Memory</strong> (cross-session accumulation): Lifestyle profile, preferences, intervention history, stored as Markdown + files</li>
+                        <li>Long-term memory is compressed and injected into subsequent session Prompts (up to 2200 characters)</li>
+                    </ul>
+                    <h4>Governance Principles</h4>
+                    <ul>
+                        <li><strong>Data Sovereignty</strong>: Users have full control over their spatial data and lifestyle memory</li>
+                        <li><strong>Privacy Protection</strong>: Sensitive info not exposed to frontend; Vision LLM prohibited from identifying people</li>
+                        <li><strong>Explainable AI</strong>: Diagnostic language is gentle, observational—"this space looks like..." "might need..." "I want to confirm..."</li>
+                        <li><strong>Safety First</strong>: P001 explicitly prohibits mental health diagnosis, personality labels, sensitive inferences</li>
+                    </ul>
+                    <h4>Graceful Degradation</h4>
+                    <ul>
+                        <li>When Vision LLM refuses: Retry with safe fallback Prompt (P001_retry_safe_space)</li>
+                        <li>When plan generation fails: Return contextually relevant fallback plan</li>
+                        <li>When letter generation fails: Return pre-written warm letter</li>
+                        <li>Product works normally even without API Key</li>
+                    </ul>
+                    <h4>Non-judgmental Design</h4>
+                    <p>Recognize "incomplete completion" as valid progress. No KPIs, no deadlines, no guilt generation. CTA is "try tonight" not "add to plan."</p>
+                `
+            },
+            images: [
+                { bg: '#e0f2f1', label: 'assets/images/dimensions/dim06-privacy.png' },
+                { bg: '#b2dfdb', label: 'assets/images/dimensions/dim06-memory-file.png' }
+            ]
+        }
+    ];
+
+    function openDimension(index) {
+        const d = dimensionData[index];
+        const lang = document.body.classList.contains('lang-en') ? 'en' : 'zh';
+        
+        document.getElementById('modal-caption').innerHTML = d.caption;
+        document.getElementById('modal-title').innerHTML = d.title;
+        document.getElementById('modal-content').innerHTML = d.content[lang] || d.content['zh'];
+        document.getElementById('modal-img-header').style.background = d.imgColor;
+        document.getElementById('modal-img-label').textContent = d.imgLabel;
+        
+        const imgContainer = document.getElementById('modal-images');
+        imgContainer.innerHTML = d.images.map(img => `
+            <div class="dim-modal-img" style="background:${img.bg};">
+                <span class="img-label">${img.label}</span>
+            </div>
+        `).join('');
+        
+        document.getElementById('dim-modal-overlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        
+        // Reset scroll to top when opening modal
+        const modalBody = document.querySelector('.dim-modal-body');
+        if (modalBody) modalBody.scrollTop = 0;
+    }
+
+    function closeDimension(e) {
+        if (e && e.target !== e.currentTarget && e.target.closest('.dim-modal-close') === null) return;
+        document.getElementById('dim-modal-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDimension();
+    });
+
+    // ── Journey Infinite Carousel ──
+    let journeyIndex = 0;
+    const journeyCards = document.querySelectorAll('.journey-card-phone');
+    const journeyDotsContainer = document.getElementById('journey-dots');
+    const journeyDescTitle = document.getElementById('journey-desc-title');
+    const journeyDescText = document.getElementById('journey-desc-text');
+    const totalCards = journeyCards.length;
+    let isAnimating = false;
+
+    // Step descriptions for each card
+    const stepDescriptions = [
+        {
+            title: '打开 NestAI',
+            titleEn: 'Open NestAI',
+            desc: 'Grow / Next / Me 三大 Tab 引导用户进入空间生活方式生长之旅。',
+            descEn: 'Three tabs guide users into the journey of spatial lifestyle growth.'
+        },
+        {
+            title: '上传真实空间',
+            titleEn: 'Upload Your Space',
+            desc: '拍照或上传房间、桌面、角落。AI 通过 Vision LLM 理解空间结构与物件布局。',
+            descEn: 'Take photos of your room, desk, or corner. AI understands space structure via Vision LLM.'
+        },
+        {
+            title: 'Lifestyle Chat',
+            titleEn: 'Lifestyle Conversation',
+            desc: '不是收集装修条件，而是理解你想怎么生活。AI 生成动态问卷。',
+            descEn: 'Not collecting renovation needs, but understanding how you want to live. AI generates dynamic questions.'
+        },
+        {
+            title: '三档干预方案',
+            titleEn: 'Three Intervention Plans',
+            desc: '0 元调整 / 低成本软装 / 进阶改造。改造效果图锚定原始空间，不脱离现实。',
+            descEn: 'Zero-cost / Low-cost soft decoration / Advanced renovation. Effects anchored to your real space.'
+        },
+        {
+            title: '今晚试试看',
+            titleEn: 'Try Tonight',
+            desc: '收藏到 Next 行动夹。选择一个轻量行动，今晚就可以开始。',
+            descEn: 'Save to Next action folder. Choose a light action and start tonight.'
+        },
+        {
+            title: '拍照反馈',
+            titleEn: 'Photo Feedback',
+            desc: '执行后拍照记录真实改变。以照片为主、文字感受为辅，形成空间干预记录。',
+            descEn: 'Take photos to record real changes. Photos primary, text secondary, forming intervention records.'
+        },
+        {
+            title: '记忆与生长',
+            titleEn: 'Memory & Growth',
+            desc: 'NestAI 生成一封回信，记录这次变化，并给出下一个 Next。循环继续。',
+            descEn: 'NestAI generates a gentle letter, records the change, and suggests the next Next. Cycle continues.'
+        }
+    ];
+
+    // Create dots
+    journeyCards.forEach((_, i) => {
+        const dot = document.createElement('button');
+        dot.className = 'journey-dot' + (i === 0 ? ' active' : '');
+        dot.onclick = () => goToJourney(i);
+        journeyDotsContainer.appendChild(dot);
+    });
+
+    function getCircularIndex(index) {
+        return ((index % totalCards) + totalCards) % totalCards;
+    }
+
+    function updateJourneyCarousel() {
+        const currentIndex = getCircularIndex(journeyIndex);
+        const leftIndex = getCircularIndex(journeyIndex - 1);
+        const rightIndex = getCircularIndex(journeyIndex + 1);
+
+        journeyCards.forEach((card, i) => {
+            card.classList.remove('active', 'side-left', 'side-right', 'hidden');
+            
+            if (i === currentIndex) {
+                card.classList.add('active');
+            } else if (i === leftIndex) {
+                card.classList.add('side-left');
+            } else if (i === rightIndex) {
+                card.classList.add('side-right');
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        // Update dots
+        const dots = journeyDotsContainer.querySelectorAll('.journey-dot');
+        dots.forEach((dot, i) => dot.classList.toggle('active', i === currentIndex));
+
+        // Update description with fade
+        const descEl = document.getElementById('journey-desc');
+        descEl.style.opacity = '0';
+        setTimeout(() => {
+            const info = stepDescriptions[currentIndex];
+            journeyDescTitle.innerHTML = `<span class="zh">${info.title}</span><span class="en">${info.titleEn}</span>`;
+            journeyDescText.innerHTML = `<span class="zh">${info.desc}</span><span class="en">${info.descEn}</span>`;
+            descEl.style.opacity = '1';
+        }, 200);
+    }
+
+    function slideJourney(direction) {
+        if (isAnimating) return;
+        isAnimating = true;
+        
+        journeyIndex += direction;
+        updateJourneyCarousel();
+        
+        setTimeout(() => {
+            isAnimating = false;
+        }, 600);
+    }
+
+    function goToJourney(index) {
+        if (isAnimating || index === getCircularIndex(journeyIndex)) return;
+        isAnimating = true;
+        
+        journeyIndex = index;
+        updateJourneyCarousel();
+        
+        setTimeout(() => {
+            isAnimating = false;
+        }, 600);
+    }
+
+    // Initialize carousel
+    updateJourneyCarousel();
+
+    // ── Desktop drag + momentum swipe ──
+    const carousel = document.querySelector('.journey-carousel');
+    let jDragStartX = 0, jDragDelta = 0, jDragging = false, jVelX = 0;
+    let jLastX = 0, jLastTime = 0, jMomentumID;
+
+    function jCancelMomentum() { cancelAnimationFrame(jMomentumID); }
+
+    function jMomentumLoop() {
+        if (Math.abs(jVelX) > 0.3) {
+            slideJourney(jVelX > 0 ? -1 : 1);
+        }
+        jVelX = 0;
+    }
+
+    carousel.addEventListener('mousedown', (e) => {
+        if (isAnimating) return;
+        jDragging = true;
+        jDragStartX = e.clientX;
+        jLastX = e.clientX;
+        jLastTime = Date.now();
+        jDragDelta = 0;
+        jCancelMomentum();
+        carousel.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!jDragging) return;
+        const dx = e.clientX - jDragStartX;
+        jDragDelta = dx;
+        const now = Date.now();
+        const dt = now - jLastTime;
+        if (dt > 0) jVelX = (e.clientX - jLastX) / dt * 16;
+        jLastX = e.clientX;
+        jLastTime = now;
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!jDragging) return;
+        jDragging = false;
+        carousel.style.cursor = '';
+        if (Math.abs(jDragDelta) > 40) {
+            slideJourney(jDragDelta < 0 ? 1 : -1);
+        } else if (Math.abs(jVelX) > 2) {
+            jMomentumID = requestAnimationFrame(jMomentumLoop);
+        }
+    });
+
+    // ── Touch/swipe support for mobile ──
+    let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+
+    carousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].clientX;
+        touchStartY = e.changedTouches[0].clientY;
+        touchStartTime = Date.now();
+    }, { passive: true });
+
+    carousel.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const dx = touchStartX - touchEndX;
+        const dy = touchStartY - touchEndY;
+        const dt = Date.now() - touchStartTime;
+        // Only horizontal swipes (not vertical scroll)
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30 && dt < 500) {
+            slideJourney(dx > 0 ? 1 : -1);
+        }
+    }, { passive: true });
+
+    // ── Keyboard navigation ──
+    carousel.setAttribute('tabindex', '0');
+    carousel.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') slideJourney(-1);
+        if (e.key === 'ArrowRight') slideJourney(1);
+    });
+
+    // ── Roadmap Momentum Scroll ──
+    const roadmapTrack = document.getElementById('roadmap-track');
+    let isDown = false, startX, scrollLeft, velX;
+    let momentumID;
+
+    roadmapTrack.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startX = e.pageX - roadmapTrack.offsetLeft;
+        scrollLeft = roadmapTrack.scrollLeft;
+        cancelMomentum();
+    });
+    roadmapTrack.addEventListener('mouseleave', () => { isDown = false; });
+    roadmapTrack.addEventListener('mouseup', () => { 
+        isDown = false; 
+        beginMomentum();
+    });
+    roadmapTrack.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - roadmapTrack.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        velX = roadmapTrack.scrollLeft - (scrollLeft - walk);
+        roadmapTrack.scrollLeft = scrollLeft - walk;
+    });
+
+    function beginMomentum() {
+        cancelMomentum();
+        momentumID = requestAnimationFrame(momentumLoop);
+    }
+    function cancelMomentum() {
+        cancelAnimationFrame(momentumID);
+    }
+    function momentumLoop() {
+        roadmapTrack.scrollLeft += velX * 0.08;
+        velX *= 0.95;
+        if (Math.abs(velX) > 0.5) momentumID = requestAnimationFrame(momentumLoop);
+    }
+
+    // ── Prompt Detail Modal ──
+    const promptDetailData = [
+        {
+            badge: 'P001',
+            title: '<span class="zh">空间分析</span><span class="en">Space Analysis</span>',
+            content: {
+                zh: `
+                    <h4>核心任务</h4>
+                    <p>通过 Vision LLM（GPT-4o）分析用户上传的空间照片，理解空间结构、物件布局、光照条件、氛围特征，并生成<strong>生活方式线索假设</strong>。</p>
+
+                    <div class="knowledge-block">
+                        <h5>空间设计知识</h5>
+                        <p>空间类型学识别（卧室、桌面、客厅角落、工作区、床头、收纳区）；功能分析（学习、工作、休息、创作、化妆、收纳、展示、社交）；物件密度评估；照明分析（自然光/人工光、暖光/冷光、昏暗/充足）；收纳方式分类（开放展示/隐藏收纳/临时堆叠/分区/混合）；视觉氛围读取。</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>心理学知识</h5>
+                        <p>身体感受意识：冷、热、亮度、噪音、杂乱、压迫感、放松感。输出语言采用观察式而非诊断式——"这个空间看起来像……""可能需要……""我想确认一下……"。</p>
+                    </div>
+
+                    <h4>安全约束</h4>
+                    <ul>
+                        <li class="ban-item">禁止识别人物面部或身份信息</li>
+                        <li class="ban-item">禁止心理健康诊断</li>
+                        <li class="ban-item">禁止使用人格标签（MBTI、OCEAN 等）</li>
+                        <li class="ban-item">禁止敏感推断（政治、宗教、性取向等）</li>
+                    </ul>
+
+                    <h4>输出结构</h4>
+                    <ul>
+                        <li>空间概览（类型、功能、氛围）</li>
+                        <li>物件与布局分析</li>
+                        <li>光照与通风评估</li>
+                        <li>生活方式线索假设（FACT / INFERENCE / SPECULATION 三级）</li>
+                        <li>干预机会识别（按 0 元 / 低成本 / 进阶三档）</li>
+                    </ul>
+
+                    <h4>降级机制</h4>
+                    <p>当 Vision LLM 拒绝分析时，自动切换至 P001_retry_safe_space——一个剥离了所有个人推断的安全 Prompt，仅输出通用空间观察和绝对安全的后续问题。</p>
+                `,
+                en: `
+                    <h4>Core Task</h4>
+                    <p>Analyze user-uploaded spatial photos via Vision LLM (GPT-4o) to understand spatial structure, object layout, lighting conditions, and atmosphere characteristics, generating <strong>lifestyle clue hypotheses</strong>.</p>
+
+                    <div class="knowledge-block">
+                        <h5>Spatial Design Knowledge</h5>
+                        <p>Spatial typology recognition (bedroom, desk, living room corner, workspace, bedside, storage area); functional analysis (study, work, rest, creation, makeup, storage, display, social); object density assessment; lighting analysis (natural/artificial, warm/cool, dim/bright); storage method classification (open display/hidden storage/temporary stacking/zoning/mixed); visual atmosphere reading.</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>Psychology Knowledge</h5>
+                        <p>Bodily awareness: cold, hot, brightness, noise, clutter, oppression, relaxation. Output language is observational rather than diagnostic—"this space looks like..." "might need..." "I want to confirm..."</p>
+                    </div>
+
+                    <h4>Safety Constraints</h4>
+                    <ul>
+                        <li class="ban-item">Prohibited from identifying faces or personal information</li>
+                        <li class="ban-item">Prohibited from mental health diagnosis</li>
+                        <li class="ban-item">Prohibited from using personality labels (MBTI, OCEAN, etc.)</li>
+                        <li class="ban-item">Prohibited from sensitive inferences (politics, religion, sexual orientation, etc.)</li>
+                    </ul>
+
+                    <h4>Output Structure</h4>
+                    <ul>
+                        <li>Spatial overview (type, function, atmosphere)</li>
+                        <li>Object and layout analysis</li>
+                        <li>Lighting and ventilation assessment</li>
+                        <li>Lifestyle clue hypotheses (FACT / INFERENCE / SPECULATION three levels)</li>
+                        <li>Intervention opportunity identification (by 0 RMB / low cost / advanced tiers)</li>
+                    </ul>
+
+                    <h4>Fallback Mechanism</h4>
+                    <p>When Vision LLM refuses analysis, automatically switch to P001_retry_safe_space—a safe Prompt stripped of all personal inferences, outputting only generic spatial observations and absolutely safe follow-up questions.</p>
+                `
+            }
+        },
+        {
+            badge: 'P002',
+            title: '<span class="zh">干预规划</span><span class="en">Intervention Plan</span>',
+            content: {
+                zh: `
+                    <h4>核心任务</h4>
+                    <p>基于空间分析和生活方式对话结果，生成<strong>三档干预方案</strong>。核心设计原则："三层一体故事"——三档方案共享同一个核心干预意图，仅在投入深度上不同。</p>
+
+                    <div class="knowledge-block">
+                        <h5>"三层一体故事"</h5>
+                        <p>0 元方案是故事的开头，100 元方案是故事的发展，300 元方案是故事的完整表达。无论预算多少，用户都在同一个叙事中前进。这避免了传统工具"便宜方案和贵方案完全无关"的问题。</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>空间动词系统</h5>
+                        <p>具体的空间动作词汇：移动、清理、分组、添加、分隔、柔化、提亮、收纳、展示。每个动词对应可执行的空间操作，而非抽象的设计概念。</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>摩擦成本设计</h5>
+                        <p>第一步的摩擦成本必须接近零——"坐下 + 打开灯 = 开始工作"。每个方案的第一步必须在 2 分钟内可完成。行为经济学中的"微习惯"理论被编码到方案生成逻辑中。</p>
+                    </div>
+
+                    <h4>四层信息确定性</h4>
+                    <ul>
+                        <li><strong>FACT</strong>：图片中可见的、可信度最高（如"桌上有电脑"）</li>
+                        <li><strong>INFERENCE</strong>：一层推理、中等可信度（如"这个角落可能用于工作"）</li>
+                        <li><strong>SPECULATION</strong>：两层推理、低可信度（如"用户可能喜欢安静的环境"）</li>
+                        <li><strong>INTERVENTION CANDIDATES</strong>：待验证的行动建议</li>
+                    </ul>
+
+                    <h4>经济约束</h4>
+                    <ul>
+                        <li>0 元档：移动、清理、重组现有物件</li>
+                        <li>100 元以内：桌面收纳盒（~30 元）、暖光灯（~60-150 元）</li>
+                        <li>100-300 元：小地毯、抱枕、小植物、挂画</li>
+                    </ul>
+
+                    <h4>风格方向</h4>
+                    <p>包豪斯（几何、功能）、孟菲斯（色彩、趣味）、新中式（木质、素雅）、工业风（金属、粗犷）、奶油风（温暖、柔和）、自然绿植（植物、自然材质）。</p>
+                `,
+                en: `
+                    <h4>Core Task</h4>
+                    <p>Based on spatial analysis and lifestyle conversation results, generate <strong>three-tier intervention plans</strong>. Core design principle: "Three Levels as One Story"—three tiers share the same core intervention intent, differing only in depth of investment.</p>
+
+                    <div class="knowledge-block">
+                        <h5>"Three Levels as One Story"</h5>
+                        <p>The 0 RMB plan is the story's beginning, the 100 RMB plan is its development, and the 300 RMB plan is its complete expression. Regardless of budget, users advance in the same narrative. This avoids the problem of traditional tools where "cheap and expensive plans are completely unrelated."</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>Spatial Verb System</h5>
+                        <p>Specific spatial action vocabulary: move, clean, group, add, separate, soften, brighten, store, display. Each verb corresponds to executable spatial operations, not abstract design concepts.</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>Friction Cost Design</h5>
+                        <p>The first step's friction cost must approach zero—"sit down + turn on light = start working." Each plan's first step must be completable within 2 minutes. Behavioral economics "micro-habit" theory is encoded into the plan generation logic.</p>
+                    </div>
+
+                    <h4>Four-Layer Certainty</h4>
+                    <ul>
+                        <li><strong>FACT</strong>: Visible in image, highest credibility (e.g., "computer on desk")</li>
+                        <li><strong>INFERENCE</strong>: One-level reasoning, medium credibility (e.g., "this corner might be used for work")</li>
+                        <li><strong>SPECULATION</strong>: Two-level reasoning, low credibility (e.g., "user might prefer quiet environments")</li>
+                        <li><strong>INTERVENTION CANDIDATES</strong>: Action suggestions pending validation</li>
+                    </ul>
+
+                    <h4>Economic Constraints</h4>
+                    <ul>
+                        <li>0 RMB tier: Move, clean, reorganize existing objects</li>
+                        <li>Under 100 RMB: Desktop organizer (~30 RMB), warm light (~60-150 RMB)</li>
+                        <li>100-300 RMB: Small rug, throw pillows, small plants, wall art</li>
+                    </ul>
+
+                    <h4>Style Directions</h4>
+                    <p>Bauhaus (geometric, functional), Memphis (colorful, playful), Neo-Chinese (wooden, elegant), Industrial (metal, rugged), Cream (warm, soft), Natural Greenery (plants, natural materials).</p>
+                `
+            }
+        },
+        {
+            badge: 'P003',
+            title: '<span class="zh">反思信件</span><span class="en">Reflection Letter</span>',
+            content: {
+                zh: `
+                    <h4>核心任务</h4>
+                    <p>在用户完成一次空间干预并拍照反馈后，AI 生成一封<strong>温柔的回信</strong>。这封信不是报告、不是评分、不是 KPI 总结，而是一个"懂空间也懂生活节奏的朋友"写来的。</p>
+
+                    <div class="knowledge-block">
+                        <h5>叙事设计原则</h5>
+                        <p>聚焦 1-3 个最有意义的改变，而非罗列所有操作。承认"不完整完成"也是有效进展——不设 KPI、不设截止日期、不制造内疚感。信的结尾给出一个自然的下一步建议（5-15 分钟、可达成）。</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>心理学约束</h5>
+                        <p>禁止人格标签、禁止 OCEAN 分数展示、禁止系统内部推断暴露。前台用户只看到一封温暖的信，后台系统维护结构化的生活方式档案。CTA 是"今晚试试看"而非"添加到计划"。</p>
+                    </div>
+
+                    <h4>信件结构</h4>
+                    <ul>
+                        <li>开场：回顾这次空间行动的背景</li>
+                        <li>发现：1-3 个最有意义的改变</li>
+                        <li>连接：将空间变化与生活方式联系起来</li>
+                        <li>下一步：一个自然的、5-15 分钟可完成的建议</li>
+                        <li>结尾：温暖的鼓励，不制造压力</li>
+                    </ul>
+
+                    <h4>降级机制</h4>
+                    <p>如果 LLM 生成失败，返回一封预写的温暖信件。即使没有 AI 能力，用户依然能收到有意义的反馈。</p>
+                `,
+                en: `
+                    <h4>Core Task</h4>
+                    <p>After users complete a spatial intervention and upload photo feedback, AI generates a <strong>gentle reply letter</strong>. This letter is not a report, not a score, not a KPI summary—but from a "friend who understands both space and life rhythm."</p>
+
+                    <div class="knowledge-block">
+                        <h5>Narrative Design Principles</h5>
+                        <p>Focus on 1-3 most meaningful changes, rather than listing all operations. Recognize "incomplete completion" as valid progress—no KPIs, no deadlines, no guilt generation. The letter ends with a natural next-step suggestion (5-15 minutes, achievable).</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>Psychology Constraints</h5>
+                        <p>Prohibited personality labels, prohibited OCEAN score display, prohibited system internal inference exposure. Front-stage users only see a warm letter; back-stage system maintains structured lifestyle profiles. CTA is "try tonight" not "add to plan."</p>
+                    </div>
+
+                    <h4>Letter Structure</h4>
+                    <ul>
+                        <li>Opening: Review the context of this spatial action</li>
+                        <li>Discovery: 1-3 most meaningful changes</li>
+                        <li>Connection: Connect spatial changes to lifestyle</li>
+                        <li>Next Step: A natural, 5-15 minute completable suggestion</li>
+                        <li>Closing: Warm encouragement, no pressure</li>
+                    </ul>
+
+                    <h4>Fallback Mechanism</h4>
+                    <p>If LLM generation fails, return a pre-written warm letter. Even without AI capabilities, users can still receive meaningful feedback.</p>
+                `
+            }
+        },
+        {
+            badge: 'P004',
+            title: '<span class="zh">图生图 Prompt</span><span class="en">Image Prompt Translation</span>',
+            content: {
+                zh: `
+                    <h4>核心任务</h4>
+                    <p>将 P002 生成的干预方案转译为 ControlNet 图像生成指令。这是设计知识最密集的 Prompt——需要精确控制材质、光照、物件、风格，同时严格遵守建筑保真约束。</p>
+
+                    <div class="knowledge-block">
+                        <h5>六种风格方向</h5>
+                        <p><strong>包豪斯</strong>：几何构成、原色点缀、管状线性细节、干净任务照明。<strong>孟菲斯</strong>：趣味色块、圆润/几何装饰、表现力点缀。<strong>新中式</strong>：暖木、亚麻、纸/陶瓷细节、宁静构图。<strong>工业风</strong>：黑色金属、开放搁架、任务灯、原始纹理。<strong>奶油风</strong>：暖白调、柔软纺织品、圆润灯具、温和木质。<strong>自然绿植</strong>：真实植物、自然材质、日光。</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>锚定物件词汇</h5>
+                        <p>暖光灯、紧凑座椅/凳子、小植物、靠垫/纺织品、托盘、海报、收纳篮、边桌、桌面收纳盒。这些是"可执行"的物件——用户真的能买到并放置。</p>
+                    </div>
+
+                    <h4>建筑保真硬约束</h4>
+                    <ul>
+                        <li class="ban-item">不改变墙面颜色</li>
+                        <li class="ban-item">不改变地板材质</li>
+                        <li class="ban-item">不改变窗户位置</li>
+                        <li class="ban-item">不改变门的位置</li>
+                        <li class="ban-item">不改变天花板</li>
+                        <li class="ban-item">不改变空间平面布局</li>
+                        <li class="ban-item">不脱离原环境做理想化照明渲染</li>
+                    </ul>
+
+                    <h4>设计禁语</h4>
+                    <ul>
+                        <li class="ban-item">禁止"高级感""质感""奢华"等样板间语言</li>
+                        <li class="ban-item">禁止推荐品牌名（避免商业感）</li>
+                        <li class="ban-item">禁止将空间过度风格化为展示间</li>
+                        <li>保持原始空间可识别、有生活痕迹</li>
+                    </ul>
+
+                    <h4>档位约束</h4>
+                    <ul>
+                        <li>0 元档：只展示移动/清理/重组后的效果</li>
+                        <li>100 元档：可添加小物件（收纳盒、台灯、小植物）</li>
+                        <li>300 元档：可添加软装（地毯、抱枕、挂画、窗帘）</li>
+                    </ul>
+                `,
+                en: `
+                    <h4>Core Task</h4>
+                    <p>Translate P002-generated intervention plans into ControlNet image generation instructions. This is the most design-knowledge-intensive Prompt—requiring precise control of materials, lighting, objects, and style, while strictly adhering to architectural fidelity constraints.</p>
+
+                    <div class="knowledge-block">
+                        <h5>Six Style Directions</h5>
+                        <p><strong>Bauhaus</strong>: Geometric composition, primary color accents, tubular linear details, clean task lighting. <strong>Memphis</strong>: Playful color blocks, rounded/geometric decorations, expressive accents. <strong>Neo-Chinese</strong>: Warm wood, linen, paper/ceramic details, serene composition. <strong>Industrial</strong>: Black metal, open shelving, task lights, raw textures. <strong>Cream</strong>: Warm white tones, soft textiles, rounded fixtures, gentle wood. <strong>Natural Greenery</strong>: Real plants, natural materials, daylight.</p>
+                    </div>
+
+                    <div class="knowledge-block">
+                        <h5>Anchor Object Vocabulary</h5>
+                        <p>Warm lights, compact seating/stools, small plants, cushions/textiles, trays, posters, storage baskets, side tables, desktop organizers. These are "executable" objects—users can really buy and place them.</p>
+                    </div>
+
+                    <h4>Architectural Fidelity Hard Constraints</h4>
+                    <ul>
+                        <li class="ban-item">No wall color changes</li>
+                        <li class="ban-item">No floor material changes</li>
+                        <li class="ban-item">No window position changes</li>
+                        <li class="ban-item">No door position changes</li>
+                        <li class="ban-item">No ceiling changes</li>
+                        <li class="ban-item">No spatial layout changes</li>
+                        <li class="ban-item">No idealized lighting rendering脱离原环境</li>
+                    </ul>
+
+                    <h4>Design Language Prohibitions</h4>
+                    <ul>
+                        <li class="ban-item">Prohibited: "premium feel," "texture," "luxury" and other showroom language</li>
+                        <li class="ban-item">Prohibited brand recommendations (to avoid commercial feel)</li>
+                        <li class="ban-item">Prohibited over-stylizing space into showrooms</li>
+                        <li>Maintain original space recognizable, with life traces</li>
+                    </ul>
+
+                    <h4>Tier Constraints</h4>
+                    <ul>
+                        <li>0 RMB tier: Only show effects after moving/cleaning/reorganizing</li>
+                        <li>100 RMB tier: Can add small objects (organizers, desk lamps, small plants)</li>
+                        <li>300 RMB tier: Can add soft decoration (rugs, pillows, wall art, curtains)</li>
+                    </ul>
+                `
+            }
+        }
+    ];
+
+    function openPromptModal(index) {
+        const d = promptDetailData[index];
+        const lang = document.body.classList.contains('lang-en') ? 'en' : 'zh';
+        
+        document.getElementById('pm-badge').textContent = d.badge;
+        document.getElementById('pm-title').innerHTML = d.title;
+        document.getElementById('pm-body').innerHTML = d.content[lang] || d.content['zh'];
+        document.getElementById('prompt-modal-overlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        document.getElementById('pm-body').scrollTop = 0;
+    }
+
+    function closePromptModal(e) {
+        if (e && e.target !== e.currentTarget && e.target.closest('.prompt-modal-close') === null) return;
+        document.getElementById('prompt-modal-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePromptModal();
+    });
+
+    // ── Apple-style Scroll Reveal ──
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    // Add reveal class to section headers
+    document.querySelectorAll('.section-header').forEach(header => {
+        const caption = header.querySelector('.caption');
+        const h2 = header.querySelector('h2');
+        const p = header.querySelector('p');
+        if (caption) caption.classList.add('reveal');
+        if (h2) h2.classList.add('reveal');
+        if (p) p.classList.add('reveal');
+        [caption, h2, p].forEach(el => { if (el) revealObserver.observe(el); });
+    });
+
+    // Add reveal to cards with stagger
+    document.querySelectorAll('.feed-card').forEach((card, i) => {
+        card.classList.add('reveal', `reveal-delay-${Math.min(i % 4 + 1, 6)}`);
+        revealObserver.observe(card);
+    });
+    document.querySelectorAll('.dim-card').forEach((card, i) => {
+        card.classList.add('reveal', `reveal-delay-${i + 1}`);
+        revealObserver.observe(card);
+    });
+    document.querySelectorAll('.prompt-card').forEach((card, i) => {
+        card.classList.add('reveal', `reveal-delay-${i + 1}`);
+        revealObserver.observe(card);
+    });
+    document.querySelectorAll('.workflow-step').forEach((step, i) => {
+        step.classList.add('reveal', `reveal-delay-${i + 1}`);
+        revealObserver.observe(step);
+    });
+    document.querySelectorAll('.arch-layer').forEach((layer, i) => {
+        layer.classList.add('reveal', `reveal-delay-${i + 1}`);
+        revealObserver.observe(layer);
+    });
+    document.querySelectorAll('.ds-card').forEach((card, i) => {
+        card.classList.add('reveal', `reveal-delay-${i + 1}`);
+        revealObserver.observe(card);
+    });
+    document.querySelectorAll('.painpoints-subsection').forEach(el => {
+        el.classList.add('reveal');
+        revealObserver.observe(el);
+    });
+    document.querySelectorAll('.subsection-title').forEach(el => {
+        el.classList.add('reveal');
+        revealObserver.observe(el);
+    });
+    document.querySelectorAll('.workflow-fallback').forEach(el => {
+        el.classList.add('reveal');
+        revealObserver.observe(el);
+    });
+    document.querySelectorAll('.arch-diagram').forEach(el => {
+        el.classList.add('reveal');
+        revealObserver.observe(el);
+    });
+
+    // ── Nav scroll effect ──
+    const navEl = document.querySelector('nav');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 20) {
+            navEl.classList.add('scrolled');
+        } else {
+            navEl.classList.remove('scrolled');
+        }
+    }, { passive: true });
+
+    // ── Smooth Scroll Nav ──
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // ── Language Toggle System ──
+    let currentLang = localStorage.getItem('nestai-lang') || 'zh';
+
+    function applyLanguage() {
+        const body = document.body;
+        const langBtn = document.getElementById('lang-current');
+
+        if (currentLang === 'en') {
+            body.classList.add('lang-en');
+            if (langBtn) langBtn.textContent = 'EN';
+        } else {
+            body.classList.remove('lang-en');
+            if (langBtn) langBtn.textContent = '中文';
+        }
+    }
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        localStorage.setItem('nestai-lang', currentLang);
+        applyLanguage();
+    }
+
+    // Initialize language on page load
+    applyLanguage();
+</script>
+</body>
+</html>

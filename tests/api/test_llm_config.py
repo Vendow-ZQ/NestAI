@@ -1,4 +1,4 @@
-"""Check LLM configuration loading without printing secrets."""
+﻿"""Check LLM configuration loading without printing secrets."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
-SERVER_DIR = PROJECT_DIR / "python-server"
+SERVER_DIR = PROJECT_DIR / "backend"
 sys.path.insert(0, str(SERVER_DIR))
 
 
@@ -44,3 +44,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
