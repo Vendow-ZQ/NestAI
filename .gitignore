@@ -47,6 +47,7 @@ debug_vision.log
 backup/
 fix/
 resources/
+tmp/
 
 # Editor directories and files
 .idea/

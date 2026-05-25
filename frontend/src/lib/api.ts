@@ -113,6 +113,31 @@ export function apiUrl(path: string): string {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
 }
 
+export function mediaUrl(url: string): string {
+  if (!url || url.startsWith('blob:') || url.startsWith('data:') || /^https?:\/\//i.test(url)) {
+    return url
+  }
+  if (url.startsWith('/uploads/')) {
+    return apiUrl(url)
+  }
+  return url
+}
+
+function normalizeMediaUrls<T>(value: T): T {
+  if (typeof value === 'string') {
+    return mediaUrl(value) as T
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeMediaUrls(item)) as T
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, normalizeMediaUrls(item)]),
+    ) as T
+  }
+  return value
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response
   try {
@@ -138,7 +163,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error('Empty response from API')
   }
 
-  return payload.data
+  return normalizeMediaUrls(payload.data)
 }
 
 export const api = {
