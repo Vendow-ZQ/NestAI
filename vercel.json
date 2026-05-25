@@ -1,7 +1,7 @@
 {
   "framework": "vite",
-  "installCommand": "corepack enable && corepack prepare pnpm@9.0.0 --activate && pnpm install",
-  "buildCommand": "pnpm --dir frontend build",
+  "installCommand": "npx pnpm@9.0.0 --dir frontend install --frozen-lockfile",
+  "buildCommand": "npx pnpm@9.0.0 --dir frontend build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
