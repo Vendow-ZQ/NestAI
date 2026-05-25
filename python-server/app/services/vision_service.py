@@ -17,6 +17,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.core.config import get_settings, load_llm_configs
 from app.core.llm_manager import llm_manager
+from app.services.storage_service import get_storage_service
 
 
 class VisionService:
@@ -47,15 +48,9 @@ class VisionService:
         return self._model
 
     def encode_image(self, image_path: str) -> str:
-        """Encode a locally uploaded image URL/path as base64."""
-        relative_path = image_path[9:] if image_path.startswith("/uploads/") else image_path
-        full_path = Path(self.settings.upload_dir) / relative_path
-
-        if not full_path.exists():
-            raise FileNotFoundError(f"Image not found: {full_path}")
-
-        with open(full_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode("utf-8")
+        """Encode an uploaded image URL/path as base64."""
+        content, _mime_type = get_storage_service().read_bytes(image_path)
+        return base64.b64encode(content).decode("utf-8")
 
     async def analyze_space_image(
         self,

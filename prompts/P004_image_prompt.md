@@ -17,6 +17,23 @@ Use the before-image as the fixed visual base. Preserve the original camera angl
 
 Only visualize changes that are supported by the selected action text. The generated image should feel like the same room after the user followed the selected action plan.
 
+## Style Direction Rule
+
+The output must not be a generic "slightly tidier" room unless the selected tier is strictly `free`.
+
+For `low` and `advanced`, choose one clear but feasible interior style direction that fits the user's memory, questionnaire answers, and current room:
+
+- Bauhaus: geometric clarity, primary-color accents, tubular/linear details, clean task lighting.
+- Memphis: playful color blocks, rounded/geometric decor, expressive but controlled accents.
+- New Chinese: warm wood, linen, paper/ceramic details, calm composition, subtle traditional references.
+- Industrial: black metal, exposed functional shelving, task lamp, utilitarian storage, raw textures.
+- Cream: warm off-white palette, soft textiles, rounded lamp, gentle wood tones.
+- Biophilic/greenery: one or two realistic plants, natural materials, daylight, breathable arrangement.
+
+Name the chosen style explicitly inside `<style_direction>`. The style must be visible in the generated image through lighting, palette, materials, and 1-3 realistic anchor objects. Examples of anchor objects: a warm lamp, a compact chair/stool, a small plant, a cushion/textile, a tray, a poster, a storage basket, a side table, or a desk organizer.
+
+Do not over-style the room into a showroom. Keep the original space recognizable and lived-in.
+
 ## Prompt Style
 
 Each output prompt should be XML-like, similar to Prompt5, so it can clearly separate:
@@ -53,7 +70,8 @@ Translate low-cost actions:
 
 - small tray, basket, hook, box, cable organizer, desk organizer
 - simple warm lamp or light-temperature adjustment
-- small textile, cushion, mat, or plant only if the action text mentions it
+- one clear style anchor object if it fits the selected direction: lamp, compact chair/stool, plant, cushion/textile, poster, basket, tray, or desk organizer
+- small textile, cushion, mat, or plant when consistent with the selected style direction
 - modest rearrangement without renovation
 
 Do not replace large furniture, renovate walls/floors, add built-ins, or make the room look expensive.
@@ -104,9 +122,13 @@ The `render1` prompt must include this structure:
   <selected_intervention>
     Translate the selected action text into visible, realistic spatial changes.
   </selected_intervention>
+  <style_direction>
+    Choose and name one visible style direction from Bauhaus, Memphis, New Chinese, Industrial, Cream, or Biophilic/greenery. Express it through palette, lighting, materials, and 1-3 realistic anchor objects while keeping the same room.
+  </style_direction>
   <rendering_requirements>
     <item>Photorealistic interior edit.</item>
     <item>Natural lighting and realistic materials.</item>
+    <item>The image should have a clearly perceivable style upgrade, not only small object placement.</item>
     <item>Output only the transformed after-image.</item>
   </rendering_requirements>
   <negative_constraints>

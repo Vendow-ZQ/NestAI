@@ -1,18 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
+import { ImageLightbox } from '@/components/ImageLightbox'
+import { NobiWorking } from '@/components/NobiWorking'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
 import { api, type InterventionItem, type Level, type SessionData } from '@/lib/api'
 import { useInterventionStore } from '@/stores/intervention-store'
-
-type ImageTab = 'axonometric' | 'render1' | 'render2'
-
-const IMAGE_TABS: { key: ImageTab; label: string; en: string }[] = [
-  { key: 'axonometric', label: '轴测图', en: 'AXONOMETRIC' },
-  { key: 'render1', label: '效果图', en: 'RENDER' },
-  { key: 'render2', label: '细节图', en: 'DETAIL' },
-]
 
 const LEVELS: { key: Level; label: string; en: string }[] = [
   { key: 'free', label: '0 元', en: 'FREE' },
@@ -31,6 +25,39 @@ const EMPTY_ITEM: InterventionItem = {
   costRange: '0 元',
 }
 
+function ResultImageSlide({
+  image,
+  onOpen,
+}: {
+  image: { key: string; src: string; label: string }
+  onOpen: () => void
+}) {
+  const [aspectRatio, setAspectRatio] = useState('4 / 3')
+
+  return (
+    <button
+      type="button"
+      className="result-image-slide nest-media-stage"
+      style={{ aspectRatio }}
+      onClick={onOpen}
+    >
+      <img
+        src={image.src}
+        alt={image.label}
+        className="result-image"
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+        onLoad={(event) => {
+          const img = event.currentTarget
+          setAspectRatio(img.naturalHeight > img.naturalWidth ? '3 / 4' : '4 / 3')
+        }}
+      />
+      <span className="result-image-badge">{image.label}</span>
+    </button>
+  )
+}
+
 export default function ResultPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -39,10 +66,11 @@ export default function ResultPage() {
   const initialLevel = levelParam && ['free', 'low', 'advanced'].includes(levelParam) ? levelParam : 'low'
 
   const [selectedLevel, setSelectedLevel] = useState<Level>(initialLevel)
-  const [activeImageTab, setActiveImageTab] = useState<ImageTab>('axonometric')
   const [addedToNext, setAddedToNext] = useState(false)
   const [session, setSession] = useState<SessionData | null>(null)
   const [generatingImage, setGeneratingImage] = useState(false)
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null)
+  const imageScrollerRef = useRef<HTMLDivElement | null>(null)
 
   const addToNext = useInterventionStore((s) => s.addToNext)
   const nextList = useInterventionStore((s) => s.nextList)
@@ -73,16 +101,34 @@ export default function ResultPage() {
   const livePlan = sessionId && currentSessionId === sessionId ? currentPlan : session?.interventionPlan
   const currentData = livePlan?.[selectedLevel] ?? EMPTY_ITEM
   const beforeImage = session?.spaceAnalysis?.images?.[0] || ''
-  const generatedImage = currentData.generatedImages?.[activeImageTab]
-  const displayImage = generatedImage || currentData.afterImage || beforeImage
+  const generatedImage = currentData.generatedImages?.render1 || currentData.afterImage || ''
+  const displayImage = generatedImage || beforeImage
+  const imageLabel = generatedImage ? '改造后效果图' : '上传空间图'
+  const imageSlides = generatedImage
+    ? [
+        { key: 'before', src: beforeImage, label: '改造前' },
+        { key: 'after', src: generatedImage, label: '改造后' },
+      ].filter((item) => item.src)
+    : beforeImage
+      ? [{ key: 'before', src: beforeImage, label: '上传空间图' }]
+      : []
 
-  const imageLabel = useMemo(() => {
-    const label = IMAGE_TABS.find((tab) => tab.key === activeImageTab)?.label || '效果图'
-    return generatedImage || currentData.afterImage ? label : '原始空间图'
-  }, [activeImageTab, currentData.afterImage, generatedImage])
+  useEffect(() => {
+    const scroller = imageScrollerRef.current
+    if (!scroller || !generatedImage) return
+
+    const timer = window.setTimeout(() => {
+      scroller.scrollTo({ left: scroller.clientWidth, behavior: 'auto' })
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [generatedImage, selectedLevel])
 
   const currentInterventionId = `${sessionId || 'local'}-${selectedLevel}`
-  const isInNext = addedToNext || nextList.some((item) => item.interventionId === currentInterventionId)
+  const isInNext = addedToNext || nextList.some((item) => {
+    if (sessionId && item.sessionId === sessionId) return true
+    return item.interventionId === currentInterventionId
+  })
 
   const handleAddToNext = () => {
     if (isInNext) return
@@ -122,13 +168,14 @@ export default function ResultPage() {
         throw new Error(result.message || 'Image generation returned no image.')
       }
 
-      if (result.interventionPlan) {
+      const sourcePlan = result.interventionPlan || livePlan
+      if (sourcePlan) {
         const patchedPlan = {
-          ...result.interventionPlan,
+          ...sourcePlan,
           [selectedLevel]: {
-            ...result.interventionPlan[selectedLevel],
+            ...sourcePlan[selectedLevel],
             generatedImages: {
-              ...(result.interventionPlan[selectedLevel]?.generatedImages || {}),
+              ...(sourcePlan[selectedLevel]?.generatedImages || {}),
               ...result.generatedImages,
             },
             afterImage: result.generatedImages.render1,
@@ -137,7 +184,6 @@ export default function ResultPage() {
         setCurrentPlan(sessionId, patchedPlan)
         setSession((prev) => (prev ? { ...prev, interventionPlan: patchedPlan } : prev))
       }
-      setActiveImageTab('render1')
     } catch (err) {
       console.error('生成改造图失败:', err)
       alert(err instanceof Error ? err.message : '生成改造图失败')
@@ -155,32 +201,33 @@ export default function ResultPage() {
       <div className="nest-page-content" style={{ overflowY: 'auto', height: 'calc(var(--app-height) - 160px)' }}>
         <div className="px-5">
           <div className="nest-glass-card nest-page-enter rounded-[22px] overflow-hidden">
-            <div className="nest-media-stage w-full" style={{ aspectRatio: '4 / 3' }}>
-              {displayImage ? (
-                <img src={displayImage} alt={imageLabel} className="w-full h-full object-cover" />
-              ) : (
-                <PlaceholderImage label={imageLabel} className="w-full h-full" />
+            <div className="result-image-area">
+              <div ref={imageScrollerRef} className="result-image-strip">
+                {imageSlides.length > 0 ? (
+                  imageSlides.map((image) => (
+                    <ResultImageSlide
+                      key={image.key}
+                      image={image}
+                      onOpen={() => setLightboxImage({ src: image.src, alt: image.label })}
+                    />
+                  ))
+                ) : (
+                  <div className="result-image-slide nest-media-stage">
+                    <PlaceholderImage label={imageLabel} className="w-full h-full" />
+                  </div>
+                )}
+              </div>
+
+              {generatingImage && (
+                <div className="result-generation-overlay" aria-label="正在生成效果图">
+                  <NobiWorking className="result-generation-nobi" variant="effect" />
+                </div>
               )}
             </div>
 
             <div className="p-4">
               <span className="block text-[17px] font-semibold text-ink">{currentData.title}</span>
               <span className="block text-sm text-[#6e6e73] mt-1">{imageLabel}</span>
-
-              <div className="flex flex-row gap-2 mt-4">
-                {IMAGE_TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    className={`nest-pill-button flex-1 py-2 flex items-center justify-center cursor-pointer ${
-                      activeImageTab === tab.key ? 'is-active' : ''
-                    }`}
-                    onClick={() => setActiveImageTab(tab.key)}
-                  >
-                    <span className="text-xs font-semibold">{tab.label}</span>
-                  </button>
-                ))}
-              </div>
 
               {!currentData.generatedImages?.render1 && sessionId && (
                 <button
@@ -203,7 +250,7 @@ export default function ResultPage() {
                 className={`nest-pill-button flex-1 py-2 flex items-center justify-center cursor-pointer ${
                   selectedLevel === level.key ? 'is-active' : ''
                 }`}
-                onClick={() => !isInNext && setSelectedLevel(level.key)}
+                onClick={() => setSelectedLevel(level.key)}
               >
                 <span className="text-sm font-semibold">{level.label}</span>
               </button>
@@ -292,6 +339,10 @@ export default function ResultPage() {
 
         <div className="h-20" />
       </div>
+
+      {lightboxImage && (
+        <ImageLightbox src={lightboxImage.src} alt={lightboxImage.alt} onClose={() => setLightboxImage(null)} />
+      )}
     </div>
   )
 }

@@ -1,11 +1,10 @@
-import base64
 import json
 import mimetypes
 import re
 from pathlib import Path
 from typing import Any, Dict
 
-from app.core.config import BASE_DIR, get_settings
+from app.services.storage_service import get_storage_service
 
 from .state import NestAIState
 
@@ -30,17 +29,15 @@ def load_prompt4() -> str:
 
 
 def resolve_upload_path(image_url: str) -> Path:
-    settings = get_settings()
-    upload_root = Path(settings.upload_dir)
-    upload_root = upload_root if upload_root.is_absolute() else BASE_DIR / upload_root
-    relative = image_url[len("/uploads/"):] if image_url.startswith("/uploads/") else image_url
-    return upload_root / relative
+    return get_storage_service().materialize(image_url)
 
 
 def image_url_to_data_url(image_url: str) -> str:
-    path = resolve_upload_path(image_url)
-    mime_type = mimetypes.guess_type(path.name)[0] or "image/jpeg"
-    encoded = base64.b64encode(path.read_bytes()).decode("utf-8")
+    import base64
+
+    content, mime_type = get_storage_service().read_bytes(image_url)
+    mime_type = mime_type or mimetypes.guess_type(image_url)[0] or "image/jpeg"
+    encoded = base64.b64encode(content).decode("utf-8")
     return f"data:{mime_type};base64,{encoded}"
 
 
@@ -103,6 +100,27 @@ def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) ->
         f"Visible intervention changes: {changes}. First steps: {first_steps}. "
         f"Recommended objects or constraints: {recommendations}."
     )
+
+    if level == "free":
+        style_direction = (
+            "Keep the existing style and make only zero-cost visual improvements: clearer surfaces, calmer grouping, "
+            "better object alignment, and improved use of existing light. Do not add new objects."
+        )
+    elif level == "low":
+        style_direction = (
+            "Choose one clear, feasible style direction that fits the room and user cues: Bauhaus, Memphis, New Chinese, "
+            "Industrial, Cream, or Biophilic/greenery. Make it visibly present through palette, lighting, materials, and "
+            "1-2 low-cost anchor objects such as a warm lamp, compact stool/chair, small plant, textile/cushion, tray, "
+            "basket, poster, or desk organizer. Keep the room lived-in and recognizable."
+        )
+    else:
+        style_direction = (
+            "Choose one strong but realistic style direction that fits the room and user cues: Bauhaus, Memphis, New Chinese, "
+            "Industrial, Cream, or Biophilic/greenery. Make the style clearly visible through lighting, palette, materials, "
+            "zoning, and 2-3 feasible anchor objects such as a statement chair, layered lamp, plant cluster, rug/textile, "
+            "wall accent, modular shelving, or side table. Preserve architecture and major room identity."
+        )
+
     base_xml = f"""<image_edit_prompt id="P004-{level}-fallback">
   <task>
     Edit the provided input image into a photorealistic after-image based on the selected NestAI intervention.
@@ -118,14 +136,18 @@ def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) ->
   <selected_intervention>
     {selected_intervention}
   </selected_intervention>
+  <style_direction>
+    {style_direction}
+  </style_direction>
   <rendering_requirements>
     <item>Photorealistic interior image edit.</item>
     <item>Natural lighting and realistic materials consistent with the original photo.</item>
+    <item>Make the chosen style direction visibly legible, not just a subtle tidying pass.</item>
     <item>Warm, practical, achievable, lived-in result rather than a luxury showroom.</item>
     <item>Output only the transformed after-image.</item>
   </rendering_requirements>
   <negative_constraints>
-    No unrealistic architecture, no extra windows, no impossible room expansion, no people, no text, no watermark, no unrelated decor, no over-styled showroom.
+    No unrealistic architecture, no extra windows, no impossible room expansion, no people, no text, no watermark, no unrelated decor, no over-styled showroom, no generic hotel room.
   </negative_constraints>
   <final_instruction>
     Edit the input image directly according to the selected intervention while preserving the original space structure.

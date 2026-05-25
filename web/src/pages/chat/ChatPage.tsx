@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
+import { apiUrl } from '@/lib/api'
 import { errorMessages } from '@/lib/error-messages'
 import { useLifestyleStore } from '@/stores/lifestyle-store'
 
@@ -74,7 +75,7 @@ export default function ChatPage() {
     }
 
     setLoadingAnalysis(true)
-    fetch(`/api/sessions/${sessionId}`)
+    fetch(apiUrl(`/api/sessions/${sessionId}`))
       .then((res) => res.json())
       .then((res) => {
         const data = res.data

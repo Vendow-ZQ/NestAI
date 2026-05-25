@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
-import type { Level } from '@/lib/api'
+import { apiUrl, type Level } from '@/lib/api'
 import { errorMessages } from '@/lib/error-messages'
 import { useShareStore } from '@/stores/share-store'
 
@@ -49,7 +49,7 @@ export default function SharePage() {
       formData.append('images', file, file.name)
     })
 
-    const res = await fetch('/api/upload/', {
+    const res = await fetch(apiUrl('/api/upload/'), {
       method: 'POST',
       body: formData,
     })

@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
+import { ImageLightbox } from '@/components/ImageLightbox'
 import { NobiMascot } from '@/components/NobiMascot'
+import { apiUrl } from '@/lib/api'
 import { errorMessages } from '@/lib/error-messages'
 import { useSpaceStore } from '@/stores/space-store'
 import { useUserStore } from '@/stores/user-store'
@@ -13,10 +15,13 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const setUploaded = useUserStore((s) => s.setHasUploadedSpace)
   const uploadedImages = useSpaceStore((s) => s.uploadedImages)
+  const setUploadedImages = useSpaceStore((s) => s.setUploadedImages)
   const addImage = useSpaceStore((s) => s.addUploadedImage)
   const resetSpace = useSpaceStore((s) => s.reset)
   const [uploading, setUploading] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
+  const [leavingToGrow, setLeavingToGrow] = useState(false)
   const fromGrow = (location.state as { transition?: string } | null)?.transition === 'feed-upload'
 
   useEffect(() => {
@@ -45,6 +50,18 @@ export default function UploadPage() {
     e.target.value = ''
   }
 
+  const handleRemoveImage = (index: number) => {
+    const removed = uploadedImages[index]
+    if (removed?.startsWith('blob:')) {
+      URL.revokeObjectURL(removed)
+    }
+    setUploadedImages(uploadedImages.filter((_, i) => i !== index))
+    setFiles((prev) => prev.filter((_, i) => i !== index))
+    if (lightboxImage === removed) {
+      setLightboxImage(null)
+    }
+  }
+
   const handleStart = async () => {
     if (uploadedImages.length === 0 || files.length === 0) return
     setUploading(true)
@@ -56,7 +73,7 @@ export default function UploadPage() {
         formData.append('images', file, file.name)
       })
 
-      const uploadRes = await fetch('/api/upload/', {
+      const uploadRes = await fetch(apiUrl('/api/upload/'), {
         method: 'POST',
         body: formData,
       })
@@ -66,7 +83,7 @@ export default function UploadPage() {
       const uploadData = await uploadRes.json()
       const imageUrls = uploadData.data.urls as string[]
 
-      const spaceRes = await fetch('/api/spaces/', {
+      const spaceRes = await fetch(apiUrl('/api/spaces/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ images: imageUrls }),
@@ -77,7 +94,7 @@ export default function UploadPage() {
       const spaceData = await spaceRes.json()
       const spaceId = spaceData.data.id
 
-      const sessionRes = await fetch('/api/sessions/', {
+      const sessionRes = await fetch(apiUrl('/api/sessions/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ spaceId, images: imageUrls }),
@@ -90,15 +107,40 @@ export default function UploadPage() {
 
       navigate(`/generating?type=space&sessionId=${sessionId}`)
     } catch (err) {
-      console.error('上传失败:', err)
+      console.error('Upload failed:', err)
       alert(errorMessages.sessionFailed)
       setUploading(false)
     }
   }
 
+  const openMainImage = () => {
+    if (uploadedImages.length > 0) {
+      setLightboxImage(uploadedImages[uploadedImages.length - 1])
+      return
+    }
+    handleChooseImage()
+  }
+
+  const handleBackToGrow = () => {
+    if (leavingToGrow) return
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduceMotion) {
+      navigate('/', { state: { transition: 'upload-feed' } })
+      return
+    }
+
+    setLeavingToGrow(true)
+    window.setTimeout(() => {
+      navigate('/', { state: { transition: 'upload-feed' } })
+    }, 240)
+  }
+
   return (
     <div
-      className={`upload-page-shell min-h-full bg-background overflow-hidden ${fromGrow ? 'from-grow' : ''}`}
+      className={`upload-page-shell min-h-full bg-background overflow-hidden ${fromGrow ? 'from-grow' : ''} ${
+        leavingToGrow ? 'is-leaving-grow' : ''
+      }`}
       style={{ maxWidth: '100vw' }}
     >
       <input
@@ -110,20 +152,20 @@ export default function UploadPage() {
         onChange={handleFileChange}
       />
 
-      <div className="flex flex-row items-center px-5 pt-12 pb-4">
+      <div className="upload-topbar px-5 pt-12 pb-4">
         <button
           type="button"
-          className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+          className="upload-back-shell w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
           style={{ border: '1px solid rgba(60, 60, 67, 0.18)' }}
-          onClick={() => navigate(-1)}
+          onClick={handleBackToGrow}
           aria-label="Back"
         >
           <span className="text-ink text-sm">&lt;</span>
         </button>
-      </div>
-
-      <div className="px-5 mb-4">
-        <BilingualTitle en="UPLOAD YOUR SPACE" zh="上传你的空间" size="lg" align="center" />
+        <div className="upload-title-shell">
+          <BilingualTitle en="SEE YOUR SPACE" zh="看见你的空间" size="lg" align="center" />
+        </div>
+        <div className="w-9 h-9" aria-hidden="true" />
       </div>
 
       <div className="px-5 flex-1">
@@ -132,14 +174,16 @@ export default function UploadPage() {
           className={`upload-space-card grow-upload-card rounded-[22px] text-left hover-lift ${
             uploadedImages.length > 0 ? 'has-preview' : ''
           }`}
-          onClick={handleChooseImage}
+          onClick={openMainImage}
         >
-          <NobiMascot className="nobi-on-upload-card" label="Nobi waits on the upload card" />
+          {uploadedImages.length === 0 && (
+            <NobiMascot className="nobi-on-upload-card" label="Nobi waits on the upload card" />
+          )}
           <div className="feed-upload-stage flex items-center justify-center">
             {uploadedImages.length > 0 ? (
               <img
                 src={uploadedImages[uploadedImages.length - 1]}
-                alt="空间预览"
+                alt="Space preview"
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -151,7 +195,9 @@ export default function UploadPage() {
               {uploadedImages.length > 0 ? '继续补充空间细节' : '认识你的空间'}
             </span>
             <span className="block text-sm text-[#6e6e73] mt-2 leading-relaxed">
-              {uploadedImages.length > 0 ? '可以继续添加整体、桌面、窗边或角落照片。' : '建议拍 3-5 张：整体、桌面、床、窗、地面。'}
+              {uploadedImages.length > 0
+                ? '可以继续添加整体、桌面、窗边或角落照片。'
+                : '建议拍 3-5 张：整体、桌面、床、窗、地面。'}
             </span>
           </div>
         </button>
@@ -159,18 +205,28 @@ export default function UploadPage() {
         {uploadedImages.length > 0 && (
           <div className="flex flex-row flex-wrap gap-2 mt-4">
             {uploadedImages.map((img, i) => (
-              <div
-                key={`${img}-${i}`}
-                className="rounded overflow-hidden hover-lift relative"
-                style={{ width: '18%', aspectRatio: '1 / 1' }}
-              >
-                <img src={img} alt={`图片 ${i + 1}`} className="w-full h-full object-cover" />
-                <div
-                  className="absolute top-1 left-1 bg-ink rounded-full flex items-center justify-center"
-                  style={{ width: '16px', height: '16px' }}
+              <div key={`${img}-${i}`} className="relative" style={{ width: '18%', aspectRatio: '1 / 1' }}>
+                <button
+                  type="button"
+                  className="rounded overflow-hidden hover-lift relative w-full h-full"
+                  onClick={() => setLightboxImage(img)}
                 >
-                  <span className="text-white" style={{ fontSize: '9px' }}>{i + 1}</span>
-                </div>
+                  <img src={img} alt={`Uploaded ${i + 1}`} className="w-full h-full object-cover bg-[#f2f2f7]" />
+                  <div
+                    className="absolute top-1 left-1 bg-ink rounded-full flex items-center justify-center"
+                    style={{ width: '16px', height: '16px' }}
+                  >
+                    <span className="text-white" style={{ fontSize: '9px' }}>{i + 1}</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="upload-thumb-remove"
+                  aria-label={`Remove image ${i + 1}`}
+                  onClick={() => handleRemoveImage(i)}
+                >
+                  ×
+                </button>
               </div>
             ))}
             {uploadedImages.length < 9 && (
@@ -207,20 +263,26 @@ export default function UploadPage() {
           zIndex: 998,
         }}
       >
-        <button
-          className="btn-tonight"
-          style={{ opacity: uploadedImages.length > 0 && !uploading ? 1 : 0.4 }}
-          onClick={uploadedImages.length > 0 && !uploading ? handleStart : undefined}
-          disabled={uploadedImages.length === 0 || uploading}
-        >
-          <span className="block text-background text-lg">
-            {uploading ? '正在上传...' : '开始分析'}
-          </span>
-          <span className="block btn-tonight-text">
-            {uploading ? 'Uploading...' : 'Analyze'}
-          </span>
-        </button>
+        <div className="upload-action-shell">
+          <button
+            className="btn-tonight"
+            style={{ opacity: uploadedImages.length > 0 && !uploading ? 1 : 0.4 }}
+            onClick={uploadedImages.length > 0 && !uploading ? handleStart : undefined}
+            disabled={uploadedImages.length === 0 || uploading}
+          >
+            <span className="block text-background text-lg">
+              {uploading ? '正在上传...' : '开始分析'}
+            </span>
+            <span className="block btn-tonight-text">
+              {uploading ? 'Uploading...' : 'Analyze'}
+            </span>
+          </button>
+        </div>
       </div>
+
+      {lightboxImage && (
+        <ImageLightbox src={lightboxImage} alt="Uploaded space" onClose={() => setLightboxImage(null)} />
+      )}
     </div>
   )
 }

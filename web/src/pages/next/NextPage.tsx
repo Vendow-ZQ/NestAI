@@ -34,6 +34,10 @@ function writeDeletedNextId(id: string) {
   window.localStorage.setItem(DELETED_NEXT_KEY, JSON.stringify(Array.from(ids)))
 }
 
+function isInteractiveTarget(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest('button, a, input, textarea, select, label'))
+}
+
 export default function NextPage() {
   const navigate = useNavigate()
   const nextList = useInterventionStore((s) => s.nextList)
@@ -108,6 +112,7 @@ export default function NextPage() {
 
   const handlePointerDown = useCallback((event: React.PointerEvent<HTMLElement>, id: string, index: number) => {
     if (event.button !== 0) return
+    if (isInteractiveTarget(event.target)) return
 
     clearLongPressTimer()
     dragStateRef.current = {
@@ -120,12 +125,12 @@ export default function NextPage() {
       dragging: false,
     }
 
-    const card = cardRefs.current[index]
-    card?.setPointerCapture?.(event.pointerId)
     longPressTimerRef.current = window.setTimeout(() => {
       const state = dragStateRef.current
       if (!state || state.id !== id) return
       state.armed = true
+      const card = cardRefs.current[index]
+      card?.setPointerCapture?.(event.pointerId)
       card?.setAttribute('data-dragging', 'true')
     }, LONG_PRESS_MS)
   }, [clearLongPressTimer])
@@ -188,6 +193,7 @@ export default function NextPage() {
   }, [clearLongPressTimer, deleteNextCard, resetDragCard])
 
   const handleClickCapture = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    if (isInteractiveTarget(event.target)) return
     if (!suppressClickRef.current) return
     event.preventDefault()
     event.stopPropagation()
@@ -315,6 +321,11 @@ export default function NextPage() {
     }
   }
 
+  const handleCardClick = (event: React.MouseEvent<HTMLElement>, sessionId?: string, sceneId?: string, level?: string) => {
+    if (suppressClickRef.current || isInteractiveTarget(event.target)) return
+    openResult(sessionId, sceneId, level)
+  }
+
   return (
     <div className="nest-page-shell min-h-full overflow-hidden" style={{ maxWidth: '100vw' }}>
       <div className="nest-page-content px-5 pt-12 pb-4">
@@ -350,6 +361,7 @@ export default function NextPage() {
                 onPointerUp={handlePointerEnd}
                 onPointerCancel={handlePointerEnd}
                 onClickCapture={handleClickCapture}
+                onClick={(event) => handleCardClick(event, item.sessionId, item.sceneId, item.level)}
               >
                 <div className="next-delete-cue" aria-hidden="true">Delete</div>
                 <button

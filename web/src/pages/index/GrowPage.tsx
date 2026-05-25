@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowUp } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { NobiMascot } from '@/components/NobiMascot'
@@ -10,14 +10,17 @@ import { api, type FeedItemData } from '@/lib/api'
 
 export default function GrowPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [feed, setFeed] = useState<FeedItemData[]>([])
   const [loading, setLoading] = useState(true)
   const [showTopButton, setShowTopButton] = useState(false)
+  const [leavingToUpload, setLeavingToUpload] = useState(false)
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([])
   const frameRef = useRef<number | null>(null)
   const snapTimerRef = useRef<number | null>(null)
   const isSnappingRef = useRef(false)
+  const fromUpload = (location.state as { transition?: string } | null)?.transition === 'upload-feed'
 
   useEffect(() => {
     api
@@ -170,6 +173,21 @@ export default function GrowPage() {
     }
   }
 
+  const openUpload = () => {
+    if (leavingToUpload) return
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduceMotion) {
+      navigate('/upload', { state: { transition: 'feed-upload' } })
+      return
+    }
+
+    setLeavingToUpload(true)
+    window.setTimeout(() => {
+      navigate('/upload', { state: { transition: 'feed-upload' } })
+    }, 240)
+  }
+
   const scrollToFeedTop = () => {
     const viewport = scrollRef.current
     if (!viewport) return
@@ -186,8 +204,13 @@ export default function GrowPage() {
   }
 
   return (
-    <div className="grow-page-shell min-h-full overflow-hidden" style={{ maxWidth: '100vw' }}>
-      <div className="px-5 pt-12 pb-4 relative z-10">
+    <div
+      className={`grow-page-shell min-h-full overflow-hidden ${leavingToUpload ? 'is-leaving-upload' : ''} ${
+        fromUpload ? 'from-upload' : ''
+      }`}
+      style={{ maxWidth: '100vw' }}
+    >
+      <div className="grow-title-shell px-5 pt-12 pb-4 relative z-10">
         <BilingualTitle en="NestAI" zh="栖巢" size="lg" />
       </div>
 
@@ -201,8 +224,8 @@ export default function GrowPage() {
           <section className="mb-4">
             <div className="flex items-center justify-between mb-3 feed-section-header">
               <div>
-                <span className="block text-sm text-[#6e6e73] font-semibold">Grow Feed</span>
-                <span className="block text-xs text-[#8e8e93] mt-0.5">上传入口和大家的 Next 都在这里流动</span>
+                <span className="block text-sm text-[#6e6e73] font-semibold">Growing...</span>
+                <span className="block text-xs text-[#8e8e93] mt-0.5">See Your Nest, See Your Next</span>
               </div>
             </div>
 
@@ -221,16 +244,16 @@ export default function GrowPage() {
                 type="button"
                 data-feed-role="upload"
                 className="feed-card-future grow-upload-card text-left"
-                onClick={() => navigate('/upload', { state: { transition: 'feed-upload' } })}
+                onClick={openUpload}
               >
                 <NobiMascot className="nobi-on-upload-card" label="Nobi crouches on the upload card" />
                 <div className="feed-upload-stage flex items-center justify-center">
                   <span className="feed-upload-plus leading-none">+</span>
                 </div>
                 <div className="p-4 relative z-10 text-center">
-                  <span className="block text-[17px] leading-snug font-semibold text-ink">让空间长出一个 Next</span>
+                  <span className="block text-[17px] leading-snug font-semibold text-ink">Hi~我是Nobi！</span>
                   <span className="block text-sm text-[#6e6e73] mt-2 leading-relaxed">
-                    上传一张图片，生成一个可执行的空间行动。
+                    让我看看你的小窝吧，我能帮你改造它！
                   </span>
                 </div>
               </button>

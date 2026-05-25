@@ -19,6 +19,23 @@ settings = get_settings()
 Base = declarative_base()
 
 
+def _normalize_database_url(url: str) -> str:
+    if url.startswith("postgres://"):
+        return "postgresql://" + url[len("postgres://") :]
+    return url
+
+
+def _create_engine():
+    url = _normalize_database_url(settings.database_url)
+    if url.startswith("sqlite"):
+        return create_engine(url, connect_args={"check_same_thread": False})
+    return create_engine(url, pool_pre_ping=True, pool_size=5, max_overflow=10)
+
+
+engine = _create_engine()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
 class SessionMemoryModel(Base):
     """短期记忆数据库模型"""
     __tablename__ = "session_memories"
@@ -435,14 +452,11 @@ class MemoryService:
 # 数据库初始化
 def init_db():
     """初始化数据库表"""
-    engine = create_engine(settings.database_url)
     Base.metadata.create_all(bind=engine)
 
 
 def get_db():
     """获取数据库会话"""
-    engine = create_engine(settings.database_url)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
     try:
         yield db

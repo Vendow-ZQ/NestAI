@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./nestai.db"
     upload_dir: str = "uploads"
     max_upload_size: int = 52428850  # 50MB
+    public_base_url: str = ""
+    storage_backend: str = "auto"
+    supabase_url: str = ""
+    supabase_service_role_key: str = ""
+    supabase_storage_bucket: str = "nestai-uploads"
+    cors_origins: str = "*"
     image_provider: str = "OPENAI"
     image_model: str = "gpt-image-1.5"
     image_output_format: str = "png"

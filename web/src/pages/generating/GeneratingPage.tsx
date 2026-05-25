@@ -10,7 +10,7 @@ import { useShareStore } from '@/stores/share-store'
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { NobiWorking } from '@/components/NobiWorking'
 import { errorMessages } from '@/lib/error-messages'
-import { api, type Level } from '@/lib/api'
+import { api, apiUrl, type Level } from '@/lib/api'
 
 export default function GeneratingPage() {
   const navigate = useNavigate()
@@ -59,6 +59,7 @@ export default function GeneratingPage() {
   }
 
   const currentTitle = titleMap[type] || titleMap.space
+  const nobiVariant = type === 'space' ? 'questionnaire' : 'result'
 
   useEffect(() => {
     if (type === 'space') {
@@ -75,7 +76,7 @@ export default function GeneratingPage() {
         })
       }, stepDuration)
 
-      fetch(`/api/sessions/${sessionId}/analyze`, { method: 'POST' })
+      fetch(apiUrl(`/api/sessions/${sessionId}/analyze`), { method: 'POST' })
         .then(() => {
           clearInterval(timer)
           navigate(`/chat?sessionId=${sessionId}`, { replace: true })
@@ -186,13 +187,13 @@ export default function GeneratingPage() {
   }, [])
 
   return (
-    <div className="min-h-full bg-background overflow-hidden flex flex-col items-center justify-center" style={{ maxWidth: '100vw' }}>
+    <div className="min-h-full bg-white overflow-hidden flex flex-col items-center justify-center" style={{ maxWidth: '100vw' }}>
       {/* 标题 */}
       <div className="mb-8">
         <BilingualTitle en={currentTitle.en} zh={currentTitle.zh} size="lg" />
       </div>
 
-      <NobiWorking className="mb-7" />
+      <NobiWorking className="mb-7" variant={nobiVariant} />
 
       {/* 进度条 */}
       <div className="flex items-center justify-center gap-2 mb-10" aria-label="loading">
