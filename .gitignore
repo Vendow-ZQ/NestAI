@@ -39,11 +39,10 @@ backend/debug_response_*.txt
 backend/session_id.txt
 backend/session_response.json
 api_test/
-tests/output/
-tests/assets/images/*
-!tests/assets/images/Pic1.jpg
-!tests/assets/images/Pic2.jpg
-!tests/assets/images/Pic3.jpg
+integration/
+integrations/
+scripts/
+tests/
 debug_vision.log
 backup/
 fix/

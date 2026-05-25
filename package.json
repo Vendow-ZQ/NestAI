@@ -9,7 +9,7 @@
     "dev:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0",
     "build": "pnpm build:frontend && pnpm check:backend",
     "build:frontend": "pnpm --dir frontend build",
-    "check:backend": "python scripts/check_backend_syntax.py backend/app",
+    "check:backend": "cd backend && python -c \"import ast,pathlib; [ast.parse(p.read_text(encoding='utf-8'), filename=str(p)) for p in pathlib.Path('app').rglob('*.py')]\"",
     "preview": "pnpm --dir frontend preview",
     "start": "cd backend && python -m uvicorn app.main:app --port 8000 --host 0.0.0.0",
     "preinstall": "npx only-allow pnpm"
