@@ -12,7 +12,8 @@ import { useUserStore } from '@/stores/user-store'
 export default function UploadPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const setUploaded = useUserStore((s) => s.setHasUploadedSpace)
   const uploadedImages = useSpaceStore((s) => s.uploadedImages)
   const setUploadedImages = useSpaceStore((s) => s.setUploadedImages)
@@ -22,18 +23,33 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([])
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [leavingToGrow, setLeavingToGrow] = useState(false)
+  const [sourceSheetOpen, setSourceSheetOpen] = useState(false)
   const fromGrow = (location.state as { transition?: string } | null)?.transition === 'feed-upload'
 
   useEffect(() => {
     resetSpace()
     setFiles([])
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = ''
+    }
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = ''
     }
   }, [resetSpace])
 
-  const handleChooseImage = () => {
-    fileInputRef.current?.click()
+  const openSourceSheet = () => {
+    if (uploading) return
+    setSourceSheetOpen(true)
+  }
+
+  const handleChooseCamera = () => {
+    setSourceSheetOpen(false)
+    cameraInputRef.current?.click()
+  }
+
+  const handleChooseGallery = () => {
+    setSourceSheetOpen(false)
+    galleryInputRef.current?.click()
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,7 +134,7 @@ export default function UploadPage() {
       setLightboxImage(uploadedImages[uploadedImages.length - 1])
       return
     }
-    handleChooseImage()
+    openSourceSheet()
   }
 
   const handleBackToGrow = () => {
@@ -144,7 +160,15 @@ export default function UploadPage() {
       style={{ maxWidth: '100vw' }}
     >
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <input
+        ref={galleryInputRef}
         type="file"
         accept="image/*"
         multiple
@@ -197,7 +221,7 @@ export default function UploadPage() {
             <span className="block text-sm text-[#6e6e73] mt-2 leading-relaxed">
               {uploadedImages.length > 0
                 ? '可以继续添加整体、桌面、窗边或角落照片。'
-                : '建议拍 3-5 张：整体、桌面、床、窗、地面。'}
+                : '可以现在拍一张，也可以从本地相册选择。建议 3-5 张。'}
             </span>
           </div>
         </button>
@@ -240,7 +264,7 @@ export default function UploadPage() {
                   borderStyle: 'dashed',
                   borderColor: 'rgba(60, 60, 67, 0.22)',
                 }}
-                onClick={handleChooseImage}
+                onClick={openSourceSheet}
               >
                 <span className="text-[#b5ad9f] select-none" style={{ fontSize: '32px', lineHeight: 1, opacity: 0.45 }}>
                   +
@@ -279,6 +303,30 @@ export default function UploadPage() {
           </button>
         </div>
       </div>
+
+      {sourceSheetOpen && (
+        <div className="upload-source-sheet-backdrop" onClick={() => setSourceSheetOpen(false)}>
+          <div
+            className="upload-source-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="选择图片来源"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button type="button" className="upload-source-option" onClick={handleChooseCamera}>
+              <span className="upload-source-title">拍照</span>
+              <span className="upload-source-subtitle">打开相机，拍下现在的小窝</span>
+            </button>
+            <button type="button" className="upload-source-option" onClick={handleChooseGallery}>
+              <span className="upload-source-title">上传本地图片</span>
+              <span className="upload-source-subtitle">从相册或文件中选择空间照片</span>
+            </button>
+            <button type="button" className="upload-source-cancel" onClick={() => setSourceSheetOpen(false)}>
+              取消
+            </button>
+          </div>
+        </div>
+      )}
 
       {lightboxImage && (
         <ImageLightbox src={lightboxImage} alt="Uploaded space" onClose={() => setLightboxImage(null)} />

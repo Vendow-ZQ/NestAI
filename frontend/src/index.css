@@ -578,6 +578,75 @@
     bottom: calc(58px + env(safe-area-inset-bottom, 0px));
   }
 
+  .upload-source-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    background: rgba(242, 244, 248, 0.48);
+    backdrop-filter: blur(18px) saturate(1.25);
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+    animation: upload-sheet-fade-in 180ms ease both;
+  }
+
+  .upload-source-sheet {
+    width: min(100%, 398px);
+    display: grid;
+    gap: 8px;
+    animation: upload-sheet-rise 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .upload-source-option,
+  .upload-source-cancel {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow:
+      0 18px 52px rgba(27, 39, 66, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(24px) saturate(1.45);
+    -webkit-backdrop-filter: blur(24px) saturate(1.45);
+    color: var(--ink);
+    text-align: left;
+  }
+
+  .upload-source-option {
+    padding: 15px 18px;
+    border-radius: 18px;
+  }
+
+  .upload-source-option:active,
+  .upload-source-cancel:active {
+    transform: scale(0.985);
+  }
+
+  .upload-source-title {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.22;
+  }
+
+  .upload-source-subtitle {
+    display: block;
+    margin-top: 4px;
+    color: #6e6e73;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .upload-source-cancel {
+    margin-top: 2px;
+    padding: 14px 18px;
+    border-radius: 18px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
   .nest-page-shell {
     position: relative;
     background:
@@ -1186,6 +1255,28 @@
     }
   }
 
+  @keyframes upload-sheet-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes upload-sheet-rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+      filter: blur(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+
   @keyframes nobi-head-tilt {
     0%, 100% {
       transform: rotate(0deg);
@@ -1244,6 +1335,8 @@
     .upload-title-shell,
     .upload-action-shell,
     .upload-space-card,
+    .upload-source-sheet-backdrop,
+    .upload-source-sheet,
     .feed-image,
     .nobi-mascot img,
     .grow-page-shell::after,
