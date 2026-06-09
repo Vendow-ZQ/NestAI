@@ -158,7 +158,8 @@ export interface LongTermMemoryData {
   path: string
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
+const DEFAULT_API_BASE_URL = import.meta.env.PROD ? 'https://nestai-74ae.onrender.com' : 'http://localhost:8000'
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/+$/, '')
 
 export function apiUrl(path: string): string {
   if (!API_BASE_URL) return path
@@ -202,7 +203,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     })
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
-    throw new Error(`无法连接后端服务，请确认 http://localhost:8000 已启动。原始错误：${detail}`)
+    throw new Error(`无法连接后端服务，请确认 ${API_BASE_URL} 可访问。原始错误：${detail}`)
   }
 
   const payload = (await res.json()) as ApiResponse<T>
