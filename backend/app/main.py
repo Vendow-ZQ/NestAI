@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from app.api import memory_router, sessions_router, spaces_router, upload_router
+from app.api import memory_router, sessions_router, spaces_router, upload_router, users_router
 from app.core.config import get_settings, get_default_llm_config, load_llm_configs
 from app.services.memory_service import init_db
 from app.services.storage_service import get_storage_service
@@ -54,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(upload_router)
     app.include_router(spaces_router)
     app.include_router(memory_router)
+    app.include_router(users_router)
 
     os.makedirs(settings.upload_dir, exist_ok=True)
     storage = get_storage_service()

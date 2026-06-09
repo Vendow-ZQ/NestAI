@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
-import { apiUrl, type Level } from '@/lib/api'
+import { apiUrl, normalizeLevel } from '@/lib/api'
 import { errorMessages } from '@/lib/error-messages'
 import { useShareStore } from '@/stores/share-store'
 
@@ -12,7 +12,7 @@ export default function SharePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const setFeedback = useShareStore((s) => s.setFeedback)
   const sessionId = searchParams.get('sessionId')
-  const level = (searchParams.get('level') || 'low') as Level
+  const level = normalizeLevel(searchParams.get('level'))
 
   const [files, setFiles] = useState<File[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])

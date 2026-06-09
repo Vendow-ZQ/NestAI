@@ -5,6 +5,7 @@ import { BilingualTitle } from '@/components/BilingualTitle'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
 import { api } from '@/lib/api'
 import { useInterventionStore } from '@/stores/intervention-store'
+import { useUserStore } from '@/stores/user-store'
 
 const DELETED_NEXT_KEY = 'nestai.deletedNextIds'
 const LONG_PRESS_MS = 360
@@ -20,18 +21,22 @@ type DragState = {
   dragging: boolean
 }
 
-function readDeletedNextIds() {
+function deletedNextKey(userId = 'dev_user') {
+  return `${DELETED_NEXT_KEY}.${userId}`
+}
+
+function readDeletedNextIds(userId = 'dev_user') {
   try {
-    return new Set(JSON.parse(window.localStorage.getItem(DELETED_NEXT_KEY) || '[]') as string[])
+    return new Set(JSON.parse(window.localStorage.getItem(deletedNextKey(userId)) || '[]') as string[])
   } catch {
     return new Set<string>()
   }
 }
 
-function writeDeletedNextId(id: string) {
-  const ids = readDeletedNextIds()
+function writeDeletedNextId(id: string, userId = 'dev_user') {
+  const ids = readDeletedNextIds(userId)
   ids.add(id)
-  window.localStorage.setItem(DELETED_NEXT_KEY, JSON.stringify(Array.from(ids)))
+  window.localStorage.setItem(deletedNextKey(userId), JSON.stringify(Array.from(ids)))
 }
 
 function isInteractiveTarget(target: EventTarget | null) {
@@ -40,6 +45,7 @@ function isInteractiveTarget(target: EventTarget | null) {
 
 export default function NextPage() {
   const navigate = useNavigate()
+  const currentUser = useUserStore((s) => s.currentUser)
   const nextList = useInterventionStore((s) => s.nextList)
   const setNextList = useInterventionStore((s) => s.setNextList)
   const removeFromNext = useInterventionStore((s) => s.removeFromNext)
@@ -55,19 +61,20 @@ export default function NextPage() {
   const suppressClickRef = useRef(false)
 
   useEffect(() => {
-    if (nextList.length > 0) return
+    if (!currentUser) return
+    setLoading(true)
 
     api
-      .listSessions()
+      .listSessions(currentUser.id)
       .then((data) => {
-        const deletedIds = readDeletedNextIds()
+        const deletedIds = readDeletedNextIds(currentUser.id)
         setNextList(data.nextActions.filter((item) => !deletedIds.has(item.id)))
       })
       .catch((err) => {
         console.error('读取 Next 数据失败:', err)
       })
       .finally(() => setLoading(false))
-  }, [nextList.length, setNextList])
+  }, [currentUser, setNextList])
 
   const clearLongPressTimer = useCallback(() => {
     if (longPressTimerRef.current !== null) {
@@ -87,7 +94,7 @@ export default function NextPage() {
 
   const deleteNextCard = useCallback((id: string, index: number) => {
     const card = cardRefs.current[index]
-    writeDeletedNextId(id)
+    writeDeletedNextId(id, currentUser?.id)
     suppressClickRef.current = true
     setDeletingIds((current) => new Set(current).add(id))
 
@@ -108,7 +115,7 @@ export default function NextPage() {
         suppressClickRef.current = false
       }, 80)
     }, 220)
-  }, [removeFromNext])
+  }, [currentUser?.id, removeFromNext])
 
   const handlePointerDown = useCallback((event: React.PointerEvent<HTMLElement>, id: string, index: number) => {
     if (event.button !== 0) return

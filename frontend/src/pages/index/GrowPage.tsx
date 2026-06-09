@@ -7,10 +7,12 @@ import { NobiMascot } from '@/components/NobiMascot'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
 import { Badge } from '@/components/ui/badge'
 import { api, type FeedItemData } from '@/lib/api'
+import { useUserStore } from '@/stores/user-store'
 
 export default function GrowPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const currentUser = useUserStore((s) => s.currentUser)
   const [feed, setFeed] = useState<FeedItemData[]>([])
   const [loading, setLoading] = useState(true)
   const [showTopButton, setShowTopButton] = useState(false)
@@ -23,14 +25,17 @@ export default function GrowPage() {
   const fromUpload = (location.state as { transition?: string } | null)?.transition === 'upload-feed'
 
   useEffect(() => {
+    if (!currentUser) return
+    setLoading(true)
+
     api
-      .listSessions()
+      .listSessions(currentUser.id)
       .then((data) => setFeed(data.feed))
       .catch((err) => {
         console.error('读取 Grow 数据失败:', err)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [currentUser])
 
   const updateFeedFocus = useCallback(() => {
     const viewport = scrollRef.current

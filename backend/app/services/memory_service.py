@@ -60,6 +60,19 @@ class SessionMemoryModel(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class UserModel(Base):
+    """Lightweight user identity and profile anchor."""
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, index=True)
+    display_name = Column(String, default="")
+    email = Column(String, unique=True, nullable=True, index=True)
+    avatar_url = Column(String, default="")
+    profile_summary = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class LongTermMemoryModel(Base):
     """长期记忆数据库模型"""
     __tablename__ = "long_term_memories"
@@ -176,6 +189,50 @@ class MemoryService:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(self._render_long_term_markdown(memory), encoding="utf-8")
         return path
+
+    # ===== User operations =====
+
+    def get_user(self, user_id: str) -> Optional[UserModel]:
+        return self.db.query(UserModel).filter(UserModel.id == user_id).first()
+
+    def get_user_by_email(self, email: str) -> Optional[UserModel]:
+        if not email:
+            return None
+        return self.db.query(UserModel).filter(UserModel.email == email.lower()).first()
+
+    def upsert_user(
+        self,
+        *,
+        display_name: str,
+        email: Optional[str] = None,
+        avatar_url: Optional[str] = None,
+    ) -> UserModel:
+        import uuid
+
+        normalized_email = email.strip().lower() if email else None
+        user = self.get_user_by_email(normalized_email) if normalized_email else None
+        if not user:
+            safe_name = self._safe_user_id(display_name)[:24].lower()
+            user_id = f"user_{safe_name}_{uuid.uuid4().hex[:8]}" if safe_name else f"user_{uuid.uuid4().hex[:10]}"
+            user = UserModel(
+                id=user_id,
+                display_name=display_name.strip() or "NestAI User",
+                email=normalized_email,
+                avatar_url=avatar_url or "",
+            )
+            self.db.add(user)
+        else:
+            user.display_name = display_name.strip() or user.display_name or "NestAI User"
+            if avatar_url is not None:
+                user.avatar_url = avatar_url
+
+        user.updated_at = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(user)
+
+        if not self.get_long_term_memory(user.id):
+            self.create_long_term_memory(user.id)
+        return user
 
     # ===== 短期记忆操作 =====
 

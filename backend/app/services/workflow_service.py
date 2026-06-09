@@ -8,6 +8,7 @@ LangGraph stage graphs under app.workflows.
 import json
 from typing import Any, Dict, List, Optional
 
+from app.core.levels import DEFAULT_LEVEL, normalize_level
 from app.services.memory_service import MemoryService
 from app.workflows.nestai_graph import (
     create_image_generation_graph,
@@ -84,7 +85,7 @@ class WorkflowService:
             "aspiration": aspiration,
             "current_state": current_state,
             "constraints": constraints,
-            "selected_level": "low",
+            "selected_level": DEFAULT_LEVEL,
         }
 
         result = self.intervention_graph.invoke(state)
@@ -110,8 +111,9 @@ class WorkflowService:
             "error": result.get("error"),
         }
 
-    async def run_image_prompt_generation(self, session_id: str, selected_level: str = "low") -> Dict[str, Any]:
+    async def run_image_prompt_generation(self, session_id: str, selected_level: str = DEFAULT_LEVEL) -> Dict[str, Any]:
         """Ensure prompts exist for one intervention level."""
+        selected_level = normalize_level(selected_level)
         context = self._session_context(session_id)
         run = self.memory_service.start_workflow_run(
             session_id,
@@ -151,10 +153,11 @@ class WorkflowService:
     async def run_image_generation(
         self,
         session_id: str,
-        selected_level: str = "low",
+        selected_level: str = DEFAULT_LEVEL,
         tabs: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Generate real intervention images and persist them into the plan."""
+        selected_level = normalize_level(selected_level)
         context = self._session_context(session_id)
         tabs = tabs or ["render1"]
         run = self.memory_service.start_workflow_run(
@@ -208,6 +211,7 @@ class WorkflowService:
         user_feeling: str,
     ) -> Dict[str, Any]:
         """Run P003 through LangGraph after feedback submission."""
+        selected_level = normalize_level(selected_level)
         context = self._session_context(session_id)
         run = self.memory_service.start_workflow_run(
             session_id,

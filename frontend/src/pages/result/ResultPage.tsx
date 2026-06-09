@@ -5,24 +5,28 @@ import { BilingualTitle } from '@/components/BilingualTitle'
 import { ImageLightbox } from '@/components/ImageLightbox'
 import { NobiWorking } from '@/components/NobiWorking'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
-import { api, type InterventionItem, type Level, type SessionData } from '@/lib/api'
+import {
+  DEFAULT_LEVEL,
+  LEVEL_OPTIONS,
+  api,
+  getPlanItem,
+  hasAllBudgetLevels,
+  normalizeLevel,
+  type InterventionItem,
+  type Level,
+  type SessionData,
+} from '@/lib/api'
 import { useInterventionStore } from '@/stores/intervention-store'
 
-const LEVELS: { key: Level; label: string; en: string }[] = [
-  { key: 'free', label: '0 元', en: 'FREE' },
-  { key: 'low', label: '低成本', en: 'LOW COST' },
-  { key: 'advanced', label: '进阶', en: 'ADVANCED' },
-]
-
 const EMPTY_ITEM: InterventionItem = {
-  level: 'low',
+  level: DEFAULT_LEVEL,
   title: '空间干预方案',
   changes: ['先完成一次空间分析，Nobi 会在这里生成真实方案。'],
   diagnosis: '这里还没有生成方案。请从上传空间开始，让图片和问卷一起进入分析流程。',
   firstSteps: ['上传空间图片'],
   recommendations: [],
   estimatedTime: '约 10 分钟',
-  costRange: '0 元',
+  costRange: '标准预算',
 }
 
 function ResultImageSlide({
@@ -62,8 +66,7 @@ export default function ResultPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('sessionId')
-  const levelParam = searchParams.get('level') as Level | null
-  const initialLevel = levelParam && ['free', 'low', 'advanced'].includes(levelParam) ? levelParam : 'low'
+  const initialLevel = normalizeLevel(searchParams.get('level'))
 
   const [selectedLevel, setSelectedLevel] = useState<Level>(initialLevel)
   const [addedToNext, setAddedToNext] = useState(false)
@@ -89,8 +92,9 @@ export default function ResultPage() {
       .getSession(sessionId)
       .then((data) => {
         setSession(data)
-        if (data.interventionPlan?.free && data.interventionPlan.low && data.interventionPlan.advanced) {
-          setCurrentPlan(sessionId, data.interventionPlan)
+        const interventionPlan = data.interventionPlan
+        if (interventionPlan && hasAllBudgetLevels(interventionPlan)) {
+          setCurrentPlan(sessionId, interventionPlan)
         }
       })
       .catch((err) => {
@@ -99,7 +103,7 @@ export default function ResultPage() {
   }, [sessionId, setCurrentPlan])
 
   const livePlan = sessionId && currentSessionId === sessionId ? currentPlan : session?.interventionPlan
-  const currentData = livePlan?.[selectedLevel] ?? EMPTY_ITEM
+  const currentData = getPlanItem(livePlan, selectedLevel) ?? EMPTY_ITEM
   const beforeImage = session?.spaceAnalysis?.images?.[0] || ''
   const generatedImage = currentData.generatedImages?.render1 || currentData.afterImage || ''
   const displayImage = generatedImage || beforeImage
@@ -170,12 +174,14 @@ export default function ResultPage() {
 
       const sourcePlan = result.interventionPlan || livePlan
       if (sourcePlan) {
+        const sourceItem = getPlanItem(sourcePlan, selectedLevel) || currentData
         const patchedPlan = {
           ...sourcePlan,
           [selectedLevel]: {
-            ...sourcePlan[selectedLevel],
+            ...sourceItem,
+            level: selectedLevel,
             generatedImages: {
-              ...(sourcePlan[selectedLevel]?.generatedImages || {}),
+              ...(sourceItem.generatedImages || {}),
               ...result.generatedImages,
             },
             afterImage: result.generatedImages.render1,
@@ -243,7 +249,7 @@ export default function ResultPage() {
           </div>
 
           <div className="flex flex-row gap-2 mt-4">
-            {LEVELS.map((level) => (
+            {LEVEL_OPTIONS.map((level) => (
               <button
                 key={level.key}
                 type="button"

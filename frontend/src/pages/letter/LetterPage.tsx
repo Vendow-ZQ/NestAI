@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
-import { api, type SessionData } from '@/lib/api'
+import { api, getPlanItem, normalizeLevel, type SessionData } from '@/lib/api'
 import { useMemoryStore } from '@/stores/memory-store'
 
 function splitLetter(content?: string | null) {
@@ -44,7 +44,7 @@ export default function LetterPage() {
             lifestyleDirection: '空间行动',
             beforeImage: data.spaceAnalysis?.images?.[0] || '',
             afterImage: data.feedback?.after_images?.[0] || '',
-            nextStep: data.interventionPlan?.low?.firstSteps?.[0],
+            nextStep: getPlanItem(data.interventionPlan)?.firstSteps?.[0],
           })
         }
       })
@@ -60,8 +60,8 @@ export default function LetterPage() {
     return content.length > 0 ? content : ['这封信还没有生成。完成一次空间行动后，Nobi 会在这里回应你的变化。']
   }, [session?.letter])
 
-  const selectedLevel = session?.feedback?.selected_level || 'low'
-  const selectedPlan = session?.interventionPlan?.[selectedLevel] || session?.interventionPlan?.low || session?.interventionPlan?.free
+  const selectedLevel = normalizeLevel(session?.feedback?.selected_level)
+  const selectedPlan = getPlanItem(session?.interventionPlan, selectedLevel)
   const beforeImage = session?.spaceAnalysis?.images?.[0] || ''
   const generatedImages = selectedPlan?.generatedImages || {}
   const generatedImage = generatedImages.render1 || generatedImages.render2 || generatedImages.axonometric || ''

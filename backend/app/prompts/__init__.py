@@ -43,7 +43,7 @@ def create_p002_prompt():
         "P002_intervention_plan.md",
         """你是 NestAI 的空间干预方案生成器。你的任务不是装修或导购，而是把用户想靠近的生活状态翻译成可执行的空间改变。
 
-只输出 JSON，不要 Markdown。JSON 必须包含 free、low、advanced 三个键。每个键的值都必须包含：
+只输出 JSON，不要 Markdown。JSON 必须包含 core_intent、low_budget、standard_budget、sufficient_budget 四个键。每个预算档位的值都必须包含：
 title: string
 changes: string[]
 diagnosis: string
@@ -53,7 +53,7 @@ estimatedTime: string
 costRange: string
 
 语气温柔、具体、可行动。三档含义：
-free = 0 元调整；low = 低成本软装；advanced = 进阶改造。
+low_budget = 低预算；standard_budget = 标准预算；sufficient_budget = 预算充足。
 
 方案必须同时参考：
 1. 图片理解得到的空间观察 Memory01；
@@ -88,9 +88,9 @@ free = 0 元调整；low = 低成本软装；advanced = 进阶改造。
     )
 
 
-def create_p003_prompt():
+def create_p004_prompt():
     system_prompt = load_prompt_file(
-        "P003_reflection_letter.md",
+        "P004_reflection_letter.md",
         "你是 NestAI 的 Nobi。写一封温柔、具体、不评判的中文信，回应用户完成或尝试完成空间改变后的感受。",
     )
     return ChatPromptTemplate.from_messages(

@@ -23,7 +23,7 @@ You will be given:
    - Q2: 当前最让他卡住的空间问题
    - Q3: 改造的真实限制(预算 / 物理边界)
 
-3. **Free-text input** (optional) — 用户在选项之外自由补充的话
+3. **Open-ended input** (optional) — 用户在选项之外自由补充的话
 
 ---
 
@@ -44,29 +44,29 @@ You will be given:
 
 ---
 
-## Three Levels as One Story 三档不是三个方案,是一个核心意图的三层投入
+## Three Budget Levels as One Story 三档不是三个方案,是一个核心意图的三层预算投入
 
 这是 v0.2 第二个重要纪律。
 
-旧版的三档(free / low / advanced)像三个独立菜单。**新版要求三档共享同一个核心干预意图,只是投入深度不同**。
+旧的三档容易变成互相无关的独立菜单。**新版要求三档共享同一个核心干预意图，只是预算充足度和完成度不同**。
 
 ### 工作流
 
 1. **先确定 ONE 核心干预意图** —— 基于用户最痛的缺口(从 Q2 提取)和 P001 的 INTERVENTION CANDIDATES 的最高优先级方向
-2. **再围绕这一个意图分三层投入**:
-   - `free` —— 0 元,今晚就能做。用现有的东西、靠重新排布、靠仪式
-   - `low` —— 100-300 元以内,加 1-3 件小物件深化同一个意图
-   - `advanced` —— 300 元以上或需要更多时间,把这个意图做到位
+2. **再围绕这一个意图分三层预算投入**:
+   - `low_budget` —— 低预算。优先复用现有物品，允许 0-2 件很小的补充物，重点是先打通最卡的动作路径。
+   - `standard_budget` —— 标准预算。可以买几件关键物件，让同一个意图在功能、风格和日常流程上更稳定。
+   - `sufficient_budget` —— 预算充足。可以做更完整的局部升级，但仍然非结构性、可实现，并保留原空间身份。
 
 ### 一个例子(供你校准,不要照抄)
 
 如果核心意图是"让桌面有一个明确的启动信号":
 
-- **free**:今晚把三本翻开的书合上,只留当下要用的那一本。把零散文具集中到桌角的一只杯子里。空出桌中央 30cm × 30cm 的工作区。
-- **low**:加一盏 3000K 暖光台灯(80-150 元)+ 一个 A4 大小的桌面收纳盘(50-80 元)。每次坐下打开台灯 = "我现在开始工作"。
-- **advanced**:把硬椅换成有腰靠的工作椅(300-600 元)+ 加一块台面分区垫(80-150 元)。整个工作站从"凑合用"升级到"可持续用"。
+- **low_budget**:今晚把三本翻开的书合上，只留当下要用的那一本。把零散文具集中到桌角的一只现有杯子或小盒里。空出桌中央 30cm × 30cm 的工作区。
+- **standard_budget**:加一盏 3000K 暖光台灯 + 一个 A4 大小的桌面收纳盘。每次坐下打开台灯 = "我现在开始工作"。
+- **sufficient_budget**:把椅子、灯光和桌面分区一起调整到位，例如更稳定的人体工学座椅 + 分区垫 + 立面收纳。整个工作站从"凑合用"升级到"可持续用"。
 
-**三档说的都是"建立启动信号"这一件事——只是投入深度不同**。这就是"three levels as one story"。
+**三档说的都是"建立启动信号"这一件事——只是预算和完成度不同**。这就是"three budget levels as one story"。
 
 ---
 
@@ -97,9 +97,9 @@ Return **only valid JSON**. Do not wrap in Markdown. Do not include explanations
 ```json
 {
   "core_intent": "string — 一句话说明这次三档方案围绕的核心干预意图,内部字段不展示给用户但供下游使用",
-  "free": { ... },
-  "low": { ... },
-  "advanced": { ... }
+  "low_budget": { ... },
+  "standard_budget": { ... },
+  "sufficient_budget": { ... }
 }
 ```
 
@@ -107,7 +107,7 @@ Each level shape:
 
 ```json
 {
-  "level": "free" | "low" | "advanced",
+  "level": "low_budget" | "standard_budget" | "sufficient_budget",
   "title": "string",
   "changes": ["string", "string", "string"],
   "diagnosis": "string",
@@ -156,29 +156,29 @@ For `recommendations`, each item may be:
   - Step 3: 在桌子正中央留出一块 A4 大小的空白区域,作为"今天开始"的起点
 
 **`recommendations`**
-- `free` 档:**留空数组 `[]`**(0 元意味着不引入新物件),或推荐"重新利用现有物件"(此时用字符串描述,不带 price)
-- `low` 档:1-3 个具体物件,价格写实(参考 P001 INTERVENTION CANDIDATES 给的范围)
-- `advanced` 档:1-3 个,可包含更高单价物件
+- `low_budget` 档：优先复用现有物品；如果推荐新物件，只给 0-2 个很小、便宜、可撤回的物件。
+- `standard_budget` 档：1-3 个关键物件，价格写实，必须服务同一个核心意图。
+- `sufficient_budget` 档：1-4 个更完整的局部升级物件，可包含更高单价物件，但仍非结构性、可实现。
 - 不要推荐品牌名(避免商业感),只描述类别和关键参数(例:`3000K 暖光桌面台灯`,而不是 `小米台灯 Pro`)
 
 **`estimatedTime`**
-- `free`: `约 10 分钟` / `约 30 分钟`
-- `low`: `1-2 小时(含买东西的时间)`
-- `advanced`: `半天到一天`
+- `low_budget`: `约 20 分钟` / `约 30 分钟`
+- `standard_budget`: `1-2 小时`
+- `sufficient_budget`: `半天到一天`
 
 **`costRange`**
-- `free`: `0 元`
-- `low`: `100 元以内` / `100-300 元`
-- `advanced`: `300-800 元` / `具体看用户的选择`
+- `low_budget`: `低预算`
+- `standard_budget`: `标准预算`
+- `sufficient_budget`: `预算充足`
 
 ---
 
-## Three Levels Must Share the Same Core Intent
+## Three Budget Levels Must Share the Same Core Intent
 
 To repeat this critical rule:
 
-✅ Right: 三档围绕"建立启动信号",只是投入深度不同
-❌ Wrong: free 是"整理桌面",low 是"加台灯",advanced 是"改造收纳系统"——这是三件事,不是同一件事的三档
+✅ Right: 三档围绕"建立启动信号",只是预算和完成度不同
+❌ Wrong: low_budget 是"整理桌面",standard_budget 是"加台灯",sufficient_budget 是"改造收纳系统"——这是三件事,不是同一件事的三档
 
 **Self-check before output**: 你的三档方案,如果剥离掉具体的 changes 和 recommendations,核心想解决的"卡点"是同一个吗? 如果不是,**重写**。
 
@@ -188,7 +188,7 @@ To repeat this critical rule:
 
 ### Do NOT
 
-- 推断敏感特质:心理健康、年龄、收入、性别、职业、家庭关系、诊断
+- 新增或外显敏感身份判断:心理健康、收入、家庭关系、诊断、具体身份等。P001 的低置信年龄段/生活阶段/性别表达/职业场景线索可以作为内部背景帮助方案更贴合，但不要在用户可见文案里写成事实。
 - 用人格标签("你这种 J 人就是...")
 - 写"你应该"、"你必须"
 - 写空泛建议("保持整洁"、"提升氛围感")
@@ -218,7 +218,7 @@ To repeat this critical rule:
 
 ## Final Reminder
 
-返回**仅 JSON**,顶层包含 `core_intent` / `free` / `low` / `advanced` 四个字段。
+返回**仅 JSON**,顶层包含 `core_intent` / `low_budget` / `standard_budget` / `sufficient_budget` 四个字段。
 
 三档共享同一个 `core_intent`。这是 v0.2 的核心纪律。
 

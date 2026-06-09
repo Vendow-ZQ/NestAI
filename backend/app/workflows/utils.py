@@ -4,21 +4,22 @@ import re
 from pathlib import Path
 from typing import Any, Dict
 
+from app.core.levels import BUDGET_LEVELS, DEFAULT_LEVEL, get_plan_for_level, level_label, normalize_level
 from app.services.storage_service import get_storage_service
 
 from .state import NestAIState
 
 
 LEVEL_DEFAULTS = {
-    "free": ("0 元调整", "0 元", "约 10 分钟"),
-    "low": ("低成本微调", "100 元以内", "约 30 分钟"),
-    "advanced": ("进阶改造", "300 元以内", "约 45 分钟"),
+    "low_budget": ("低预算微调", "低预算", "约 20 分钟"),
+    "standard_budget": ("标准预算升级", "标准预算", "约 1-2 小时"),
+    "sufficient_budget": ("预算充足改造", "预算充足", "半天到一天"),
 }
 
 
-def load_prompt4() -> str:
+def load_prompt3() -> str:
     project_root = Path(__file__).resolve().parents[3]
-    prompt_path = project_root / "prompts" / "P004_image_prompt.md"
+    prompt_path = project_root / "prompts" / "P003_Image_Prompt.md"
     if prompt_path.exists():
         return prompt_path.read_text(encoding="utf-8").strip()
 
@@ -42,9 +43,13 @@ def image_url_to_data_url(image_url: str) -> str:
 
 
 def intervention_action_text(level: str, plan: Dict[str, Any], state: NestAIState) -> str:
+    intervention_plan = state.get("intervention_plan") or {}
+    canonical_level = normalize_level(level)
     return json.dumps(
         {
-            "selected_tier": level,
+            "selected_tier": canonical_level,
+            "selected_tier_label": level_label(canonical_level),
+            "core_intent": intervention_plan.get("core_intent", ""),
             "title": plan.get("title", ""),
             "diagnosis": plan.get("diagnosis", ""),
             "changes": plan.get("changes") or [],
@@ -83,6 +88,7 @@ def extract_json_object(text: str) -> Dict[str, Any]:
 
 def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) -> Dict[str, str]:
     """Build provider-neutral image prompts from memory, questionnaire, and plan."""
+    level = normalize_level(level)
     space_summary = (state.get("space_summary") or "")[:900]
     long_term_context = (state.get("long_term_context") or "")[:900]
     aspiration = " / ".join(state.get("aspiration") or [])
@@ -92,7 +98,8 @@ def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) ->
     recommendations = json.dumps(plan.get("recommendations") or [], ensure_ascii=False)
 
     selected_intervention = (
-        f"Selected tier: {level}. "
+        f"Selected tier: {level_label(level)} ({level}). "
+        f"Core intervention intent: {(state.get('intervention_plan') or {}).get('core_intent', '')}. "
         f"Selected plan title: {plan.get('title', '')}. "
         f"Observed space and personality cues: {space_summary}. "
         f"Long-term user memory cues: {long_term_context}. "
@@ -101,16 +108,17 @@ def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) ->
         f"Recommended objects or constraints: {recommendations}."
     )
 
-    if level == "free":
+    if level == "low_budget":
         style_direction = (
-            "Keep the existing style and make only zero-cost visual improvements: clearer surfaces, calmer grouping, "
-            "better object alignment, and improved use of existing light. Do not add new objects."
+            "Keep the user's existing style and make budget-conscious visual improvements: smarter grouping, clearer "
+            "task zones, reused existing objects, and at most 1-2 inexpensive anchors if they are present in the selected "
+            "plan, such as a tray, cable clip, small textile, simple lamp, poster, or compact organizer."
         )
-    elif level == "low":
+    elif level == "standard_budget":
         style_direction = (
             "Choose one clear, feasible style direction that fits the room and user cues: Bauhaus, Memphis, New Chinese, "
             "Industrial, Cream, or Biophilic/greenery. Make it visibly present through palette, lighting, materials, and "
-            "1-2 low-cost anchor objects such as a warm lamp, compact stool/chair, small plant, textile/cushion, tray, "
+            "2-3 practical anchor objects such as a warm lamp, compact stool/chair, small plant, textile/cushion, tray, "
             "basket, poster, or desk organizer. Keep the room lived-in and recognizable."
         )
     else:
@@ -121,7 +129,7 @@ def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) ->
             "wall accent, modular shelving, or side table. Preserve architecture and major room identity."
         )
 
-    base_xml = f"""<image_edit_prompt id="P004-{level}-fallback">
+    base_xml = f"""<image_edit_prompt id="P003-{level}-fallback">
   <task>
     Edit the provided input image into a photorealistic after-image based on the selected NestAI intervention.
   </task>
@@ -155,9 +163,9 @@ def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) ->
 </image_edit_prompt>"""
 
     return {
-        "axonometric": base_xml.replace('id="P004-' + level + '-fallback"', 'id="P004-' + level + '-axonometric"'),
-        "render1": base_xml.replace('id="P004-' + level + '-fallback"', 'id="P004-' + level + '-render1"'),
-        "render2": base_xml.replace('id="P004-' + level + '-fallback"', 'id="P004-' + level + '-render2"'),
+        "axonometric": base_xml.replace('id="P003-' + level + '-fallback"', 'id="P003-' + level + '-axonometric"'),
+        "render1": base_xml.replace('id="P003-' + level + '-fallback"', 'id="P003-' + level + '-render1"'),
+        "render2": base_xml.replace('id="P003-' + level + '-fallback"', 'id="P003-' + level + '-render2"'),
         "negative": "no unrealistic architecture, no extra windows, no impossible room expansion, no text watermark, no over-styled showroom",
     }
 
@@ -174,45 +182,52 @@ def fallback_intervention_plan(state: NestAIState) -> Dict[str, Any]:
     )
 
     return {
-        "free": {
-            "level": "free",
-            "title": LEVEL_DEFAULTS["free"][0],
-            "changes": ["清出一个固定的空白工作面", "把线材和零碎物放进同一位置", "只保留今晚会用到的物品"],
+        "core_intent": "让一个高频区域更顺手、更能进入状态",
+        "low_budget": {
+            "level": "low_budget",
+            "title": LEVEL_DEFAULTS["low_budget"][0],
+            "changes": ["清出一个固定的启动区", "把线材和零碎物归到同一处", "用现有物品建立收尾位置"],
             "diagnosis": base_diagnosis,
-            "firstSteps": ["把桌面中央清出一块 A4 大小的空白", "把线材收进抽屉或靠墙一侧", "把今晚不用的物品移出视线"],
-            "recommendations": [],
-            "estimatedTime": LEVEL_DEFAULTS["free"][2],
-            "costRange": LEVEL_DEFAULTS["free"][1],
+            "firstSteps": ["先把最常坐下的位置清出一块手掌大的空白", "把线材移到靠墙一侧", "选一个现有容器放零碎物"],
+            "recommendations": ["优先复用已有容器、杯子、盒子或托盘"],
+            "estimatedTime": LEVEL_DEFAULTS["low_budget"][2],
+            "costRange": LEVEL_DEFAULTS["low_budget"][1],
         },
-        "low": {
-            "level": "low",
-            "title": LEVEL_DEFAULTS["low"][0],
-            "changes": ["增加一个桌面收纳托盘", "补一盏暖光台灯", "用小挂钩固定床边常用物"],
-            "diagnosis": f"{base_diagnosis} 在{budget}的约束里，低成本物件应该只服务于秩序、光线和顺手。",
-            "firstSteps": ["先完成 0 元整理", "选择一个托盘收纳桌面零碎物", "把冷白光使用场景和休息场景分开"],
-            "recommendations": [{"name": "桌面收纳托盘", "price": "约 30 元"}, {"name": "3000K 暖光台灯", "price": "约 60 元"}],
-            "estimatedTime": LEVEL_DEFAULTS["low"][2],
-            "costRange": LEVEL_DEFAULTS["low"][1],
+        "standard_budget": {
+            "level": "standard_budget",
+            "title": LEVEL_DEFAULTS["standard_budget"][0],
+            "changes": ["增加一个桌面或床边收纳托盘", "补一盏适合使用场景的灯", "用小挂钩或分区件固定常用物"],
+            "diagnosis": f"{base_diagnosis} 在{budget}的约束里，标准预算应该让秩序、光线和拿取路径同时变顺。",
+            "firstSteps": ["先确定最常用的一个区域", "选择一个托盘收纳零碎物", "把工作/休息的光线使用场景分开"],
+            "recommendations": [{"name": "桌面收纳托盘", "price": "约 30-80 元"}, {"name": "3000K 暖光台灯", "price": "约 80-180 元"}],
+            "estimatedTime": LEVEL_DEFAULTS["standard_budget"][2],
+            "costRange": LEVEL_DEFAULTS["standard_budget"][1],
         },
-        "advanced": {
-            "level": "advanced",
-            "title": LEVEL_DEFAULTS["advanced"][0],
+        "sufficient_budget": {
+            "level": "sufficient_budget",
+            "title": LEVEL_DEFAULTS["sufficient_budget"][0],
             "changes": ["重新定义学习、休息、收纳三区", "增加墙面或立面表达", "用灯光和软装形成更稳定的生活节奏"],
-            "diagnosis": f"{base_diagnosis} 进阶方案的重点不是买更多东西，而是让每个角落只承担一类生活动作。",
+            "diagnosis": f"{base_diagnosis} 预算充足时，重点不是买更多东西，而是让每个角落更清楚地承担一类生活动作。",
             "firstSteps": ["画出学习、休息、收纳三个区域", "决定一个可以表达自己的墙面或立面", "补齐灯光、收纳、软装中最缺的一项"],
-            "recommendations": [{"name": "墙面海报或软木板", "price": "约 50 元"}, {"name": "小地毯或靠垫", "price": "约 80 元"}],
-            "estimatedTime": LEVEL_DEFAULTS["advanced"][2],
-            "costRange": LEVEL_DEFAULTS["advanced"][1],
+            "recommendations": [{"name": "墙面海报或软木板", "price": "约 80-180 元"}, {"name": "小地毯或靠垫", "price": "约 120-300 元"}],
+            "estimatedTime": LEVEL_DEFAULTS["sufficient_budget"][2],
+            "costRange": LEVEL_DEFAULTS["sufficient_budget"][1],
         },
     }
 
 
 def normalize_intervention_plan(plan: Dict[str, Any], state: NestAIState) -> Dict[str, Any]:
     fallback = fallback_intervention_plan(state)
-    normalized: Dict[str, Any] = {}
+    normalized: Dict[str, Any] = {
+        "core_intent": (
+            plan.get("core_intent")
+            if isinstance(plan, dict) and isinstance(plan.get("core_intent"), str)
+            else fallback["core_intent"]
+        )
+    }
 
-    for level in ("free", "low", "advanced"):
-        source = plan.get(level) if isinstance(plan, dict) else None
+    for level in BUDGET_LEVELS:
+        source = get_plan_for_level(plan, level, None)
         if not isinstance(source, dict):
             source = {}
 
@@ -230,10 +245,10 @@ def normalize_intervention_plan(plan: Dict[str, Any], state: NestAIState) -> Dic
 
 
 def fallback_letter(state: NestAIState) -> str:
-    selected_level = state.get("selected_level") or "low"
+    selected_level = normalize_level(state.get("selected_level") or DEFAULT_LEVEL)
     return (
         "我记住的不是你完成了多少步骤，而是你真的回到自己的空间里，试着让它更靠近你一点。\n\n"
-        f"这次你选择的是 {selected_level} 方案。哪怕只是挪开一些东西、留出一点空白、换一种光线，"
+        f"这次你选择的是 {level_label(selected_level)} 方案。哪怕只是挪开一些东西、留出一点空白、换一种光线，"
         "它都在告诉这个房间：这里不只是被使用的地方，也是你可以慢慢安放自己的地方。\n\n"
         "如果有些步骤还没做到，也没关系。空间的改变不需要一次完成，它更像是一种很轻的对话："
         "你动一点，它回应一点。"

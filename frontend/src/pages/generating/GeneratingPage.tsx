@@ -10,7 +10,7 @@ import { useShareStore } from '@/stores/share-store'
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { NobiWorking } from '@/components/NobiWorking'
 import { errorMessages } from '@/lib/error-messages'
-import { api, apiUrl, type Level } from '@/lib/api'
+import { api, apiUrl, normalizeLevel } from '@/lib/api'
 
 export default function GeneratingPage() {
   const navigate = useNavigate()
@@ -28,7 +28,7 @@ export default function GeneratingPage() {
   const type = searchParams.get('type') || 'space'
   const sceneId = searchParams.get('sceneId') || 'scene-01'
   const sessionId = searchParams.get('sessionId')
-  const selectedLevel = (searchParams.get('level') as Level | null) || 'low'
+  const selectedLevel = normalizeLevel(searchParams.get('level'))
 
   const spaceSteps = [
     { zh: '看见这个空间...', en: 'SEEING THE SPACE' },
@@ -59,7 +59,7 @@ export default function GeneratingPage() {
   }
 
   const currentTitle = titleMap[type] || titleMap.space
-  const nobiVariant = type === 'space' ? 'questionnaire' : 'result'
+  const nobiVariant = type === 'space' ? 'questionnaire' : type === 'letter' ? 'letter' : 'result'
 
   useEffect(() => {
     if (type === 'space') {

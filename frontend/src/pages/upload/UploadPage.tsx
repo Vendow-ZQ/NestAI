@@ -14,6 +14,9 @@ export default function UploadPage() {
   const location = useLocation()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const currentUser = useUserStore((s) => s.currentUser)
   const setUploaded = useUserStore((s) => s.setHasUploadedSpace)
   const uploadedImages = useSpaceStore((s) => s.uploadedImages)
   const setUploadedImages = useSpaceStore((s) => s.setUploadedImages)
@@ -24,6 +27,9 @@ export default function UploadPage() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [leavingToGrow, setLeavingToGrow] = useState(false)
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false)
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const [cameraError, setCameraError] = useState('')
   const fromGrow = (location.state as { transition?: string } | null)?.transition === 'feed-upload'
 
   useEffect(() => {
@@ -37,17 +43,69 @@ export default function UploadPage() {
     }
   }, [resetSpace])
 
+  useEffect(() => {
+    if (!videoRef.current || !cameraStream) return
+    videoRef.current.srcObject = cameraStream
+    videoRef.current.play().catch((err) => {
+      console.error('Camera preview failed:', err)
+    })
+  }, [cameraStream])
+
+  useEffect(() => {
+    return () => {
+      cameraStream?.getTracks().forEach((track) => track.stop())
+    }
+  }, [cameraStream])
+
   const openSourceSheet = () => {
     if (uploading) return
     setSourceSheetOpen(true)
   }
 
-  const handleChooseCamera = () => {
+  async function openRealCamera() {
     setSourceSheetOpen(false)
-    cameraInputRef.current?.click()
+    setCameraError('')
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      cameraInputRef.current?.click()
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1600 },
+          height: { ideal: 1200 },
+        },
+        audio: false,
+      })
+      setCameraStream(stream)
+      setCameraOpen(true)
+    } catch (err) {
+      console.error('Camera open failed:', err)
+      setCameraError('没有拿到摄像头权限。可以允许浏览器使用摄像头，或者先用本地图片上传。')
+      cameraInputRef.current?.click()
+    }
+  }
+
+  function stopCamera() {
+    setCameraOpen(false)
+    setCameraStream((stream) => {
+      stream?.getTracks().forEach((track) => track.stop())
+      return null
+    })
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+  }
+
+  const handleChooseCamera = () => {
+    void openRealCamera()
   }
 
   const handleChooseGallery = () => {
+    stopCamera()
     setSourceSheetOpen(false)
     galleryInputRef.current?.click()
   }
@@ -66,6 +124,29 @@ export default function UploadPage() {
     e.target.value = ''
   }
 
+  const handleCameraCapture = () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas || uploadedImages.length >= 9) return
+
+    const width = video.videoWidth || 1280
+    const height = video.videoHeight || 960
+    canvas.width = width
+    canvas.height = height
+
+    const context = canvas.getContext('2d')
+    if (!context) return
+
+    context.drawImage(video, 0, 0, width, height)
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const file = new File([blob], `nest-camera-${Date.now()}.jpg`, { type: 'image/jpeg' })
+      addImage(URL.createObjectURL(file))
+      setFiles((prev) => [...prev, file])
+      stopCamera()
+    }, 'image/jpeg', 0.92)
+  }
+
   const handleRemoveImage = (index: number) => {
     const removed = uploadedImages[index]
     if (removed?.startsWith('blob:')) {
@@ -80,6 +161,10 @@ export default function UploadPage() {
 
   const handleStart = async () => {
     if (uploadedImages.length === 0 || files.length === 0) return
+    if (!currentUser) {
+      navigate('/login', { replace: true })
+      return
+    }
     setUploading(true)
     setUploaded(true)
 
@@ -102,7 +187,7 @@ export default function UploadPage() {
       const spaceRes = await fetch(apiUrl('/api/spaces/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: imageUrls }),
+        body: JSON.stringify({ images: imageUrls, userId: currentUser.id }),
       })
       if (!spaceRes.ok) {
         throw new Error(`Create space failed: ${spaceRes.status}`)
@@ -113,7 +198,7 @@ export default function UploadPage() {
       const sessionRes = await fetch(apiUrl('/api/sessions/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spaceId, images: imageUrls }),
+        body: JSON.stringify({ spaceId, images: imageUrls, userId: currentUser.id }),
       })
       if (!sessionRes.ok) {
         throw new Error(`Create session failed: ${sessionRes.status}`)
@@ -192,7 +277,11 @@ export default function UploadPage() {
         <div className="w-9 h-9" aria-hidden="true" />
       </div>
 
-      <div className="px-5 flex-1">
+      <div className="upload-card-anchor px-5 flex-1">
+        <div className="upload-feed-header-spacer" aria-hidden="true">
+          <span>Growing...</span>
+          <span>See Your Nest, See Your Next</span>
+        </div>
         <button
           type="button"
           className={`upload-space-card grow-upload-card rounded-[22px] text-left hover-lift ${
@@ -324,6 +413,30 @@ export default function UploadPage() {
             <button type="button" className="upload-source-cancel" onClick={() => setSourceSheetOpen(false)}>
               取消
             </button>
+          </div>
+        </div>
+      )}
+
+      {cameraOpen && (
+        <div className="upload-camera-backdrop" role="dialog" aria-modal="true" aria-label="Camera">
+          <div className="upload-camera-panel">
+            <div className="upload-camera-preview">
+              <video ref={videoRef} className="upload-camera-video" playsInline muted autoPlay />
+              <div className="upload-camera-reticle" aria-hidden="true" />
+            </div>
+            <canvas ref={canvasRef} className="hidden" />
+            <div className="upload-camera-actions">
+              <button type="button" className="upload-camera-side-button" onClick={stopCamera}>
+                取消
+              </button>
+              <button type="button" className="upload-camera-shutter" onClick={handleCameraCapture} aria-label="Take photo">
+                <span />
+              </button>
+              <button type="button" className="upload-camera-side-button" onClick={handleChooseGallery}>
+                相册
+              </button>
+            </div>
+            {cameraError && <span className="upload-camera-error">{cameraError}</span>}
           </div>
         </div>
       )}

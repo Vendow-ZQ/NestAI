@@ -3,8 +3,9 @@ from typing import Any, Dict
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from app.core.levels import DEFAULT_LEVEL, get_plan_for_level, level_label, normalize_level
 from app.core.llm_manager import llm_manager
-from app.prompts import create_p002_prompt, create_p003_prompt
+from app.prompts import create_p002_prompt, create_p004_prompt
 from app.services.image_generation_service import get_image_generation_service
 
 from .state import NestAIState
@@ -15,7 +16,7 @@ from .utils import (
     fallback_letter,
     image_url_to_data_url,
     intervention_action_text,
-    load_prompt4,
+    load_prompt3,
     normalize_intervention_plan,
 )
 
@@ -54,8 +55,9 @@ def plan_intervention_node(state: NestAIState) -> NestAIState:
 def build_image_prompt_node(state: NestAIState) -> NestAIState:
     """Translate selected action text and the before image into image-edit prompts."""
     plan = state.get("intervention_plan") or {}
-    level = state.get("selected_level") or "low"
-    selected = plan.get(level) or plan.get("low") or plan.get("free") or {}
+    level = normalize_level(state.get("selected_level") or DEFAULT_LEVEL)
+    state["selected_level"] = level
+    selected = get_plan_for_level(plan, level, {}) or {}
 
     if isinstance(selected, dict):
         prompts = build_image_prompts(level, selected, state)
@@ -66,7 +68,7 @@ def build_image_prompt_node(state: NestAIState) -> NestAIState:
                 model = llm_manager.get_model()
                 action_text = intervention_action_text(level, selected, state)
                 messages = [
-                    SystemMessage(content=load_prompt4()),
+                    SystemMessage(content=load_prompt3()),
                     HumanMessage(
                         content=[
                             {
@@ -92,7 +94,7 @@ def build_image_prompt_node(state: NestAIState) -> NestAIState:
                     "negative": translated.get("negative") or prompts["negative"],
                 }
             except Exception as e:
-                state["error"] = f"P004 translation fallback used: {e}"
+                state["error"] = f"P003 image prompt fallback used: {e}"
 
         selected["imagePrompts"] = prompts
         plan[level] = selected
@@ -122,13 +124,14 @@ def generate_images_node(state: NestAIState) -> NestAIState:
 
         state["generated_images"] = generated
         plan = state.get("intervention_plan") or {}
-        level = state.get("selected_level") or "low"
-        selected = plan.get(level) or plan.get("low") or plan.get("free")
+        level = normalize_level(state.get("selected_level") or DEFAULT_LEVEL)
+        selected = get_plan_for_level(plan, level, None)
         if isinstance(selected, dict):
             existing = selected.get("generatedImages") if isinstance(selected.get("generatedImages"), dict) else {}
             selected["generatedImages"] = {**existing, **generated}
             if generated.get("render1"):
                 selected["afterImage"] = generated["render1"]
+            selected["level"] = level
             plan[level] = selected
             state["intervention_plan"] = plan
 
@@ -145,15 +148,16 @@ def generate_images_node(state: NestAIState) -> NestAIState:
 def write_letter_node(state: NestAIState) -> NestAIState:
     """Generate the reflective letter after user feedback."""
     try:
-        prompt = create_p003_prompt()
+        prompt = create_p004_prompt()
         model = llm_manager.get_model()
         intervention = state.get("intervention_plan") or {}
-        selected_level = state.get("selected_level") or "low"
-        selected_plan = intervention.get(selected_level) or intervention.get("low") or {}
+        selected_level = normalize_level(state.get("selected_level") or DEFAULT_LEVEL)
+        state["selected_level"] = selected_level
+        selected_plan = get_plan_for_level(intervention, selected_level, {}) or {}
 
         conversation_summary = (
             f"空间观察: {(state.get('space_summary') or '')[:500]}\n"
-            f"方案层级: {selected_level}\n"
+            f"方案层级: {level_label(selected_level)}\n"
         )
 
         messages = prompt.format_messages(
@@ -176,7 +180,7 @@ def write_letter_node(state: NestAIState) -> NestAIState:
     except Exception as e:
         state["farewell_letter"] = fallback_letter(state)
         state["stage"] = "letter_written"
-        state["error"] = f"P003 fallback used: {e}"
+        state["error"] = f"P004 letter fallback used: {e}"
 
     return state
 
@@ -184,10 +188,12 @@ def write_letter_node(state: NestAIState) -> NestAIState:
 def update_memory_summary_node(state: NestAIState) -> NestAIState:
     """Prepare a compact memory summary for persistence by the service layer."""
     plan = state.get("intervention_plan") or {}
-    level = state.get("selected_level") or "low"
-    selected: Dict[str, Any] = plan.get(level) or plan.get("low") or {}
+    level = normalize_level(state.get("selected_level") or DEFAULT_LEVEL)
+    selected: Dict[str, Any] = get_plan_for_level(plan, level, {}) or {}
     state["memory_update"] = {
         "selected_level": level,
+        "selected_level_label": level_label(level),
+        "core_intent": plan.get("core_intent", ""),
         "plan_title": selected.get("title", ""),
         "first_step": (selected.get("firstSteps") or [""])[0],
         "user_feeling": state.get("user_feeling", ""),

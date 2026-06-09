@@ -2,18 +2,22 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
-import { api, type LongTermMemoryData, type SessionData } from '@/lib/api'
+import { api, getPlanItem, normalizeLevel, type LongTermMemoryData, type SessionData } from '@/lib/api'
 import { useInterventionStore } from '@/stores/intervention-store'
 import { type Letter, useMemoryStore } from '@/stores/memory-store'
 import { useUserStore } from '@/stores/user-store'
 
 const SPACE_NAME_KEY = 'nestai.spaceName'
 
+function spaceNameKey(userId = 'dev_user') {
+  return `${SPACE_NAME_KEY}.${userId}`
+}
+
 function sessionToLetter(session: SessionData): Letter | null {
   if (!session.letter) return null
 
-  const selectedLevel = session.feedback?.selected_level || 'low'
-  const plan = session.interventionPlan?.[selectedLevel] || session.interventionPlan?.low || session.interventionPlan?.free
+  const selectedLevel = normalizeLevel(session.feedback?.selected_level)
+  const plan = getPlanItem(session.interventionPlan, selectedLevel)
   const generated = plan?.generatedImages || {}
 
   return {
@@ -35,6 +39,7 @@ function sessionToLetter(session: SessionData): Letter | null {
 export default function MePage() {
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
+  const currentUser = useUserStore((s) => s.currentUser)
   const hasUploadedSpace = useUserStore((s) => s.hasUploadedSpace)
   const localLetters = useMemoryStore((s) => s.letters)
   const interventionHistory = useInterventionStore((s) => s.nextList)
@@ -45,15 +50,18 @@ export default function MePage() {
   const [editingSpaceName, setEditingSpaceName] = useState(false)
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(SPACE_NAME_KEY)
+    if (!currentUser) return
+    const saved = window.localStorage.getItem(spaceNameKey(currentUser.id))
     if (saved?.trim()) {
       setSpaceName(saved.trim())
     }
-  }, [])
+  }, [currentUser])
 
   useEffect(() => {
+    if (!currentUser) return
+
     api
-      .listSessions()
+      .listSessions(currentUser.id)
       .then((data) => {
         const persistedLetters = data.sessions
           .map(sessionToLetter)
@@ -65,12 +73,12 @@ export default function MePage() {
       })
 
     api
-      .getLongTermMemory()
+      .getLongTermMemory(currentUser.id)
       .then(setLongTermMemory)
       .catch((err) => {
         console.error('读取长期 Memory 失败:', err)
       })
-  }, [])
+  }, [currentUser])
 
   useEffect(() => {
     if (editingSpaceName) {
@@ -89,7 +97,7 @@ export default function MePage() {
   const commitSpaceName = () => {
     const next = spaceName.trim() || '我的空间'
     setSpaceName(next)
-    window.localStorage.setItem(SPACE_NAME_KEY, next)
+    window.localStorage.setItem(spaceNameKey(currentUser?.id), next)
     setEditingSpaceName(false)
   }
 

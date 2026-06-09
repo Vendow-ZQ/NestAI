@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Any
 import json
 from sqlalchemy.orm import Session
 
+from app.core.levels import DEFAULT_LEVEL, get_plan_for_level, level_label, normalize_level
 from app.services.memory_service import MemoryService, get_db
 from app.services.workflow_service import get_workflow_service, WorkflowService
 from app.services.vision_service import get_vision_service
@@ -135,7 +136,7 @@ class GenerateLetterRequest(BaseModel):
 
 
 class GenerateImagesRequest(BaseModel):
-    level: Optional[str] = "low"
+    level: Optional[str] = DEFAULT_LEVEL
     tabs: Optional[List[str]] = None
 
 
@@ -182,8 +183,8 @@ def build_next_action_from_plan(memory) -> Optional[Dict[str, Any]]:
     space_analysis = safe_json_loads(memory.space_analysis, {})
     feedback = safe_json_loads(memory.feedback, {})
 
-    selected_level = feedback.get("selected_level") or "low"
-    plan = intervention_plan.get(selected_level) or intervention_plan.get("low") or intervention_plan.get("free")
+    selected_level = normalize_level(feedback.get("selected_level") or DEFAULT_LEVEL)
+    plan = get_plan_for_level(intervention_plan, selected_level, None)
     if not isinstance(plan, dict):
         return None
 
@@ -198,7 +199,7 @@ def build_next_action_from_plan(memory) -> Optional[Dict[str, Any]]:
         "lifestyleGoal": plan.get("diagnosis") or "让空间更靠近想要的生活状态",
         "firstStep": first_steps[0] if first_steps else "先选择一个最小动作开始",
         "estimatedTime": plan.get("estimatedTime") or "约 10 分钟",
-        "costRange": plan.get("costRange") or "0 元",
+        "costRange": plan.get("costRange") or level_label(selected_level),
         "previewImage": plan.get("afterImage") or (images[0] if images else ""),
         "completed": memory.status in ("feedback_done", "letter_done"),
         "interventionId": f"{memory.session_id}-{selected_level}",
@@ -256,9 +257,9 @@ def build_feed_item_from_session(memory, seed_images: Optional[List[str]] = None
     display_summary = space_analysis.get("display_summary") or space_analysis.get("summary") or "一个正在被重新理解的空间"
     title = "我的空间变化"
     if isinstance(intervention_plan, dict):
-        low_plan = intervention_plan.get("low") or intervention_plan.get("free") or {}
-        if isinstance(low_plan, dict) and low_plan.get("title"):
-            title = low_plan["title"]
+        default_plan = get_plan_for_level(intervention_plan, DEFAULT_LEVEL, {}) or {}
+        if isinstance(default_plan, dict) and default_plan.get("title"):
+            title = default_plan["title"]
 
     return {
         "id": f"feed-{memory.session_id}",
@@ -357,10 +358,14 @@ async def create_session(
     session_id = str(uuid.uuid4())
 
     # 创建短期记忆记录
+    user_id = req.userId or "dev_user"
+    if not memory_service.get_long_term_memory(user_id):
+        memory_service.create_long_term_memory(user_id)
+
     memory = memory_service.create_session_memory(
         session_id=session_id,
         space_id=req.spaceId,
-        user_id=req.userId
+        user_id=user_id
     )
 
     # 保存图片URL到session（避免依赖内存中的spaces_db）
@@ -495,7 +500,10 @@ async def list_sessions(
 ):
     """List persisted sessions and derive lightweight feed/next data."""
     memory_service = MemoryService(db)
-    memories = memory_service.list_session_memories(userId or "dev_user")
+    user_id = userId or "dev_user"
+    if not memory_service.get_long_term_memory(user_id):
+        memory_service.create_long_term_memory(user_id)
+    memories = memory_service.list_session_memories(user_id)
     feed_posts = memory_service.list_feed_posts()
     public_memories = memory_service.list_public_session_memories()
     seed_images = list_feed_seed_images()
@@ -701,10 +709,10 @@ async def generate_images(
             raise HTTPException(status_code=404, detail="Session not found")
 
         workflow_service = get_workflow_service(memory_service)
-        level = req.level or "low"
+        level = normalize_level(req.level or DEFAULT_LEVEL)
         result = await workflow_service.run_image_generation(session_id, level, req.tabs or ["render1"])
         intervention_plan = result.get("intervention_plan") or {}
-        plan = intervention_plan.get(level) or intervention_plan.get("low") or intervention_plan.get("free")
+        plan = get_plan_for_level(intervention_plan, level, None)
         if not isinstance(plan, dict):
             raise HTTPException(status_code=400, detail="No intervention plan found")
 
@@ -744,15 +752,10 @@ async def publish_session_to_feed(
         intervention_plan = safe_json_loads(memory.intervention_plan, {})
         feedback = safe_json_loads(memory.feedback, {})
 
-        level = req.level or feedback.get("selected_level") or "low"
+        level = normalize_level(req.level or feedback.get("selected_level") or DEFAULT_LEVEL)
         plan = {}
         if isinstance(intervention_plan, dict):
-            plan = (
-                intervention_plan.get(level)
-                or intervention_plan.get("low")
-                or intervention_plan.get("free")
-                or {}
-            )
+            plan = get_plan_for_level(intervention_plan, level, {}) or {}
         if not isinstance(plan, dict):
             plan = {}
 
@@ -819,7 +822,8 @@ async def generate_letter(
             raise HTTPException(status_code=404, detail="Session not found")
 
         feedback_data = {
-            "selected_level": req.selected_level,
+            "selected_level": normalize_level(req.selected_level),
+            "selected_level_label": level_label(req.selected_level),
             "completion_status": req.completion_status,
             "user_feeling": req.user_feeling,
             "after_images": req.after_images or [],
@@ -836,7 +840,7 @@ async def generate_letter(
         # 运行告别信生成工作流
         result = await workflow_service.run_letter_generation(
             session_id=session_id,
-            selected_level=req.selected_level,
+            selected_level=normalize_level(req.selected_level),
             completion_status=req.completion_status,
             user_feeling=enriched_feeling
         )

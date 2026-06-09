@@ -1,10 +1,50 @@
-export type Level = 'free' | 'low' | 'advanced'
+export type Level = 'low_budget' | 'standard_budget' | 'sufficient_budget'
+export type LegacyLevel = 'free' | 'low' | 'advanced'
+export type PlanLevel = Level | LegacyLevel
+
+export const DEFAULT_LEVEL: Level = 'standard_budget'
+
+export const LEVEL_OPTIONS: { key: Level; label: string; en: string }[] = [
+  { key: 'low_budget', label: '低预算', en: 'LOW BUDGET' },
+  { key: 'standard_budget', label: '标准预算', en: 'STANDARD' },
+  { key: 'sufficient_budget', label: '预算充足', en: 'FULL BUDGET' },
+]
+
+const LEVEL_ALIASES: Record<string, Level> = {
+  low_budget: 'low_budget',
+  standard_budget: 'standard_budget',
+  sufficient_budget: 'sufficient_budget',
+  free: 'low_budget',
+  low: 'standard_budget',
+  advanced: 'sufficient_budget',
+}
+
+const LEGACY_KEYS: Record<Level, LegacyLevel[]> = {
+  low_budget: ['free'],
+  standard_budget: ['low'],
+  sufficient_budget: ['advanced'],
+}
+
+export function normalizeLevel(value?: string | null): Level {
+  return value ? LEVEL_ALIASES[value] || DEFAULT_LEVEL : DEFAULT_LEVEL
+}
 
 export interface ApiResponse<T> {
   success: boolean
   data?: T
   error?: string
   message?: string
+}
+
+export interface UserData {
+  id: string
+  displayName: string
+  email?: string
+  avatarUrl?: string
+  profileSummary?: string
+  longTermMemoryPath?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface SessionData {
@@ -22,7 +62,7 @@ export interface SessionData {
   }
   interventionPlan?: InterventionPlan
   feedback?: {
-    selected_level?: Level
+    selected_level?: PlanLevel
     completion_status?: string
     user_feeling?: string
     after_images?: string[]
@@ -42,7 +82,7 @@ export interface Question {
 
 export interface InterventionItem {
   id?: string
-  level: Level
+  level: PlanLevel
   title: string
   afterImage?: string
   changes: string[]
@@ -61,7 +101,19 @@ export interface InterventionItem {
   generatedImages?: Record<string, string>
 }
 
-export type InterventionPlan = Record<Level, InterventionItem>
+export type InterventionPlan = Partial<Record<PlanLevel, InterventionItem>> & {
+  core_intent?: string
+}
+
+export function getPlanItem(plan: InterventionPlan | undefined | null, level?: string | null): InterventionItem | undefined {
+  if (!plan) return undefined
+  const normalized = normalizeLevel(level)
+  return plan[normalized] || LEGACY_KEYS[normalized].map((key) => plan[key]).find(Boolean)
+}
+
+export function hasAllBudgetLevels(plan: InterventionPlan | undefined | null): boolean {
+  return LEVEL_OPTIONS.every(({ key }) => Boolean(getPlanItem(plan, key)))
+}
 
 export interface NextActionData {
   id: string
@@ -167,6 +219,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  loginUser(payload: { displayName: string; email?: string; avatarUrl?: string }) {
+    return request<UserData>('/api/users/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  getUser(userId: string) {
+    return request<UserData>(`/api/users/${encodeURIComponent(userId)}`)
+  },
+
   listSessions(userId = 'dev_user') {
     return request<SessionListData>(`/api/sessions/?userId=${encodeURIComponent(userId)}`)
   },
@@ -205,7 +268,7 @@ export const api = {
     })
   },
 
-  generateImages(sessionId: string, level: Level = 'low', tabs: string[] = ['render1']) {
+  generateImages(sessionId: string, level: Level = DEFAULT_LEVEL, tabs: string[] = ['render1']) {
     return request<{
       status: string
       level: Level | string

@@ -2,19 +2,21 @@ import { useEffect, useState } from 'react'
 
 type NobiWorkingProps = {
   className?: string
-  variant?: 'questionnaire' | 'result' | 'effect'
+  variant?: 'questionnaire' | 'result' | 'effect' | 'letter'
 }
 
 const frameFolders = {
   questionnaire: '/nobi/questionnaire-frames',
   result: '/nobi/result-frames',
   effect: '/nobi/effect-frames',
+  letter: '/nobi/letter-frames',
 } as const
 
 const frameCounts = {
   questionnaire: 8,
   result: 8,
   effect: 8,
+  letter: 8,
 } as const
 
 export function NobiWorking({ className = '', variant = 'questionnaire' }: NobiWorkingProps) {

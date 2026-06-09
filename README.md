@@ -180,8 +180,8 @@ python -m compileall app
 
 - `P001_space_analysis.md`：图片理解、Memory01、动态问卷
 - `P002_intervention_plan.md`：问卷 + memory 到三档干预方案
-- `P003_reflection_letter.md`：反馈到 reflection letter
-- `P004_image_prompt.md`：行动方案 + 原图到图生图 prompt
+- `P003_Image_Prompt.md`：行动方案 + 原图到图生图 prompt
+- `P004_reflection_letter.md`：反馈到 reflection letter
 - `P005_bauhaus_image_edit.md`：独立图生图测试 prompt
 
 每次修改 Prompt 后，建议至少运行：
