@@ -1009,7 +1009,7 @@
   }
 
   .login-nobi {
-    width: min(50vw, 180px);
+    width: min(42vw, 142px);
   }
 
   .login-input {
@@ -1022,7 +1022,7 @@
     font-size: 16px;
     line-height: 1.25;
     outline: none;
-    padding: 13px 14px;
+    padding: 12px 14px;
     transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
   }
 

@@ -42,12 +42,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page-shell min-h-full flex flex-col justify-between px-5 pt-12 pb-7">
+    <div className="login-page-shell min-h-full flex flex-col px-5 pt-12 pb-7">
       <div>
         <BilingualTitle en="NestAI" zh="栖巢" size="lg" />
       </div>
 
-      <form className="login-card nest-glass-card rounded-[24px] p-5" onSubmit={handleSubmit}>
+      <form className="login-card nest-glass-card mx-auto mt-5 w-full max-w-[370px] rounded-[24px] px-5 py-6" onSubmit={handleSubmit}>
         <div className="flex justify-center mb-3">
           <NobiWorking className="login-nobi" />
         </div>
@@ -55,7 +55,7 @@ export default function LoginPage() {
           先认识你一下
         </span>
         <span className="block text-sm text-[#6e6e73] mt-2 leading-relaxed text-center">
-          之后每一次看见空间，都会写进属于你的短期和长期记忆。
+          每一次看见空间，都会写进独属于你的记忆。
         </span>
 
         <label className="block mt-5">
@@ -94,9 +94,6 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <span className="block text-center text-xs text-[#8e8e93] leading-relaxed">
-        当前版本是轻登录：用户、空间、短期记忆和 LongTermMemory 会先保存在本项目后端数据库里。
-      </span>
     </div>
   )
 }
