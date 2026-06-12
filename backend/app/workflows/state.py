@@ -34,6 +34,7 @@ class NestAIState(TypedDict, total=False):
     completion_status: str
     user_feeling: str
     farewell_letter: str
+    memory_update: Dict[str, Any]
 
     # Diagnostics.
     error: Optional[str]
