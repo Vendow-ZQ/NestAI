@@ -1,10 +1,14 @@
+import { useI18n } from '@/lib/i18n'
+
 interface PlaceholderImageProps {
   label?: string
   className?: string
   style?: React.CSSProperties
 }
 
-export const PlaceholderImage = ({ label = '空间图片', className = '', style }: PlaceholderImageProps) => {
+export const PlaceholderImage = ({ label, className = '', style }: PlaceholderImageProps) => {
+  const { t } = useI18n()
+
   return (
     <div
       className={`flex items-center justify-center ${className}`}
@@ -14,7 +18,7 @@ export const PlaceholderImage = ({ label = '空间图片', className = '', style
         ...style,
       }}
     >
-      <span className="block text-xs text-[#8e8e93] font-medium">{label}</span>
+      <span className="block text-xs text-[#8e8e93] font-medium">{label || t('placeholderSpaceImage')}</span>
     </div>
   )
 }

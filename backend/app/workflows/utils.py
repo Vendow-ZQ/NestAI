@@ -57,7 +57,7 @@ def intervention_action_text(level: str, plan: Dict[str, Any], state: NestAIStat
             "recommendations": plan.get("recommendations") or [],
             "estimated_time": plan.get("estimatedTime", ""),
             "cost_range": plan.get("costRange", ""),
-            "memory01_excerpt": (state.get("space_summary") or "")[:1200],
+            "memory01_excerpt": (state.get("space_summary") or "")[:3500],
             "long_term_memory_compact": (state.get("long_term_context") or "")[:1200],
             "aspiration": state.get("aspiration") or [],
             "current_state": state.get("current_state") or [],
@@ -101,7 +101,7 @@ def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) ->
         f"Selected tier: {level_label(level)} ({level}). "
         f"Core intervention intent: {(state.get('intervention_plan') or {}).get('core_intent', '')}. "
         f"Selected plan title: {plan.get('title', '')}. "
-        f"Observed space and personality cues: {space_summary}. "
+        f"Memory01 object inventory, object relationships, behavior tendencies, and lifestyle mismatch cues: {space_summary}. "
         f"Long-term user memory cues: {long_term_context}. "
         f"Desired lifestyle: {aspiration}. Current friction: {current_state}. "
         f"Visible intervention changes: {changes}. First steps: {first_steps}. "
@@ -140,10 +140,17 @@ def build_image_prompts(level: str, plan: Dict[str, Any], state: NestAIState) ->
     <item>Do not change wall positions, wall openings, room boundaries, ceiling height, windows, doors, ceiling, or floor structure.</item>
     <item>Do not expand the room or create impossible extra space.</item>
     <item>Keep the visual result recognizably the same room.</item>
+    <item>Preserve identity-bearing personal objects from Memory01, such as photos, handmade items, plush toys, flowers, camera, daily care objects, drinks, and core work devices, unless the selected intervention explicitly moves or removes them.</item>
   </must_preserve>
+  <memory01_visual_continuity>
+    Use Memory01 object inventory, object relationships, behavior tendencies, and lifestyle mismatch cues to decide what should be preserved, regrouped, moved, displayed, or visually softened.
+  </memory01_visual_continuity>
   <selected_intervention>
     {selected_intervention}
   </selected_intervention>
+  <object_relationship_changes>
+    Make the selected intervention visible through object-cluster relationships: work/study cluster, food/drink support cluster, self-care cluster, memory/display cluster, and comfort/identity objects should become better positioned for the selected lifestyle without erasing the room's identity.
+  </object_relationship_changes>
   <style_direction>
     {style_direction}
   </style_direction>

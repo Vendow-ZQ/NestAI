@@ -1,3 +1,5 @@
+import { useLanguageStore } from '@/stores/language-store'
+
 interface BilingualTitleProps {
   en: string
   zh: string
@@ -13,6 +15,21 @@ const sizeMap = {
 }
 
 export function BilingualTitle({ en, zh, size = 'xl', align = 'center' }: BilingualTitleProps) {
+  const language = useLanguageStore((s) => s.language)
+
+  if (language === 'en') {
+    return (
+      <div className={`flex flex-col ${align === 'left' ? 'items-start' : 'items-center'}`}>
+        <span
+          className={`block ${sizeMap[size].zh} text-ink font-semibold`}
+          style={{ letterSpacing: 0, lineHeight: 1.08 }}
+        >
+          {en}
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div className={`flex flex-col ${align === 'left' ? 'items-start' : 'items-center'}`}>
       <span

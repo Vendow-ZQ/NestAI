@@ -1,3 +1,6 @@
+import { getCopy } from '@/lib/i18n'
+import type { AppLanguage } from '@/stores/language-store'
+
 export type Level = 'low_budget' | 'standard_budget' | 'sufficient_budget'
 export type LegacyLevel = 'free' | 'low' | 'advanced'
 export type PlanLevel = Level | LegacyLevel
@@ -158,8 +161,13 @@ export interface LongTermMemoryData {
   path: string
 }
 
-const DEFAULT_API_BASE_URL = import.meta.env.PROD ? 'https://nestai-74ae.onrender.com' : 'http://localhost:8000'
+const DEFAULT_API_BASE_URL = import.meta.env.PROD ? 'https://nestai-74ae.onrender.com' : ''
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/+$/, '')
+
+function currentLanguage(): AppLanguage {
+  if (typeof window === 'undefined') return 'zh'
+  return window.localStorage.getItem('nestai.language') === 'en' ? 'en' : 'zh'
+}
 
 export function apiUrl(path: string): string {
   if (!API_BASE_URL) return path
@@ -203,7 +211,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     })
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
-    throw new Error(`无法连接后端服务，请确认 ${API_BASE_URL} 可访问。原始错误：${detail}`)
+    const target = API_BASE_URL || (typeof window === 'undefined' ? 'same-origin API proxy' : `${window.location.origin}/api`)
+    throw new Error(`${getCopy(currentLanguage(), 'apiNetworkFailed')} ${target}. ${detail}`)
   }
 
   const payload = (await res.json()) as ApiResponse<T>
@@ -296,6 +305,31 @@ export const api = {
     return request<FeedItemData>(`/api/sessions/${sessionId}/publish-feed`, {
       method: 'POST',
       body: JSON.stringify(payload),
+    })
+  },
+
+  deleteGrowPost(feedId: string) {
+    return request<{ deleted: boolean; feedId: string }>(`/api/sessions/feed/${encodeURIComponent(feedId)}`, {
+      method: 'DELETE',
+    })
+  },
+
+  dismissNextAction(payload: {
+    user_id?: string
+    next_action_id: string
+    session_id?: string
+    intervention_id?: string
+    reason?: string
+  }) {
+    return request<{ dismissed: boolean; nextActionId: string }>('/api/sessions/next/dismiss', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  clearNextActions(userId = 'dev_user') {
+    return request<{ cleared: boolean; count: number }>(`/api/sessions/next/clear?userId=${encodeURIComponent(userId)}`, {
+      method: 'POST',
     })
   },
 

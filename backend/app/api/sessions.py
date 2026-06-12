@@ -148,6 +148,14 @@ class PublishFeedRequest(BaseModel):
     lifestyle_keywords: Optional[List[str]] = None
 
 
+class DismissNextRequest(BaseModel):
+    user_id: Optional[str] = None
+    next_action_id: str
+    session_id: Optional[str] = ""
+    intervention_id: Optional[str] = ""
+    reason: Optional[str] = "dismissed"
+
+
 class ChatMessage(BaseModel):
     role: str  # user, assistant
     content: str
@@ -224,7 +232,7 @@ def list_feed_seed_images() -> List[str]:
     ]
 
 
-def pick_feed_image(memory, images: List[str], seed_images: List[str]) -> str:
+def pick_feed_image(memory, images: List[str], seed_images: Optional[List[str]] = None) -> str:
     import hashlib
 
     key = memory.session_id or memory.user_id or ""
@@ -234,6 +242,31 @@ def pick_feed_image(memory, images: List[str], seed_images: List[str]) -> str:
     if seed_images:
         return seed_images[index_seed % len(seed_images)]
     return ""
+
+
+def collect_effect_images(feedback: Dict[str, Any], plan: Dict[str, Any]) -> List[str]:
+    """Return only post-change / generated-result images, never original uploads."""
+    images: List[str] = []
+
+    after_images = feedback.get("after_images") if isinstance(feedback, dict) else []
+    if isinstance(after_images, list):
+        images.extend([img for img in after_images if isinstance(img, str) and img])
+
+    generated_images = plan.get("generatedImages") if isinstance(plan, dict) else {}
+    if isinstance(generated_images, dict):
+        for key in ("render1", "render2", "axonometric"):
+            value = generated_images.get(key)
+            if isinstance(value, str) and value:
+                images.append(value)
+        for value in generated_images.values():
+            if isinstance(value, str) and value and value not in images:
+                images.append(value)
+
+    after_image = plan.get("afterImage") if isinstance(plan, dict) else ""
+    if isinstance(after_image, str) and after_image:
+        images.append(after_image)
+
+    return images
 
 
 def display_user_name(user_id: str) -> str:
@@ -247,19 +280,22 @@ def build_feed_item_from_session(memory, seed_images: Optional[List[str]] = None
     space_analysis = safe_json_loads(memory.space_analysis, {})
     intervention_plan = safe_json_loads(memory.intervention_plan, {})
     feedback = safe_json_loads(memory.feedback, {})
-    own_images = feedback.get("after_images") or []
-    if not own_images and not seed_images:
-        own_images = space_analysis.get("images") or []
 
     if not space_analysis and not intervention_plan:
         return None
 
     display_summary = space_analysis.get("display_summary") or space_analysis.get("summary") or "一个正在被重新理解的空间"
     title = "我的空间变化"
+    default_plan = {}
     if isinstance(intervention_plan, dict):
         default_plan = get_plan_for_level(intervention_plan, DEFAULT_LEVEL, {}) or {}
         if isinstance(default_plan, dict) and default_plan.get("title"):
             title = default_plan["title"]
+
+    effect_images = collect_effect_images(feedback, default_plan if isinstance(default_plan, dict) else {})
+    image = pick_feed_image(memory, effect_images, seed_images)
+    if not image:
+        return None
 
     return {
         "id": f"feed-{memory.session_id}",
@@ -269,7 +305,7 @@ def build_feed_item_from_session(memory, seed_images: Optional[List[str]] = None
         "userAvatar": "",
         "title": title,
         "description": display_summary[:120],
-        "image": pick_feed_image(memory, own_images, seed_images or []),
+        "image": image,
         "location": "NestAI",
         "lifestyleKeywords": ["空间", "生活方式"],
         "createdAt": memory.updated_at.isoformat(),
@@ -278,11 +314,26 @@ def build_feed_item_from_session(memory, seed_images: Optional[List[str]] = None
 
 # ============== API路由 ==============
 
-def build_feed_item_from_post(post) -> Dict[str, Any]:
+def build_feed_item_from_post(post, memory_service: Optional[MemoryService] = None) -> Optional[Dict[str, Any]]:
     session_id = None
     session_prefix = "feed-session-"
     if isinstance(post.id, str) and post.id.startswith(session_prefix):
         session_id = post.id[len(session_prefix):]
+
+    image_url = post.image_url
+    if session_id and memory_service:
+        memory = memory_service.get_session_memory(session_id)
+        if memory:
+            space_analysis = safe_json_loads(memory.space_analysis, {})
+            intervention_plan = safe_json_loads(memory.intervention_plan, {})
+            feedback = safe_json_loads(memory.feedback, {})
+            selected_level = normalize_level(feedback.get("selected_level") or DEFAULT_LEVEL)
+            plan = get_plan_for_level(intervention_plan, selected_level, {}) if isinstance(intervention_plan, dict) else {}
+            if not isinstance(plan, dict):
+                plan = {}
+            image_url = select_publish_image(None, feedback, plan, space_analysis)
+            if not image_url:
+                return None
 
     return {
         "id": post.id,
@@ -292,7 +343,7 @@ def build_feed_item_from_post(post) -> Dict[str, Any]:
         "userAvatar": post.user_avatar,
         "title": post.title,
         "description": post.description,
-        "image": post.image_url,
+        "image": image_url,
         "location": post.location,
         "lifestyleKeywords": safe_json_loads(post.lifestyle_keywords, []),
         "createdAt": post.created_at.isoformat(),
@@ -315,28 +366,16 @@ def select_publish_image(
     plan: Dict[str, Any],
     space_analysis: Dict[str, Any],
 ) -> str:
-    if requested_image:
+    effect_images = collect_effect_images(feedback, plan)
+    if effect_images:
+        return effect_images[0]
+
+    original_images = space_analysis.get("images") if isinstance(space_analysis, dict) else []
+    if not isinstance(original_images, list):
+        original_images = []
+
+    if requested_image and requested_image not in original_images:
         return requested_image
-
-    after_images = feedback.get("after_images") if isinstance(feedback, dict) else []
-    if isinstance(after_images, list) and after_images:
-        return after_images[0]
-
-    generated_images = plan.get("generatedImages") if isinstance(plan, dict) else {}
-    if isinstance(generated_images, dict):
-        for key in ("render1", "render2", "axonometric"):
-            if generated_images.get(key):
-                return generated_images[key]
-        for value in generated_images.values():
-            if isinstance(value, str) and value:
-                return value
-
-    if isinstance(plan, dict) and plan.get("afterImage"):
-        return plan["afterImage"]
-
-    images = space_analysis.get("images") if isinstance(space_analysis, dict) else []
-    if isinstance(images, list) and images:
-        return images[0]
 
     return ""
 
@@ -507,6 +546,8 @@ async def list_sessions(
     feed_posts = memory_service.list_feed_posts()
     public_memories = memory_service.list_public_session_memories()
     seed_images = list_feed_seed_images()
+    dismissed_next_ids = memory_service.list_dismissed_next_ids(user_id)
+    dismissed_feed_ids = memory_service.list_dismissed_feed_ids()
 
     sessions = []
     feed = []
@@ -531,15 +572,20 @@ async def list_sessions(
         })
 
         action = build_next_action_from_plan(memory)
-        if action:
+        if action and action["id"] not in dismissed_next_ids:
             next_actions.append(action)
 
-    feed = [build_feed_item_from_post(post) for post in feed_posts]
+    feed = [
+        item
+        for post in feed_posts
+        if post.id not in dismissed_feed_ids
+        if (item := build_feed_item_from_post(post, memory_service)) is not None
+    ]
 
     if not feed:
         for memory in public_memories:
             feed_item = build_feed_item_from_session(memory, seed_images)
-            if feed_item:
+            if feed_item and feed_item["id"] not in dismissed_feed_ids:
                 feed.append(feed_item)
 
     return JSONResponse({
@@ -549,6 +595,55 @@ async def list_sessions(
             "feed": feed,
             "nextActions": next_actions,
         },
+    })
+
+
+@router.post("/next/dismiss")
+async def dismiss_next_action(
+    req: DismissNextRequest,
+    db: Session = Depends(get_db),
+):
+    memory_service = MemoryService(db)
+    user_id = req.user_id or "dev_user"
+    memory_service.dismiss_next_action(
+        user_id=user_id,
+        next_action_id=req.next_action_id,
+        session_id=req.session_id or "",
+        intervention_id=req.intervention_id or "",
+        reason=req.reason or "dismissed",
+    )
+    return JSONResponse({
+        "success": True,
+        "data": {"dismissed": True, "nextActionId": req.next_action_id},
+    })
+
+
+@router.post("/next/clear")
+async def clear_next_actions(
+    userId: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    memory_service = MemoryService(db)
+    user_id = userId or "dev_user"
+    count = memory_service.dismiss_all_next_actions(user_id, reason="cleared")
+    return JSONResponse({
+        "success": True,
+        "data": {"cleared": True, "count": count},
+    })
+
+
+@router.delete("/feed/{feed_id}")
+async def delete_feed_post(
+    feed_id: str,
+    db: Session = Depends(get_db),
+):
+    memory_service = MemoryService(db)
+    deleted = memory_service.delete_feed_post(feed_id)
+    if not deleted:
+        memory_service.dismiss_feed_card(feed_id)
+    return JSONResponse({
+        "success": True,
+        "data": {"deleted": True, "feedId": feed_id, "persistedPostDeleted": deleted},
     })
 
 

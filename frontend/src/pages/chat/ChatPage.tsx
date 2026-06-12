@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { apiUrl } from '@/lib/api'
-import { errorMessages } from '@/lib/error-messages'
+import { useErrorMessages } from '@/lib/error-messages'
+import { useI18n } from '@/lib/i18n'
 import { useLifestyleStore } from '@/stores/lifestyle-store'
 
 type Question = {
@@ -13,16 +14,31 @@ type Question = {
 
 const DEFAULT_QUESTIONS: Question[] = [
   {
-    q: '你最希望这个空间先帮你做到什么?',
+    q: '你最向往这个空间支持哪种生活状态和生活方式?',
     options: ['更容易进入专注状态', '回来后真的能放松', '更像我自己的地方', '更容易保持整洁'],
   },
   {
-    q: '现在最影响你使用这个空间的是什么?',
-    options: ['东西容易堆在手边', '光线或氛围不够舒服', '取放物品不顺手', '工作和休息边界混在一起'],
+    q: '现在这个空间和你向往的生活状态最不匹配的是哪里?',
+    options: ['想专注，但桌面或地面容易打断启动', '想放松，但工作和休息物品混在一起', '想表达自己，但展示物和常用工具互相挤压', '想顺手生活，但常用物缺少稳定收尾位置'],
   },
   {
     q: '这次改造最重要的现实约束是什么?',
     options: ['低预算，优先复用现有物品', '标准预算，可以买几件关键小物', '预算充足，希望做完整一点', '只能无痕调整，尽量不移动大件'],
+  },
+]
+
+const DEFAULT_QUESTIONS_EN: Question[] = [
+  {
+    q: 'What lifestyle do you most want this space to support?',
+    options: ['Get into focus more easily', 'Relax when you come back', 'Feel more like your own place', 'Stay tidy with less effort'],
+  },
+  {
+    q: 'Where does this space most mismatch that lifestyle?',
+    options: ['I want focus, but the center interrupts my start', 'I want rest, but work and rest items blur together', 'I want self-expression, but display and tools crowd each other', 'I want smoother routines, but daily items lack a landing place'],
+  },
+  {
+    q: 'What is the most important constraint for this change?',
+    options: ['Low budget; reuse what I have', 'Standard budget; a few key small items are okay', 'Enough budget for a fuller change', 'No-trace changes; avoid moving large pieces'],
   },
 ]
 
@@ -53,6 +69,8 @@ function normalizeQuestionnaire(value: Question[]): Question[] {
 export default function ChatPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { language, t } = useI18n()
+  const errorMessages = useErrorMessages()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<string[][]>([[], [], []])
   const [customInput, setCustomInput] = useState('')
@@ -65,12 +83,13 @@ export default function ChatPage() {
   const setStoreSoftConstraints = useLifestyleStore((s) => s.setSoftConstraints)
 
   const sessionId = searchParams.get('sessionId')
-  const currentQuestion = questions[step] || DEFAULT_QUESTIONS[step]
+  const fallbackQuestions = useMemo(() => (language === 'en' ? DEFAULT_QUESTIONS_EN : DEFAULT_QUESTIONS), [language])
+  const currentQuestion = questions[step] || fallbackQuestions[step]
   const canContinue = useMemo(() => answers[step].length > 0 || customInput.trim().length > 0, [answers, customInput, step])
 
   useEffect(() => {
     if (!sessionId) {
-      setQuestions(DEFAULT_QUESTIONS)
+      setQuestions(fallbackQuestions)
       return
     }
 
@@ -84,17 +103,17 @@ export default function ChatPage() {
 
         setAgentFirstMsg(
           displaySummary ||
-            '我看见了你的空间。在继续生成方案之前，我想再确认几个和你日常有关的小问题。',
+            t('chatSessionFallback'),
         )
-        setQuestions(validQuestionnaire(qList) ? normalizeQuestionnaire(qList) : DEFAULT_QUESTIONS)
+        setQuestions(validQuestionnaire(qList) ? normalizeQuestionnaire(qList) : fallbackQuestions)
       })
       .catch((err) => {
         console.error('获取 session 失败:', err)
         alert(errorMessages.sessionFailed)
-        setQuestions(DEFAULT_QUESTIONS)
+        setQuestions(fallbackQuestions)
       })
       .finally(() => setLoadingAnalysis(false))
-  }, [sessionId])
+  }, [fallbackQuestions, sessionId, t])
 
   const handleSelectOption = (option: string) => {
     setAnswers((prev) => {
@@ -159,14 +178,14 @@ export default function ChatPage() {
           type="button"
           onClick={handleBack}
           className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer nest-glass-card"
-          aria-label="返回"
+          aria-label={t('commonBack')}
         >
           <span className="text-ink text-sm">&lt;</span>
         </button>
       </div>
 
       <div className="nest-page-content px-5 mb-4">
-        <BilingualTitle en="LIFESTYLE CHAT" zh="生活方式对话" size="lg" />
+        <BilingualTitle en="LIFESTYLE CHAT" zh={t('chatTitle')} size="lg" />
       </div>
 
       <div className="nest-page-content" style={{ overflowY: 'auto', height: 'calc(var(--app-height) - 160px)' }}>
@@ -174,8 +193,8 @@ export default function ChatPage() {
           <div className="nest-glass-card rounded-[22px] p-4 mb-4">
             <span className="block text-sm text-ink leading-relaxed">
               {loadingAnalysis
-                ? '正在观察你的空间...'
-                : agentFirstMsg || '我看见了一个有待被重新理解的空间。我们先确认几个小问题。'}
+                ? t('chatLoading')
+                : agentFirstMsg || t('chatFallbackIntro')}
             </span>
           </div>
 
@@ -204,7 +223,7 @@ export default function ChatPage() {
         <div className="px-5 mt-4">
           <input
             className="nest-glass-card rounded-[18px] px-4 py-3 text-sm w-full outline-none"
-            placeholder="或者直接告诉我..."
+            placeholder={t('chatPlaceholder')}
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value)}
             onKeyDown={(e) => {
@@ -220,7 +239,7 @@ export default function ChatPage() {
             onClick={handleNext}
             disabled={!canContinue}
           >
-            <span className="text-white text-base font-semibold">{step < 2 ? '继续' : '生成方案'}</span>
+            <span className="text-white text-base font-semibold">{step < 2 ? t('chatContinue') : t('chatGenerate')}</span>
           </button>
         </div>
 

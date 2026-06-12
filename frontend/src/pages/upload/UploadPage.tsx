@@ -5,13 +5,16 @@ import { BilingualTitle } from '@/components/BilingualTitle'
 import { ImageLightbox } from '@/components/ImageLightbox'
 import { NobiMascot } from '@/components/NobiMascot'
 import { apiUrl } from '@/lib/api'
-import { errorMessages } from '@/lib/error-messages'
+import { useErrorMessages } from '@/lib/error-messages'
+import { useI18n } from '@/lib/i18n'
 import { useSpaceStore } from '@/stores/space-store'
 import { useUserStore } from '@/stores/user-store'
 
 export default function UploadPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useI18n()
+  const errorMessages = useErrorMessages()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -84,7 +87,7 @@ export default function UploadPage() {
       setCameraOpen(true)
     } catch (err) {
       console.error('Camera open failed:', err)
-      setCameraError('没有拿到摄像头权限。可以允许浏览器使用摄像头，或者先用本地图片上传。')
+      setCameraError(t('uploadCameraError'))
       cameraInputRef.current?.click()
     }
   }
@@ -272,7 +275,7 @@ export default function UploadPage() {
           <span className="text-ink text-sm">&lt;</span>
         </button>
         <div className="upload-title-shell">
-          <BilingualTitle en="SEE YOUR SPACE" zh="看见你的空间" size="lg" align="center" />
+          <BilingualTitle en="SEE YOUR SPACE" zh={t('uploadTitle')} size="lg" align="center" />
         </div>
         <div className="w-9 h-9" aria-hidden="true" />
       </div>
@@ -305,12 +308,12 @@ export default function UploadPage() {
           </div>
           <div className="p-4 relative z-10 text-center">
             <span className="block text-[17px] leading-snug font-semibold text-ink">
-              {uploadedImages.length > 0 ? '继续补充空间细节' : '认识你的空间'}
+              {uploadedImages.length > 0 ? t('uploadContinueTitle') : t('uploadStartTitle')}
             </span>
             <span className="block text-sm text-[#6e6e73] mt-2 leading-relaxed">
               {uploadedImages.length > 0
-                ? '可以继续添加整体、桌面、窗边或角落照片。'
-                : '可以现在拍一张，也可以从本地相册选择。建议 3-5 张。'}
+                ? t('uploadContinueBody')
+                : t('uploadStartBody')}
             </span>
           </div>
         </button>
@@ -384,7 +387,7 @@ export default function UploadPage() {
             disabled={uploadedImages.length === 0 || uploading}
           >
             <span className="block text-background text-lg">
-              {uploading ? '正在上传...' : '开始分析'}
+              {uploading ? t('uploadUploading') : t('uploadAnalyze')}
             </span>
             <span className="block btn-tonight-text">
               {uploading ? 'Uploading...' : 'Analyze'}
@@ -399,19 +402,19 @@ export default function UploadPage() {
             className="upload-source-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="选择图片来源"
+            aria-label={t('uploadSourceLabel')}
             onClick={(event) => event.stopPropagation()}
           >
             <button type="button" className="upload-source-option" onClick={handleChooseCamera}>
-              <span className="upload-source-title">拍照</span>
-              <span className="upload-source-subtitle">打开相机，拍下现在的小窝</span>
+              <span className="upload-source-title">{t('uploadTakePhoto')}</span>
+              <span className="upload-source-subtitle">{t('uploadTakePhotoBody')}</span>
             </button>
             <button type="button" className="upload-source-option" onClick={handleChooseGallery}>
-              <span className="upload-source-title">上传本地图片</span>
-              <span className="upload-source-subtitle">从相册或文件中选择空间照片</span>
+              <span className="upload-source-title">{t('uploadLocalImage')}</span>
+              <span className="upload-source-subtitle">{t('uploadLocalImageBody')}</span>
             </button>
             <button type="button" className="upload-source-cancel" onClick={() => setSourceSheetOpen(false)}>
-              取消
+              {t('commonCancel')}
             </button>
           </div>
         </div>
@@ -427,13 +430,13 @@ export default function UploadPage() {
             <canvas ref={canvasRef} className="hidden" />
             <div className="upload-camera-actions">
               <button type="button" className="upload-camera-side-button" onClick={stopCamera}>
-                取消
+                {t('commonCancel')}
               </button>
               <button type="button" className="upload-camera-shutter" onClick={handleCameraCapture} aria-label="Take photo">
                 <span />
               </button>
               <button type="button" className="upload-camera-side-button" onClick={handleChooseGallery}>
-                相册
+                {t('commonGallery')}
               </button>
             </div>
             {cameraError && <span className="upload-camera-error">{cameraError}</span>}

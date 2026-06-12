@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
 import { api } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { useInterventionStore } from '@/stores/intervention-store'
 import { useUserStore } from '@/stores/user-store'
 
@@ -45,6 +46,7 @@ function isInteractiveTarget(target: EventTarget | null) {
 
 export default function NextPage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const currentUser = useUserStore((s) => s.currentUser)
   const nextList = useInterventionStore((s) => s.nextList)
   const setNextList = useInterventionStore((s) => s.setNextList)
@@ -94,7 +96,19 @@ export default function NextPage() {
 
   const deleteNextCard = useCallback((id: string, index: number) => {
     const card = cardRefs.current[index]
+    const item = nextList.find((next) => next.id === id)
     writeDeletedNextId(id, currentUser?.id)
+    if (item) {
+      void api.dismissNextAction({
+        user_id: currentUser?.id,
+        next_action_id: item.id,
+        session_id: item.sessionId,
+        intervention_id: item.interventionId,
+        reason: 'dismissed',
+      }).catch((err) => {
+        console.error('同步删除 Next 失败:', err)
+      })
+    }
     suppressClickRef.current = true
     setDeletingIds((current) => new Set(current).add(id))
 
@@ -115,7 +129,7 @@ export default function NextPage() {
         suppressClickRef.current = false
       }, 80)
     }, 220)
-  }, [currentUser?.id, removeFromNext])
+  }, [currentUser?.id, nextList, removeFromNext])
 
   const handlePointerDown = useCallback((event: React.PointerEvent<HTMLElement>, id: string, index: number) => {
     if (event.button !== 0) return
@@ -336,7 +350,7 @@ export default function NextPage() {
   return (
     <div className="nest-page-shell min-h-full overflow-hidden" style={{ maxWidth: '100vw' }}>
       <div className="nest-page-content px-5 pt-12 pb-4">
-        <BilingualTitle en="NEXT" zh="准备试试" size="lg" />
+        <BilingualTitle en="NEXT" zh={t('nextTitle')} size="lg" />
       </div>
 
       <div
@@ -348,9 +362,9 @@ export default function NextPage() {
         {!loading && nextList.length === 0 ? (
           <div className="px-5">
             <div className="nest-glass-card nest-page-enter rounded-[22px] p-6 text-center">
-              <span className="block text-base font-semibold text-ink">还没有收藏的动作</span>
+              <span className="block text-base font-semibold text-ink">{t('nextEmptyTitle')}</span>
               <span className="block text-sm text-[#6e6e73] mt-2 leading-relaxed">
-                完成一次空间分析后，这里会出现你可以继续尝试的小行动。
+                {t('nextEmptyBody')}
               </span>
             </div>
           </div>
@@ -370,7 +384,7 @@ export default function NextPage() {
                 onClickCapture={handleClickCapture}
                 onClick={(event) => handleCardClick(event, item.sessionId, item.sceneId, item.level)}
               >
-                <div className="next-delete-cue" aria-hidden="true">Delete</div>
+                <div className="next-delete-cue" aria-hidden="true">{t('commonDelete')}</div>
                 <button
                   type="button"
                   className="next-card-media nest-media-stage block w-full text-left"
@@ -388,7 +402,7 @@ export default function NextPage() {
                   <span className="block text-sm text-[#6e6e73] mt-1 leading-relaxed line-clamp-1">{item.lifestyleGoal}</span>
 
                   <div className="mt-3 p-2.5 rounded-[15px] bg-white/55 border border-white/60">
-                    <span className="block text-xs text-[#8e8e93] font-semibold">最轻第一步</span>
+                    <span className="block text-xs text-[#8e8e93] font-semibold">{t('nextFirstStep')}</span>
                     <span className="block text-sm text-ink mt-1 leading-relaxed line-clamp-2">{item.firstStep}</span>
                   </div>
 

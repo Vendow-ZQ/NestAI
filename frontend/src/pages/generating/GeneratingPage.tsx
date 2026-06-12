@@ -9,12 +9,15 @@ import { useMemoryStore } from '@/stores/memory-store'
 import { useShareStore } from '@/stores/share-store'
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { NobiWorking } from '@/components/NobiWorking'
-import { errorMessages } from '@/lib/error-messages'
+import { useErrorMessages } from '@/lib/error-messages'
 import { api, apiUrl, normalizeLevel } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 
 export default function GeneratingPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { pick, t } = useI18n()
+  const errorMessages = useErrorMessages()
   const [currentStep, setCurrentStep] = useState(0)
   const setHasUploadedSpace = useUserStore((s) => s.setHasUploadedSpace)
   const setSpaceProfile = useSpaceStore((s) => s.setSpaceProfile)
@@ -53,9 +56,9 @@ export default function GeneratingPage() {
   const stepDuration = duration / steps.length
 
   const titleMap: Record<string, { zh: string; en: string }> = {
-    space: { zh: '空间识别', en: 'SPACE ANALYSIS' },
-    intervention: { zh: '方案生成', en: 'INTERVENTION' },
-    letter: { zh: '信件生成', en: 'LETTER' },
+    space: { zh: t('generatingSpaceTitle'), en: 'SPACE ANALYSIS' },
+    intervention: { zh: t('generatingInterventionTitle'), en: 'INTERVENTION' },
+    letter: { zh: t('generatingLetterTitle'), en: 'LETTER' },
   }
 
   const currentTitle = titleMap[type] || titleMap.space
@@ -206,8 +209,8 @@ export default function GeneratingPage() {
       <div className="flex flex-col items-center gap-6">
         {steps.map((step, i) => (
           <div key={i} className="flex flex-col items-center" style={{ opacity: i <= currentStep ? 1 : 0.3, transition: 'opacity 0.5s ease-out' }}>
-            <span className="block text-base text-ink">{step.zh}</span>
-            <span className="block text-xs text-[#8e8e93] mt-1 font-medium">{step.en}</span>
+            <span className="block text-base text-ink">{pick(step)}</span>
+            {pick(step) !== step.en && <span className="block text-xs text-[#8e8e93] mt-1 font-medium">{step.en}</span>}
           </div>
         ))}
       </div>

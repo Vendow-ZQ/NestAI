@@ -11,6 +11,7 @@ import SharePage from '@/pages/share/SharePage'
 import LetterPage from '@/pages/letter/LetterPage'
 import MePage from '@/pages/me/MePage'
 import { useUserStore } from '@/stores/user-store'
+import { LanguageToggle } from '@/components/LanguageToggle'
 
 function RequireUser({ children }: { children: JSX.Element }) {
   const currentUser = useUserStore((s) => s.currentUser)
@@ -42,6 +43,7 @@ function AppShell() {
           <Route path="/letter" element={<RequireUser><LetterPage /></RequireUser>} />
         </Routes>
       </div>
+      <LanguageToggle />
       {!onLoginPage && <CustomTabBar />}
     </div>
   )

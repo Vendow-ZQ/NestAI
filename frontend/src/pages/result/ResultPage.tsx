@@ -16,17 +16,20 @@ import {
   type Level,
   type SessionData,
 } from '@/lib/api'
+import { useI18n, type CopyKey } from '@/lib/i18n'
 import { useInterventionStore } from '@/stores/intervention-store'
 
-const EMPTY_ITEM: InterventionItem = {
+function createEmptyItem(t: (key: CopyKey) => string): InterventionItem {
+  return {
   level: DEFAULT_LEVEL,
-  title: '空间干预方案',
-  changes: ['先完成一次空间分析，Nobi 会在这里生成真实方案。'],
-  diagnosis: '这里还没有生成方案。请从上传空间开始，让图片和问卷一起进入分析流程。',
-  firstSteps: ['上传空间图片'],
+  title: t('resultFallbackTitle'),
+  changes: [t('resultFallbackChange')],
+  diagnosis: t('resultFallbackDiagnosis'),
+  firstSteps: [t('resultFallbackStep')],
   recommendations: [],
-  estimatedTime: '约 10 分钟',
-  costRange: '标准预算',
+  estimatedTime: '10 min',
+  costRange: 'Standard',
+  }
 }
 
 function ResultImageSlide({
@@ -65,13 +68,17 @@ function ResultImageSlide({
 export default function ResultPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { language, t } = useI18n()
   const sessionId = searchParams.get('sessionId')
+  const source = searchParams.get('source')
+  const feedId = searchParams.get('feedId')
   const initialLevel = normalizeLevel(searchParams.get('level'))
 
   const [selectedLevel, setSelectedLevel] = useState<Level>(initialLevel)
   const [addedToNext, setAddedToNext] = useState(false)
   const [session, setSession] = useState<SessionData | null>(null)
   const [generatingImage, setGeneratingImage] = useState(false)
+  const [disliking, setDisliking] = useState(false)
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null)
   const imageScrollerRef = useRef<HTMLDivElement | null>(null)
 
@@ -103,18 +110,18 @@ export default function ResultPage() {
   }, [sessionId, setCurrentPlan])
 
   const livePlan = sessionId && currentSessionId === sessionId ? currentPlan : session?.interventionPlan
-  const currentData = getPlanItem(livePlan, selectedLevel) ?? EMPTY_ITEM
+  const currentData = getPlanItem(livePlan, selectedLevel) ?? createEmptyItem(t)
   const beforeImage = session?.spaceAnalysis?.images?.[0] || ''
   const generatedImage = currentData.generatedImages?.render1 || currentData.afterImage || ''
   const displayImage = generatedImage || beforeImage
-  const imageLabel = generatedImage ? '改造后效果图' : '上传空间图'
+  const imageLabel = generatedImage ? t('resultGeneratedImage') : t('resultUploadedImage')
   const imageSlides = generatedImage
     ? [
-        { key: 'before', src: beforeImage, label: '改造前' },
-        { key: 'after', src: generatedImage, label: '改造后' },
+        { key: 'before', src: beforeImage, label: t('resultImageBefore') },
+        { key: 'after', src: generatedImage, label: t('resultImageAfter') },
       ].filter((item) => item.src)
     : beforeImage
-      ? [{ key: 'before', src: beforeImage, label: '上传空间图' }]
+      ? [{ key: 'before', src: beforeImage, label: t('resultUploadedImage') }]
       : []
 
   useEffect(() => {
@@ -139,9 +146,9 @@ export default function ResultPage() {
     addToNext({
       id: `next-${Date.now()}`,
       title: currentData.title,
-      spaceName: '我的空间',
+      spaceName: t('resultFallbackSpaceName'),
       lifestyleGoal: currentData.diagnosis,
-      firstStep: currentData.firstSteps[0] || '选择一个最小动作开始',
+      firstStep: currentData.firstSteps[0] || t('resultFallbackFirstStep'),
       estimatedTime: currentData.estimatedTime,
       costRange: currentData.costRange,
       previewImage: displayImage,
@@ -192,16 +199,30 @@ export default function ResultPage() {
       }
     } catch (err) {
       console.error('生成改造图失败:', err)
-      alert(err instanceof Error ? err.message : '生成改造图失败')
+      alert(err instanceof Error ? err.message : t('resultGenerateImageFailed'))
     } finally {
       setGeneratingImage(false)
+    }
+  }
+
+  const handleDislikeGrowCard = async () => {
+    if (!feedId || disliking) return
+
+    setDisliking(true)
+    try {
+      await api.deleteGrowPost(feedId)
+      navigate('/grow', { replace: true })
+    } catch (err) {
+      console.error('Delete Grow card failed:', err)
+      alert(err instanceof Error ? err.message : t('resultDislikeHint'))
+      setDisliking(false)
     }
   }
 
   return (
     <div className="nest-page-shell min-h-full overflow-hidden" style={{ maxWidth: '100vw' }}>
       <div className="nest-page-content px-5 pt-12 mb-4">
-        <BilingualTitle en="INTERVENTION RESULT" zh="空间干预方案" size="lg" />
+        <BilingualTitle en="INTERVENTION RESULT" zh={t('resultTitle')} size="lg" />
       </div>
 
       <div className="nest-page-content" style={{ overflowY: 'auto', height: 'calc(var(--app-height) - 160px)' }}>
@@ -225,7 +246,7 @@ export default function ResultPage() {
               </div>
 
               {generatingImage && (
-                <div className="result-generation-overlay" aria-label="正在生成效果图">
+                <div className="result-generation-overlay" aria-label={t('resultGeneratingImage')}>
                   <NobiWorking className="result-generation-nobi" variant="effect" />
                 </div>
               )}
@@ -242,7 +263,7 @@ export default function ResultPage() {
                   onClick={handleGenerateImage}
                   disabled={generatingImage}
                 >
-                  <span className="text-sm font-semibold">{generatingImage ? '正在生成效果...' : '看看效果'}</span>
+                  <span className="text-sm font-semibold">{generatingImage ? t('resultGeneratingImage') : t('resultSeeEffect')}</span>
                 </button>
               )}
             </div>
@@ -258,13 +279,13 @@ export default function ResultPage() {
                 }`}
                 onClick={() => setSelectedLevel(level.key)}
               >
-                <span className="text-sm font-semibold">{level.label}</span>
+                <span className="text-sm font-semibold">{language === 'en' ? level.en : level.label}</span>
               </button>
             ))}
           </div>
 
           <section className="mt-5">
-            <span className="nest-section-label">会发生什么变化</span>
+            <span className="nest-section-label">{t('resultChanges')}</span>
             <div className="nest-glass-card rounded-[22px] p-4">
               <div className="grid gap-3">
                 {currentData.changes.map((change, i) => (
@@ -280,16 +301,16 @@ export default function ResultPage() {
           </section>
 
           <section className="mt-5">
-            <BilingualTitle en="WHY" zh="为什么这样改" size="sm" align="left" />
+            <BilingualTitle en="WHY" zh={t('resultWhy')} size="sm" align="left" />
             <div className="nest-glass-card rounded-[22px] p-4 mt-2">
               <span className="block text-sm text-[#3a3a3c] leading-relaxed">{currentData.diagnosis}</span>
             </div>
           </section>
 
           <section className="mt-5">
-            <BilingualTitle en="HOW" zh="怎么做" size="sm" align="left" />
+            <BilingualTitle en="HOW" zh={t('resultHow')} size="sm" align="left" />
             <div className="nest-glass-card rounded-[22px] p-4 mt-2">
-              <span className="block text-xs text-[#8e8e93] font-semibold mb-3">最轻第一步</span>
+              <span className="block text-xs text-[#8e8e93] font-semibold mb-3">{t('resultFirstStep')}</span>
               <div className="grid gap-3">
                 {currentData.firstSteps.map((step, i) => (
                   <div key={i} className="flex flex-row items-start gap-3">
@@ -303,7 +324,7 @@ export default function ResultPage() {
 
               {currentData.recommendations.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/70">
-                  <span className="block text-xs text-[#8e8e93] font-semibold mb-2">推荐方向</span>
+                  <span className="block text-xs text-[#8e8e93] font-semibold mb-2">{t('resultRecommendations')}</span>
                   <div className="grid gap-2">
                     {currentData.recommendations.map((rec, i) => {
                       const name = typeof rec === 'string' ? rec : rec.name
@@ -321,7 +342,17 @@ export default function ResultPage() {
           </section>
 
           <div className="mt-6">
-            {!isInNext ? (
+            {source === 'grow' && feedId ? (
+              <button
+                type="button"
+                className="w-full rounded-full py-4 flex items-center justify-center cursor-pointer disabled:opacity-60"
+                style={{ backgroundColor: '#ff3b30', boxShadow: '0 12px 28px rgba(255, 59, 48, 0.18)' }}
+                onClick={handleDislikeGrowCard}
+                disabled={disliking}
+              >
+                <span className="text-white text-lg font-semibold">{disliking ? t('resultDisliking') : t('resultDislike')}</span>
+              </button>
+            ) : !isInNext ? (
               <button
                 type="button"
                 className="ios-primary-button w-full rounded-full py-4 flex items-center justify-center cursor-pointer"
@@ -339,7 +370,9 @@ export default function ResultPage() {
                 <span className="text-white text-lg font-semibold">Done</span>
               </button>
             )}
-            <span className="block text-center text-xs text-[#8e8e93] mt-2">Tonight, try.</span>
+            <span className="block text-center text-xs text-[#8e8e93] mt-2">
+              {source === 'grow' && feedId ? t('resultDislikeHint') : 'Tonight, try.'}
+            </span>
           </div>
         </div>
 

@@ -57,7 +57,7 @@ low_budget = 低预算；standard_budget = 标准预算；sufficient_budget = �
 
 方案必须同时参考：
 1. 图片理解得到的空间观察 Memory01；
-2. 用户在问卷中选择/输入的生活状态、当前问题和限制条件；
+2. 用户在问卷中选择/输入的向往生活状态、当前空间与该生活状态不匹配的地方、以及限制条件；
 3. 压缩后的长期记忆摘要。""",
     )
     return ChatPromptTemplate.from_messages(
@@ -74,7 +74,7 @@ low_budget = 低预算；standard_budget = 标准预算；sufficient_budget = �
 用户想靠近的生活：
 {aspiration}
 
-当前经常发生的状态：
+当前空间与向往生活最不匹配的地方：
 {current_state}
 
 约束：

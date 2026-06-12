@@ -1,15 +1,17 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Sprout, Compass, User } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 const tabs = [
-  { key: 'grow' as const, label: 'Grow', icon: Sprout, path: '/grow' },
-  { key: 'next' as const, label: 'Next', icon: Compass, path: '/next' },
-  { key: 'me' as const, label: 'Me', icon: User, path: '/me' },
+  { key: 'grow' as const, labelKey: 'tabGrow' as const, icon: Sprout, path: '/grow' },
+  { key: 'next' as const, labelKey: 'tabNext' as const, icon: Compass, path: '/next' },
+  { key: 'me' as const, labelKey: 'tabMe' as const, icon: User, path: '/me' },
 ]
 
 export function CustomTabBar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useI18n()
 
   const currentPath = location.pathname
   const current = tabs.find(t => t.path === currentPath)?.key
@@ -47,7 +49,7 @@ export function CustomTabBar() {
               className="block mt-1"
               style={{ fontSize: '11px', color, fontWeight: isActive ? 600 : 500 }}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </span>
           </div>
         )

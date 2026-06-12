@@ -74,8 +74,8 @@ def build_image_prompt_node(state: NestAIState) -> NestAIState:
                             {
                                 "type": "text",
                                 "text": (
-                                    "Translate this selected space intervention action text into image-to-image edit prompts. "
-                                    "Use the attached before-image as the fixed visual base. Return only JSON.\n\n"
+                                    "请把下面已选空间干预行动文本翻译为 image-to-image edit prompts。\n"
+                                    "请使用附带原图作为固定视觉基底。只返回合法 JSON，不要 Markdown。\n\n"
                                     f"{action_text}"
                                 ),
                             },

@@ -13,6 +13,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from app.core.config import get_settings
+from app.core.levels import DEFAULT_LEVEL, normalize_level
 import json
 
 settings = get_settings()
@@ -140,6 +141,29 @@ class FeedPostModel(Base):
     source = Column(String, default="manual")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DismissedNextActionModel(Base):
+    """Persist Next actions that a user removed or cleared."""
+    __tablename__ = "dismissed_next_actions"
+
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, index=True, default="dev_user")
+    next_action_id = Column(String, index=True)
+    session_id = Column(String, index=True, default="")
+    intervention_id = Column(String, index=True, default="")
+    reason = Column(String, default="dismissed")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DismissedFeedCardModel(Base):
+    """Persist Grow feed cards that should no longer be shown."""
+    __tablename__ = "dismissed_feed_cards"
+
+    id = Column(String, primary_key=True, index=True)
+    feed_id = Column(String, unique=True, index=True)
+    reason = Column(String, default="disliked")
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class MemoryService:
@@ -334,6 +358,84 @@ class MemoryService:
             .limit(limit)
             .all()
         )
+
+    def delete_feed_post(self, post_id: str) -> bool:
+        post = self.db.query(FeedPostModel).filter(FeedPostModel.id == post_id).first()
+        if not post:
+            return False
+        self.db.delete(post)
+        self.db.commit()
+        return True
+
+    def dismiss_feed_card(self, feed_id: str, reason: str = "disliked") -> DismissedFeedCardModel:
+        dismissed_id = f"feed:{feed_id}"
+        existing = self.db.query(DismissedFeedCardModel).filter(DismissedFeedCardModel.id == dismissed_id).first()
+        if existing:
+            return existing
+
+        dismissed = DismissedFeedCardModel(id=dismissed_id, feed_id=feed_id, reason=reason)
+        self.db.add(dismissed)
+        self.db.commit()
+        self.db.refresh(dismissed)
+        return dismissed
+
+    def list_dismissed_feed_ids(self) -> set[str]:
+        rows = self.db.query(DismissedFeedCardModel.feed_id).all()
+        return {row[0] for row in rows if row and row[0]}
+
+    # ===== Next dismiss operations =====
+
+    def dismiss_next_action(
+        self,
+        user_id: str,
+        next_action_id: str,
+        session_id: str = "",
+        intervention_id: str = "",
+        reason: str = "dismissed",
+    ) -> DismissedNextActionModel:
+        dismissed_id = f"{user_id}:{next_action_id}"
+        existing = self.db.query(DismissedNextActionModel).filter(DismissedNextActionModel.id == dismissed_id).first()
+        if existing:
+            return existing
+
+        dismissed = DismissedNextActionModel(
+            id=dismissed_id,
+            user_id=user_id or "dev_user",
+            next_action_id=next_action_id,
+            session_id=session_id or "",
+            intervention_id=intervention_id or "",
+            reason=reason,
+        )
+        self.db.add(dismissed)
+        self.db.commit()
+        self.db.refresh(dismissed)
+        return dismissed
+
+    def list_dismissed_next_ids(self, user_id: str = "dev_user") -> set[str]:
+        rows = (
+            self.db.query(DismissedNextActionModel.next_action_id)
+            .filter(DismissedNextActionModel.user_id == user_id)
+            .all()
+        )
+        return {row[0] for row in rows if row and row[0]}
+
+    def dismiss_all_next_actions(self, user_id: str = "dev_user", reason: str = "cleared") -> int:
+        memories = self.list_session_memories(user_id, limit=500)
+        count = 0
+        for memory in memories:
+            feedback = json.loads(memory.feedback) if memory.feedback else {}
+            selected_level = normalize_level(feedback.get("selected_level") or DEFAULT_LEVEL)
+            next_action_id = f"next-{memory.session_id}-{selected_level}"
+            intervention_id = f"{memory.session_id}-{selected_level}"
+            self.dismiss_next_action(
+                user_id=user_id,
+                next_action_id=next_action_id,
+                session_id=memory.session_id,
+                intervention_id=intervention_id,
+                reason=reason,
+            )
+            count += 1
+        return count
 
     # ===== Workflow trace operations =====
 

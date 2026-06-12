@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { NobiWorking } from '@/components/NobiWorking'
 import { api } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { useUserStore } from '@/stores/user-store'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const setCurrentUser = useUserStore((s) => s.setCurrentUser)
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
@@ -35,7 +37,7 @@ export default function LoginPage() {
       navigate('/grow', { replace: true })
     } catch (err) {
       console.error('Login failed:', err)
-      setError('没有连上你的 Nest 档案，确认后端启动后再试一次。')
+      setError(t('loginError'))
     } finally {
       setSubmitting(false)
     }
@@ -52,30 +54,30 @@ export default function LoginPage() {
           <NobiWorking className="login-nobi" />
         </div>
         <span className="block text-[22px] font-semibold text-ink leading-tight text-center">
-          先认识你一下
+          {t('loginTitle')}
         </span>
         <span className="block text-sm text-[#6e6e73] mt-2 leading-relaxed text-center">
-          每一次看见空间，都会写进独属于你的记忆。
+          {t('loginSubtitle')}
         </span>
 
         <label className="block mt-5">
-          <span className="nest-section-label">昵称</span>
+          <span className="nest-section-label">{t('loginName')}</span>
           <input
             className="login-input"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
-            placeholder="比如 Nobi 的朋友"
+            placeholder={t('loginNamePlaceholder')}
             autoComplete="name"
           />
         </label>
 
         <label className="block mt-3">
-          <span className="nest-section-label">邮箱（可选）</span>
+          <span className="nest-section-label">{t('loginEmail')}</span>
           <input
             className="login-input"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="用于在本机复用同一个档案"
+            placeholder={t('loginEmailPlaceholder')}
             autoComplete="email"
             inputMode="email"
           />
@@ -89,7 +91,7 @@ export default function LoginPage() {
           disabled={!displayName.trim() || submitting}
         >
           <span className="text-white text-[16px] font-semibold">
-            {submitting ? '正在建立档案...' : '进入栖巢'}
+            {submitting ? t('loginSubmitting') : t('loginSubmit')}
           </span>
         </button>
       </form>

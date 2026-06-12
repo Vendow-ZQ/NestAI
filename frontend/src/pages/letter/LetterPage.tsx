@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BilingualTitle } from '@/components/BilingualTitle'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
 import { api, getPlanItem, normalizeLevel, type SessionData } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { useMemoryStore } from '@/stores/memory-store'
 
 function splitLetter(content?: string | null) {
@@ -16,6 +17,7 @@ function splitLetter(content?: string | null) {
 export default function LetterPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { t } = useI18n()
   const sessionId = searchParams.get('sessionId')
   const addLetter = useMemoryStore((s) => s.addLetter)
   const [session, setSession] = useState<SessionData | null>(null)
@@ -50,15 +52,15 @@ export default function LetterPage() {
       })
       .catch((err) => {
         console.error('读取 Letter 失败:', err)
-        setError(err instanceof Error ? err.message : '读取 Letter 失败')
+        setError(err instanceof Error ? err.message : t('letterReadFailed'))
       })
       .finally(() => setLoading(false))
-  }, [addLetter, sessionId])
+  }, [addLetter, sessionId, t])
 
   const paragraphs = useMemo(() => {
     const content = splitLetter(session?.letter)
-    return content.length > 0 ? content : ['这封信还没有生成。完成一次空间行动后，Nobi 会在这里回应你的变化。']
-  }, [session?.letter])
+    return content.length > 0 ? content : [t('letterEmpty')]
+  }, [session?.letter, t])
 
   const selectedLevel = normalizeLevel(session?.feedback?.selected_level)
   const selectedPlan = getPlanItem(session?.interventionPlan, selectedLevel)
@@ -76,12 +78,12 @@ export default function LetterPage() {
     try {
       await api.publishToGrow(sessionId, {
         level: selectedLevel,
-        image: afterImage || beforeImage,
+        image: afterImage,
       })
       setShared(true)
     } catch (err) {
       console.error('分享到 Grow 失败:', err)
-      setError(err instanceof Error ? err.message : '分享到 Grow 失败')
+      setError(err instanceof Error ? err.message : t('letterShareFailed'))
     } finally {
       setSharing(false)
     }
@@ -113,26 +115,26 @@ export default function LetterPage() {
       </div>
 
       <div className="nest-page-content px-5 mb-4">
-        <BilingualTitle en="A LETTER" zh="一封信" size="lg" />
+        <BilingualTitle en="A LETTER" zh={t('letterTitle')} size="lg" />
       </div>
 
       <div className="nest-page-content" style={{ overflowY: 'auto', height: 'calc(var(--app-height) - 160px)' }}>
         <div className="px-5 mb-6">
           <div style={{ overflowX: 'auto', width: '100%' }}>
             <div className="flex flex-row gap-3" style={{ paddingRight: '16px' }}>
-              {renderImage(afterImage, '改造后')}
-              {renderImage(beforeImage, '改造前')}
+              {renderImage(afterImage, t('letterAfter'))}
+              {renderImage(beforeImage, t('letterBefore'))}
             </div>
           </div>
-          <span className="block text-xs text-[#8e8e93] mt-2 text-center">左滑查看改造前</span>
+          <span className="block text-xs text-[#8e8e93] mt-2 text-center">{t('letterSwipeHint')}</span>
         </div>
 
         <div className="px-5">
           <div className="nest-glass-card rounded-[22px] p-5">
-            <span className="block text-base text-ink mb-6 font-semibold">亲爱的你，</span>
+            <span className="block text-base text-ink mb-6 font-semibold">{t('letterGreeting')}</span>
 
             {loading ? (
-              <p className="block text-sm text-[#6e6e73] leading-relaxed mb-3">正在读取这次空间变化...</p>
+              <p className="block text-sm text-[#6e6e73] leading-relaxed mb-3">{t('letterLoading')}</p>
             ) : (
               paragraphs.map((paragraph, i) => (
                 <p key={i} className="block text-sm text-[#3a3a3c] leading-relaxed mb-3">
@@ -148,13 +150,13 @@ export default function LetterPage() {
 
           {nextStep && (
             <div className="mt-5">
-              <BilingualTitle en="NEXT STEP" zh="下一步可以试试" size="sm" align="left" />
+              <BilingualTitle en="NEXT STEP" zh={t('letterNextStep')} size="sm" align="left" />
               <button
                 type="button"
                 className="nest-glass-card rounded-[22px] p-4 mt-3 cursor-pointer w-full text-left"
                 onClick={() => sessionId && navigate(`/result?sessionId=${sessionId}&level=${selectedLevel}`)}
               >
-                <span className="block text-sm text-ink font-semibold">继续这个空间</span>
+                <span className="block text-sm text-ink font-semibold">{t('letterContinueSpace')}</span>
                 <span className="block text-xs text-[#8e8e93] mt-1">{nextStep}</span>
               </button>
             </div>
@@ -171,14 +173,14 @@ export default function LetterPage() {
               type="button"
               className="ios-primary-button rounded-full py-3 flex items-center justify-center cursor-pointer disabled:opacity-60"
               onClick={handleShareToGrow}
-              disabled={!sessionId || sharing || shared}
+              disabled={!sessionId || sharing || shared || !afterImage}
             >
               <span className="text-white text-sm font-semibold">
-                {shared ? '已分享到 Grow' : sharing ? '正在分享到 Grow...' : '分享到 Grow'}
+                {shared ? t('letterShared') : sharing ? t('letterSharing') : t('letterShareGrow')}
               </span>
             </button>
             <button type="button" className="nest-pill-button rounded-full py-3 flex items-center justify-center cursor-pointer">
-              <span className="text-sm font-semibold">分享给朋友</span>
+              <span className="text-sm font-semibold">{t('letterShareFriend')}</span>
             </button>
           </div>
         </div>

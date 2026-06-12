@@ -7,11 +7,13 @@ import { NobiMascot } from '@/components/NobiMascot'
 import { PlaceholderImage } from '@/components/PlaceholderImage'
 import { Badge } from '@/components/ui/badge'
 import { api, type FeedItemData } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { useUserStore } from '@/stores/user-store'
 
 export default function GrowPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useI18n()
   const currentUser = useUserStore((s) => s.currentUser)
   const [feed, setFeed] = useState<FeedItemData[]>([])
   const [loading, setLoading] = useState(true)
@@ -174,7 +176,7 @@ export default function GrowPage() {
 
   const openFeedItem = (item: FeedItemData) => {
     if (item.sessionId) {
-      navigate(`/result?sessionId=${item.sessionId}`)
+      navigate(`/result?sessionId=${item.sessionId}&source=grow&feedId=${encodeURIComponent(item.id)}`)
     }
   }
 
@@ -236,8 +238,8 @@ export default function GrowPage() {
 
             {!loading && feed.length === 0 && (
               <div className="feed-empty-card rounded-[18px] p-5 text-center mb-4">
-                <span className="block text-sm text-ink">还没有公开的 Next</span>
-                <span className="block text-xs text-[#8e8e93] mt-1">先上传一个空间，Feed 会从第一张卡片开始生长。</span>
+                <span className="block text-sm text-ink">{t('growEmptyTitle')}</span>
+                <span className="block text-xs text-[#8e8e93] mt-1">{t('growEmptyBody')}</span>
               </div>
             )}
 
@@ -256,9 +258,9 @@ export default function GrowPage() {
                   <span className="feed-upload-plus leading-none">+</span>
                 </div>
                 <div className="p-4 relative z-10 text-center">
-                  <span className="block text-[17px] leading-snug font-semibold text-ink">Hi~我是Nobi！</span>
+                  <span className="block text-[17px] leading-snug font-semibold text-ink">{t('growUploadTitle')}</span>
                   <span className="block text-sm text-[#6e6e73] mt-2 leading-relaxed">
-                    让我看看你的小窝吧，我能帮你改造它！
+                    {t('growUploadBody')}
                   </span>
                 </div>
               </button>
